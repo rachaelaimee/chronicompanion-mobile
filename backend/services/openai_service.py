@@ -1,6 +1,6 @@
 import openai
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 
 load_dotenv()
