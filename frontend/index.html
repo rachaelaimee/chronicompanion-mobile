@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChroniCompanion - Your Daily Journey</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sage: {
+                            50: '#f6f7f6',
+                            100: '#e3e8e3',
+                            200: '#c7d1c7',
+                            300: '#a5b5a5',
+                            400: '#7a8e7a',
+                            500: '#5a6e5a',
+                            600: '#4a5a4a',
+                            700: '#3d4a3d',
+                            800: '#323d32',
+                            900: '#2b342b',
+                        },
+                        lavender: {
+                            50: '#faf9fc',
+                            100: '#f3f1f8',
+                            200: '#e7e4f0',
+                            300: '#d5cde4',
+                            400: '#beb0d4',
+                            500: '#a593c2',
+                            600: '#8f78ab',
+                            700: '#7a6490',
+                            800: '#665376',
+                            900: '#554661',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-br from-sage-50 to-lavender-50 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <div class="flex items-center justify-center mb-4">
+                <i class="fas fa-heart text-sage-500 text-3xl mr-3"></i>
+                <h1 class="text-4xl font-bold text-sage-700">ChroniCompanion</h1>
+            </div>
+            <p class="text-sage-600 text-lg">Your gentle space for daily reflection and wellness tracking</p>
+            <div class="mt-4 text-sm text-sage-500" id="current-date"></div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="mb-8">
+            <div class="flex justify-center space-x-4">
+                <button id="new-entry-btn" class="bg-sage-500 hover:bg-sage-600 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center">
+                    <i class="fas fa-plus mr-2"></i>New Entry
+                </button>
+                <button id="view-entries-btn" class="bg-lavender-500 hover:bg-lavender-600 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center">
+                    <i class="fas fa-book mr-2"></i>View Entries
+                </button>
+                <button id="export-btn" class="bg-sage-400 hover:bg-sage-500 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center">
+                    <i class="fas fa-download mr-2"></i>Export
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main>
+            <!-- New Entry Form -->
+            <div id="entry-form" class="bg-white rounded-2xl shadow-lg p-8 mb-8">
+                <h2 class="text-2xl font-semibold text-sage-700 mb-6 flex items-center">
+                    <i class="fas fa-edit mr-3 text-sage-500"></i>Daily Entry
+                </h2>
+
+                <form id="daily-entry-form">
+                    <!-- Entry Type Selection -->
+                    <div class="mb-6">
+                        <label class="block text-sage-700 text-sm font-medium mb-3">Entry Type</label>
+                        <div class="flex space-x-4">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="entry_type" value="morning" class="sr-only peer">
+                                <div class="w-6 h-6 rounded-full border-2 border-sage-300 peer-checked:border-sage-500 peer-checked:bg-sage-500 mr-2 flex items-center justify-center">
+                                    <div class="w-3 h-3 rounded-full bg-white opacity-0 peer-checked:opacity-100"></div>
+                                </div>
+                                <span class="text-sage-700 flex items-center">
+                                    <i class="fas fa-sun text-yellow-500 mr-2"></i>Morning
+                                </span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="entry_type" value="evening" class="sr-only peer">
+                                <div class="w-6 h-6 rounded-full border-2 border-sage-300 peer-checked:border-sage-500 peer-checked:bg-sage-500 mr-2 flex items-center justify-center">
+                                    <div class="w-3 h-3 rounded-full bg-white opacity-0 peer-checked:opacity-100"></div>
+                                </div>
+                                <span class="text-sage-700 flex items-center">
+                                    <i class="fas fa-moon text-indigo-500 mr-2"></i>Evening
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Morning Questions -->
+                    <div id="morning-questions" class="entry-questions hidden">
+                        <h3 class="text-lg font-medium text-sage-700 mb-4 flex items-center">
+                            <i class="fas fa-sun text-yellow-500 mr-2"></i>Morning Reflection
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sage-600 text-sm font-medium mb-2">How are you feeling as you start your day?</label>
+                                <textarea name="morning_feeling" rows="3" class="w-full px-4 py-3 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-300 focus:border-sage-300 resize-none" placeholder="Take a moment to check in with yourself..."></textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sage-600 text-sm font-medium mb-2">What are you hoping for today?</label>
+                                <textarea name="morning_hopes" rows="3" class="w-full px-4 py-3 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-300 focus:border-sage-300 resize-none" placeholder="What would make today feel meaningful for you?"></textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sage-600 text-sm font-medium mb-2">Any symptoms or concerns this morning?</label>
+                                <textarea name="morning_symptoms" rows="3" class="w-full px-4 py-3 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-300 focus:border-sage-300 resize-none" placeholder="It's okay to acknowledge what's challenging today..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Evening Questions -->
+                    <div id="evening-questions" class="entry-questions hidden">
+                        <h3 class="text-lg font-medium text-sage-700 mb-4 flex items-center">
+                            <i class="fas fa-moon text-indigo-500 mr-2"></i>Evening Reflection
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sage-600 text-sm font-medium mb-2">How did your day unfold?</label>
+                                <textarea name="evening_day_review" rows="3" class="w-full px-4 py-3 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-300 focus:border-sage-300 resize-none" placeholder="Reflect on your day with kindness..."></textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sage-600 text-sm font-medium mb-2">What are you grateful for today?</label>
+                                <textarea name="evening_gratitude" rows="3" class="w-full px-4 py-3 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-300 focus:border-sage-300 resize-none" placeholder="Even small moments of joy count..."></textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sage-600 text-sm font-medium mb-2">How are your symptoms tonight?</label>
+                                <textarea name="evening_symptoms" rows="3" class="w-full px-4 py-3 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-300 focus:border-sage-300 resize-none" placeholder="Notice and acknowledge how you're feeling..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mood and Symptom Tracking -->
+                    <div class="mt-8 grid md:grid-cols-2 gap-6">
+                        <!-- Mood Tracker -->
+                        <div class="bg-sage-50 rounded-xl p-6">
+                            <h3 class="text-lg font-medium text-sage-700 mb-4 flex items-center">
+                                <i class="fas fa-smile text-sage-500 mr-2"></i>Mood Level
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sage-600 text-sm font-medium mb-2">Overall Mood</label>
+                                    <div class="flex items-center space-x-3">
+                                        <span class="text-sm text-sage-500">Low</span>
+                                        <input type="range" name="mood_overall" min="1" max="10" value="5" class="flex-1 h-2 bg-sage-200 rounded-lg appearance-none cursor-pointer slider">
+                                        <span class="text-sm text-sage-500">High</span>
+                                        <span id="mood_overall_value" class="text-sm font-medium text-sage-700 min-w-[2rem]">5</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sage-600 text-sm font-medium mb-2">Energy Level</label>
+                                    <div class="flex items-center space-x-3">
+                                        <span class="text-sm text-sage-500">Low</span>
+                                        <input type="range" name="energy_level" min="1" max="10" value="5" class="flex-1 h-2 bg-sage-200 rounded-lg appearance-none cursor-pointer slider">
+                                        <span class="text-sm text-sage-500">High</span>
+                                        <span id="energy_level_value" class="text-sm font-medium text-sage-700 min-w-[2rem]">5</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sage-600 text-sm font-medium mb-2">Anxiety Level</label>
+                                    <div class="flex items-center space-x-3">
+                                        <span class="text-sm text-sage-500">Low</span>
+                                        <input type="range" name="anxiety_level" min="1" max="10" value="5" class="flex-1 h-2 bg-sage-200 rounded-lg appearance-none cursor-pointer slider">
+                                        <span class="text-sm text-sage-500">High</span>
+                                        <span id="anxiety_level_value" class="text-sm font-medium text-sage-700 min-w-[2rem]">5</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Symptom Tracker -->
+                        <div class="bg-lavender-50 rounded-xl p-6">
+                            <h3 class="text-lg font-medium text-sage-700 mb-4 flex items-center">
+                                <i class="fas fa-thermometer-half text-lavender-500 mr-2"></i>Symptom Tracker
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sage-600 text-sm font-medium mb-2">Pain Level</label>
+                                    <div class="flex items-center space-x-3">
+                                        <span class="text-sm text-sage-500">None</span>
+                                        <input type="range" name="pain_level" min="0" max="10" value="0" class="flex-1 h-2 bg-lavender-200 rounded-lg appearance-none cursor-pointer slider">
+                                        <span class="text-sm text-sage-500">Severe</span>
+                                        <span id="pain_level_value" class="text-sm font-medium text-sage-700 min-w-[2rem]">0</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sage-600 text-sm font-medium mb-2">Fatigue Level</label>
+                                    <div class="flex items-center space-x-3">
+                                        <span class="text-sm text-sage-500">None</span>
+                                        <input type="range" name="fatigue_level" min="0" max="10" value="0" class="flex-1 h-2 bg-lavender-200 rounded-lg appearance-none cursor-pointer slider">
+                                        <span class="text-sm text-sage-500">Severe</span>
+                                        <span id="fatigue_level_value" class="text-sm font-medium text-sage-700 min-w-[2rem]">0</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sage-600 text-sm font-medium mb-2">Sleep Quality (last night)</label>
+                                    <select name="sleep_quality" class="w-full px-4 py-3 border border-lavender-200 rounded-lg focus:ring-2 focus:ring-lavender-300 focus:border-lavender-300">
+                                        <option value="">Select sleep quality</option>
+                                        <option value="excellent">Excellent - Fully rested</option>
+                                        <option value="good">Good - Mostly rested</option>
+                                        <option value="fair">Fair - Somewhat rested</option>
+                                        <option value="poor">Poor - Little rest</option>
+                                        <option value="very_poor">Very Poor - No rest</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Notes -->
+                    <div class="mt-6">
+                        <label class="block text-sage-600 text-sm font-medium mb-2">Additional Notes</label>
+                        <textarea name="additional_notes" rows="4" class="w-full px-4 py-3 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-300 focus:border-sage-300 resize-none" placeholder="Anything else you'd like to remember about today..."></textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="mt-8 text-center">
+                        <button type="submit" class="bg-sage-500 hover:bg-sage-600 text-white px-8 py-3 rounded-full text-lg font-medium transition-colors duration-200 flex items-center mx-auto">
+                            <i class="fas fa-save mr-2"></i>Save Entry
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Entries List (initially hidden) -->
+            <div id="entries-list" class="hidden">
+                <h2 class="text-2xl font-semibold text-sage-700 mb-6 flex items-center">
+                    <i class="fas fa-book mr-3 text-sage-500"></i>Your Journal Entries
+                </h2>
+                <div id="entries-container" class="space-y-4">
+                    <!-- Entries will be loaded here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-sage-500 text-sm">
+            <p>Built with care for the chronic illness community 💚</p>
+        </footer>
+    </div>
+
+    <!-- Success Message -->
+    <div id="success-message" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300">
+        <i class="fas fa-check mr-2"></i>Entry saved successfully!
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html> 
