@@ -11,6 +11,19 @@ class ChroniCompanion {
         this.updateCurrentDate();
         this.initializeSliders();
         this.loadEntries(); // Load existing entries on startup
+        this.restoreViewState(); // Restore the last viewed page
+    }
+
+    restoreViewState() {
+        // Get the last viewed page from localStorage
+        const savedView = localStorage.getItem('currentView');
+        
+        // If there's a saved view, show it; otherwise default to entry-form
+        if (savedView && ['entry-form', 'entries-list', 'dashboard'].includes(savedView)) {
+            this.showView(savedView);
+        } else {
+            this.showView('entry-form');
+        }
     }
 
     setupEventListeners() {
@@ -21,7 +34,6 @@ class ChroniCompanion {
 
         document.getElementById('view-entries-btn').addEventListener('click', () => {
             this.showView('entries-list');
-            this.loadEntries();
         });
 
         document.getElementById('export-btn').addEventListener('click', () => {
@@ -30,7 +42,6 @@ class ChroniCompanion {
 
         document.getElementById('dashboard-btn').addEventListener('click', () => {
             this.showView('dashboard');
-            this.loadDashboard();
         });
 
         // Entry type radio buttons
@@ -135,8 +146,18 @@ class ChroniCompanion {
         document.getElementById(viewId).classList.remove('hidden');
         this.currentView = viewId;
 
+        // Save current view to localStorage
+        localStorage.setItem('currentView', viewId);
+
         // Update active nav button
         this.updateActiveNavButton(viewId);
+
+        // Load data specific to this view
+        if (viewId === 'dashboard') {
+            this.loadDashboard();
+        } else if (viewId === 'entries-list') {
+            this.loadEntries();
+        }
     }
 
     updateActiveNavButton(viewId) {
