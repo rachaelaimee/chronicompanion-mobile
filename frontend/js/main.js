@@ -413,6 +413,8 @@ class ChroniCompanion {
                 this.renderChart(chartData);
                 this.updateStatistics(chartData);
                 this.generateInsights(chartData);
+                // Load any saved AI insights
+                this.loadAllSavedInsights();
             } else {
                 console.log('Backend not available, loading sample data');
                 this.loadSampleDashboard();
@@ -460,6 +462,8 @@ class ChroniCompanion {
         this.renderChart(sampleData);
         this.updateSampleStatistics();
         this.generateSampleInsights();
+        // Load any saved AI insights
+        this.loadAllSavedInsights();
     }
 
     generateSampleDates(days) {
@@ -676,6 +680,53 @@ class ChroniCompanion {
         ).join('');
     }
 
+    // AI Persistence Methods
+    saveAIInsight(type, data) {
+        const timestamp = new Date().toISOString();
+        const insight = { ...data, timestamp, type };
+        localStorage.setItem(`ai_${type}`, JSON.stringify(insight));
+    }
+
+    loadSavedAIInsight(type) {
+        try {
+            const saved = localStorage.getItem(`ai_${type}`);
+            return saved ? JSON.parse(saved) : null;
+        } catch (error) {
+            console.log('Error loading saved AI insight:', error);
+            return null;
+        }
+    }
+
+    loadAllSavedInsights() {
+        // Load predictions
+        const savedPredictions = this.loadSavedAIInsight('predictions');
+        if (savedPredictions) {
+            this.displayPredictiveInsights(savedPredictions, savedPredictions.timestamp);
+            document.getElementById('get-predictions-btn').textContent = 'Refresh';
+        }
+
+        // Load coping strategies
+        const savedCoping = this.loadSavedAIInsight('coping');
+        if (savedCoping) {
+            this.displayCopingStrategies(savedCoping, savedCoping.timestamp);
+            document.getElementById('get-coping-btn').textContent = 'Refresh';
+        }
+
+        // Load crisis check
+        const savedCrisis = this.loadSavedAIInsight('crisis');
+        if (savedCrisis) {
+            this.displayCrisisSupport(savedCrisis, savedCrisis.timestamp);
+            document.getElementById('crisis-check-btn').textContent = 'Refresh';
+        }
+
+        // Load coaching
+        const savedCoaching = this.loadSavedAIInsight('coaching');
+        if (savedCoaching) {
+            this.displayWeeklyCoaching(savedCoaching, savedCoaching.timestamp);
+            document.getElementById('get-coaching-btn').textContent = 'Refresh';
+        }
+    }
+
     // Advanced AI Methods
     async loadPredictiveInsights() {
         const btn = document.getElementById('get-predictions-btn');
@@ -689,6 +740,7 @@ class ChroniCompanion {
             
             if (response.ok) {
                 const data = await response.json();
+                this.saveAIInsight('predictions', data.insights);
                 this.displayPredictiveInsights(data.insights);
             } else {
                 this.displayAISampleContent('predictions');
@@ -729,6 +781,7 @@ class ChroniCompanion {
             
             if (response.ok) {
                 const data = await response.json();
+                this.saveAIInsight('coping', data.strategies);
                 this.displayCopingStrategies(data.strategies);
             } else {
                 this.displayAISampleContent('coping');
@@ -737,7 +790,7 @@ class ChroniCompanion {
             console.log('Backend not available, showing sample coping strategies');
             this.displayAISampleContent('coping');
         } finally {
-            btn.textContent = 'Get Help';
+            btn.textContent = 'Refresh';
             btn.disabled = false;
         }
     }
@@ -754,6 +807,7 @@ class ChroniCompanion {
             
             if (response.ok) {
                 const data = await response.json();
+                this.saveAIInsight('crisis', data.analysis);
                 this.displayCrisisSupport(data.analysis);
             } else {
                 this.displayAISampleContent('crisis');
@@ -762,7 +816,7 @@ class ChroniCompanion {
             console.log('Backend not available, showing sample crisis support');
             this.displayAISampleContent('crisis');
         } finally {
-            btn.textContent = 'Check In';
+            btn.textContent = 'Refresh';
             btn.disabled = false;
         }
     }
@@ -779,6 +833,7 @@ class ChroniCompanion {
             
             if (response.ok) {
                 const data = await response.json();
+                this.saveAIInsight('coaching', data.coaching);
                 this.displayWeeklyCoaching(data.coaching);
             } else {
                 this.displayAISampleContent('coaching');
@@ -787,12 +842,26 @@ class ChroniCompanion {
             console.log('Backend not available, showing sample coaching');
             this.displayAISampleContent('coaching');
         } finally {
-            btn.textContent = 'Get Coached';
+            btn.textContent = 'Refresh';
             btn.disabled = false;
         }
     }
 
-    displayPredictiveInsights(insights) {
+    getTimeAgo(timestamp) {
+        const now = new Date();
+        const then = new Date(timestamp);
+        const diffMs = now - then;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'just now';
+        if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    }
+
+    displayPredictiveInsights(insights, timestamp = null) {
         const content = document.getElementById('predictions-content');
         
         if (!insights || !insights.prediction) {
@@ -830,11 +899,24 @@ class ChroniCompanion {
             `;
         }
         
+        // Add timestamp if provided
+        if (timestamp) {
+            const timeAgo = this.getTimeAgo(timestamp);
+            html += `
+                <div class="pt-2 mt-3 border-t border-blue-200">
+                    <p class="text-xs text-blue-500">
+                        <i class="fas fa-clock mr-1"></i>
+                        Last updated ${timeAgo}
+                    </p>
+                </div>
+            `;
+        }
+        
         html += '</div>';
         content.innerHTML = html;
     }
 
-    displayCopingStrategies(strategies) {
+    displayCopingStrategies(strategies, timestamp = null) {
         const content = document.getElementById('coping-content');
         
         if (!strategies) {
@@ -874,11 +956,24 @@ class ChroniCompanion {
             `;
         }
         
+        // Add timestamp if provided
+        if (timestamp) {
+            const timeAgo = this.getTimeAgo(timestamp);
+            html += `
+                <div class="pt-2 mt-3 border-t border-green-200">
+                    <p class="text-xs text-green-500">
+                        <i class="fas fa-clock mr-1"></i>
+                        Last updated ${timeAgo}
+                    </p>
+                </div>
+            `;
+        }
+        
         html += '</div>';
         content.innerHTML = html;
     }
 
-    displayCrisisSupport(analysis) {
+    displayCrisisSupport(analysis, timestamp = null) {
         const content = document.getElementById('crisis-content');
         
         if (!analysis) {
@@ -924,11 +1019,24 @@ class ChroniCompanion {
             `;
         }
         
+        // Add timestamp if provided
+        if (timestamp) {
+            const timeAgo = this.getTimeAgo(timestamp);
+            html += `
+                <div class="pt-2 mt-3 border-t border-red-200">
+                    <p class="text-xs text-red-500">
+                        <i class="fas fa-clock mr-1"></i>
+                        Last updated ${timeAgo}
+                    </p>
+                </div>
+            `;
+        }
+        
         html += '</div>';
         content.innerHTML = html;
     }
 
-    displayWeeklyCoaching(coaching) {
+    displayWeeklyCoaching(coaching, timestamp = null) {
         const content = document.getElementById('coaching-content');
         
         if (!coaching) {
@@ -969,6 +1077,19 @@ class ChroniCompanion {
             html += `
                 <div class="p-3 bg-purple-50 rounded-lg">
                     <p class="text-sm text-purple-800 italic">"${coaching.motivational_message}"</p>
+                </div>
+            `;
+        }
+        
+        // Add timestamp if provided
+        if (timestamp) {
+            const timeAgo = this.getTimeAgo(timestamp);
+            html += `
+                <div class="pt-2 mt-3 border-t border-yellow-200">
+                    <p class="text-xs text-yellow-600">
+                        <i class="fas fa-clock mr-1"></i>
+                        Last updated ${timeAgo}
+                    </p>
                 </div>
             `;
         }
