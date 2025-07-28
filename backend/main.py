@@ -304,6 +304,141 @@ async def get_trends(
             detail=f"Failed to get trends: {str(e)}"
         )
 
+@app.get("/api/analytics/chart-data")
+async def get_chart_data(
+    days: int = 30,
+    metric: str = "all",
+    db: Session = Depends(get_db)
+):
+    """Get chart-ready data for visualization"""
+    try:
+        start_date = datetime.now() - timedelta(days=days)
+        entries = db.query(JournalEntry).filter(
+            JournalEntry.timestamp >= start_date
+        ).order_by(JournalEntry.timestamp.asc()).all()
+        
+        if not entries:
+            return {"labels": [], "datasets": []}
+        
+        # Group entries by date and calculate averages for multiple entries per day
+        daily_data = {}
+        for entry in entries:
+            date_key = entry.date
+            if date_key not in daily_data:
+                daily_data[date_key] = {
+                    "mood": [], "energy": [], "pain": [], 
+                    "anxiety": [], "fatigue": [], "count": 0
+                }
+            
+            daily_data[date_key]["count"] += 1
+            if entry.mood_overall is not None:
+                daily_data[date_key]["mood"].append(entry.mood_overall)
+            if entry.energy_level is not None:
+                daily_data[date_key]["energy"].append(entry.energy_level)
+            if entry.pain_level is not None:
+                daily_data[date_key]["pain"].append(entry.pain_level)
+            if entry.anxiety_level is not None:
+                daily_data[date_key]["anxiety"].append(entry.anxiety_level)
+            if entry.fatigue_level is not None:
+                daily_data[date_key]["fatigue"].append(entry.fatigue_level)
+        
+        # Calculate daily averages
+        labels = sorted(daily_data.keys())
+        datasets = []
+        
+        if metric == "all" or metric == "mood":
+            mood_data = []
+            for date in labels:
+                mood_values = daily_data[date]["mood"]
+                avg_mood = sum(mood_values) / len(mood_values) if mood_values else None
+                mood_data.append(avg_mood)
+            
+            datasets.append({
+                "label": "Mood",
+                "data": mood_data,
+                "borderColor": "#5a6e5a",
+                "backgroundColor": "rgba(90, 110, 90, 0.1)",
+                "tension": 0.4,
+                "fill": True
+            })
+        
+        if metric == "all" or metric == "energy":
+            energy_data = []
+            for date in labels:
+                energy_values = daily_data[date]["energy"]
+                avg_energy = sum(energy_values) / len(energy_values) if energy_values else None
+                energy_data.append(avg_energy)
+            
+            datasets.append({
+                "label": "Energy",
+                "data": energy_data,
+                "borderColor": "#a593c2",
+                "backgroundColor": "rgba(165, 147, 194, 0.1)",
+                "tension": 0.4,
+                "fill": True
+            })
+        
+        if metric == "all" or metric == "pain":
+            pain_data = []
+            for date in labels:
+                pain_values = daily_data[date]["pain"]
+                avg_pain = sum(pain_values) / len(pain_values) if pain_values else None
+                pain_data.append(avg_pain)
+            
+            datasets.append({
+                "label": "Pain",
+                "data": pain_data,
+                "borderColor": "#dc2626",
+                "backgroundColor": "rgba(220, 38, 38, 0.1)",
+                "tension": 0.4,
+                "fill": True
+            })
+        
+        if metric == "all" or metric == "anxiety":
+            anxiety_data = []
+            for date in labels:
+                anxiety_values = daily_data[date]["anxiety"]
+                avg_anxiety = sum(anxiety_values) / len(anxiety_values) if anxiety_values else None
+                anxiety_data.append(avg_anxiety)
+            
+            datasets.append({
+                "label": "Anxiety",
+                "data": anxiety_data,
+                "borderColor": "#f59e0b",
+                "backgroundColor": "rgba(245, 158, 11, 0.1)",
+                "tension": 0.4,
+                "fill": True
+            })
+        
+        if metric == "all" or metric == "fatigue":
+            fatigue_data = []
+            for date in labels:
+                fatigue_values = daily_data[date]["fatigue"]
+                avg_fatigue = sum(fatigue_values) / len(fatigue_values) if fatigue_values else None
+                fatigue_data.append(avg_fatigue)
+            
+            datasets.append({
+                "label": "Fatigue",
+                "data": fatigue_data,
+                "borderColor": "#6366f1",
+                "backgroundColor": "rgba(99, 102, 241, 0.1)",
+                "tension": 0.4,
+                "fill": True
+            })
+        
+        return {
+            "labels": labels,
+            "datasets": datasets,
+            "period_days": days,
+            "total_entries": len(entries)
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get chart data: {str(e)}"
+        )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 

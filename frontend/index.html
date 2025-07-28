@@ -40,6 +40,7 @@
         }
     </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gradient-to-br from-sage-50 to-lavender-50 min-h-screen font-sans">
     <div class="container mx-auto px-4 py-8 max-w-4xl">
@@ -55,14 +56,17 @@
 
         <!-- Navigation -->
         <nav class="mb-8">
-            <div class="flex justify-center space-x-4">
-                <button id="new-entry-btn" class="bg-sage-500 hover:bg-sage-600 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center">
+            <div class="flex justify-center space-x-4 flex-wrap">
+                <button id="new-entry-btn" class="bg-sage-500 hover:bg-sage-600 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center mb-2">
                     <i class="fas fa-plus mr-2"></i>New Entry
                 </button>
-                <button id="view-entries-btn" class="bg-lavender-500 hover:bg-lavender-600 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center">
+                <button id="view-entries-btn" class="bg-lavender-500 hover:bg-lavender-600 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center mb-2">
                     <i class="fas fa-book mr-2"></i>View Entries
                 </button>
-                <button id="export-btn" class="bg-sage-400 hover:bg-sage-500 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center">
+                <button id="dashboard-btn" class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center mb-2">
+                    <i class="fas fa-chart-line mr-2"></i>Dashboard
+                </button>
+                <button id="export-btn" class="bg-sage-400 hover:bg-sage-500 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center mb-2">
                     <i class="fas fa-download mr-2"></i>Export
                 </button>
             </div>
@@ -255,6 +259,125 @@
                 </h2>
                 <div id="entries-container" class="space-y-4">
                     <!-- Entries will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Dashboard (initially hidden) -->
+            <div id="dashboard" class="hidden">
+                <h2 class="text-2xl font-semibold text-sage-700 mb-6 flex items-center">
+                    <i class="fas fa-chart-line mr-3 text-emerald-500"></i>Health Trends Dashboard
+                </h2>
+
+                <!-- Dashboard Controls -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center space-x-4">
+                            <label class="text-sage-700 font-medium">Time Period:</label>
+                            <select id="chart-period" class="px-4 py-2 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-300">
+                                <option value="7">Last 7 days</option>
+                                <option value="14">Last 2 weeks</option>
+                                <option value="30" selected>Last 30 days</option>
+                                <option value="90">Last 3 months</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <label class="text-sage-700 font-medium">Show:</label>
+                            <select id="chart-metric" class="px-4 py-2 border border-sage-200 rounded-lg focus:ring-2 focus:ring-sage-300">
+                                <option value="all">All Metrics</option>
+                                <option value="mood">Mood Only</option>
+                                <option value="energy">Energy Only</option>
+                                <option value="pain">Pain Only</option>
+                                <option value="anxiety">Anxiety Only</option>
+                                <option value="fatigue">Fatigue Only</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart Container -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-sage-700">Health Trends Over Time</h3>
+                        <div id="chart-loading" class="hidden">
+                            <i class="fas fa-spinner fa-spin text-sage-500"></i>
+                            <span class="text-sage-500 ml-2">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="relative" style="height: 400px;">
+                        <canvas id="trendsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <!-- Average Mood Card -->
+                    <div class="bg-sage-50 rounded-xl p-6 border-l-4 border-sage-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sage-600 text-sm font-medium">Average Mood</p>
+                                <p id="avg-mood" class="text-2xl font-bold text-sage-700">--</p>
+                                <p class="text-sage-500 text-sm">out of 10</p>
+                            </div>
+                            <div class="bg-sage-500 rounded-full p-3">
+                                <i class="fas fa-smile text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Average Energy Card -->
+                    <div class="bg-lavender-50 rounded-xl p-6 border-l-4 border-lavender-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-lavender-600 text-sm font-medium">Average Energy</p>
+                                <p id="avg-energy" class="text-2xl font-bold text-lavender-700">--</p>
+                                <p class="text-lavender-500 text-sm">out of 10</p>
+                            </div>
+                            <div class="bg-lavender-500 rounded-full p-3">
+                                <i class="fas fa-battery-half text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Average Pain Card -->
+                    <div class="bg-red-50 rounded-xl p-6 border-l-4 border-red-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-red-600 text-sm font-medium">Average Pain</p>
+                                <p id="avg-pain" class="text-2xl font-bold text-red-700">--</p>
+                                <p class="text-red-500 text-sm">out of 10</p>
+                            </div>
+                            <div class="bg-red-500 rounded-full p-3">
+                                <i class="fas fa-thermometer-half text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Entries Card -->
+                    <div class="bg-emerald-50 rounded-xl p-6 border-l-4 border-emerald-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-emerald-600 text-sm font-medium">Total Entries</p>
+                                <p id="total-entries" class="text-2xl font-bold text-emerald-700">--</p>
+                                <p class="text-emerald-500 text-sm">this period</p>
+                            </div>
+                            <div class="bg-emerald-500 rounded-full p-3">
+                                <i class="fas fa-calendar-check text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights Section -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-sage-700 mb-4 flex items-center">
+                        <i class="fas fa-lightbulb mr-2 text-yellow-500"></i>Quick Insights
+                    </h3>
+                    <div id="insights-container" class="space-y-3">
+                        <div class="text-sage-600">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Add more entries to see personalized insights about your health patterns.
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>

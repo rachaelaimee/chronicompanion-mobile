@@ -28,6 +28,11 @@ class ChroniCompanion {
             this.exportEntries();
         });
 
+        document.getElementById('dashboard-btn').addEventListener('click', () => {
+            this.showView('dashboard');
+            this.loadDashboard();
+        });
+
         // Entry type radio buttons
         const entryTypeRadios = document.querySelectorAll('input[name="entry_type"]');
         entryTypeRadios.forEach(radio => {
@@ -48,6 +53,19 @@ class ChroniCompanion {
             slider.addEventListener('input', (e) => {
                 this.updateSliderValue(e.target);
             });
+        });
+
+        // Dashboard filter controls
+        document.getElementById('chart-period').addEventListener('change', () => {
+            if (this.currentView === 'dashboard') {
+                this.loadDashboard();
+            }
+        });
+
+        document.getElementById('chart-metric').addEventListener('change', () => {
+            if (this.currentView === 'dashboard') {
+                this.loadDashboard();
+            }
         });
     }
 
@@ -91,7 +109,7 @@ class ChroniCompanion {
 
     showView(viewId) {
         // Hide all views
-        const views = ['entry-form', 'entries-list'];
+        const views = ['entry-form', 'entries-list', 'dashboard'];
         views.forEach(view => {
             document.getElementById(view).classList.add('hidden');
         });
@@ -116,6 +134,8 @@ class ChroniCompanion {
             document.getElementById('new-entry-btn').classList.add('ring-2', 'ring-offset-2', 'ring-sage-300');
         } else if (viewId === 'entries-list') {
             document.getElementById('view-entries-btn').classList.add('ring-2', 'ring-offset-2', 'ring-lavender-300');
+        } else if (viewId === 'dashboard') {
+            document.getElementById('dashboard-btn').classList.add('ring-2', 'ring-offset-2', 'ring-emerald-300');
         }
     }
 
@@ -357,6 +377,286 @@ class ChroniCompanion {
         setTimeout(() => {
             successMessage.classList.add('translate-x-full');
         }, 3000);
+    }
+
+    // Dashboard Methods
+    async loadDashboard() {
+        const loadingEl = document.getElementById('chart-loading');
+        const period = document.getElementById('chart-period').value;
+        const metric = document.getElementById('chart-metric').value;
+        
+        try {
+            loadingEl.classList.remove('hidden');
+            
+            // Load chart data
+            const response = await fetch(`${this.apiBase}/api/analytics/chart-data?days=${period}&metric=${metric}`);
+            
+            if (response.ok) {
+                const chartData = await response.json();
+                this.renderChart(chartData);
+                this.updateStatistics(chartData);
+                this.generateInsights(chartData);
+            } else {
+                console.log('Backend not available, loading sample data');
+                this.loadSampleDashboard();
+            }
+        } catch (error) {
+            console.log('Backend not available, loading sample data');
+            this.loadSampleDashboard();
+        } finally {
+            loadingEl.classList.add('hidden');
+        }
+    }
+
+    loadSampleDashboard() {
+        // Create sample data for demonstration
+        const sampleData = {
+            labels: this.generateSampleDates(7),
+            datasets: [
+                {
+                    label: 'Mood',
+                    data: [6, 7, 5, 8, 6, 7, 8],
+                    borderColor: '#5a6e5a',
+                    backgroundColor: 'rgba(90, 110, 90, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Energy',
+                    data: [5, 6, 4, 7, 5, 6, 7],
+                    borderColor: '#a593c2',
+                    backgroundColor: 'rgba(165, 147, 194, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Pain',
+                    data: [3, 4, 6, 2, 4, 3, 2],
+                    borderColor: '#dc2626',
+                    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        };
+        
+        this.renderChart(sampleData);
+        this.updateSampleStatistics();
+        this.generateSampleInsights();
+    }
+
+    generateSampleDates(days) {
+        const dates = [];
+        for (let i = days - 1; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            dates.push(date.toISOString().split('T')[0]);
+        }
+        return dates;
+    }
+
+    renderChart(chartData) {
+        const ctx = document.getElementById('trendsChart').getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (this.trendsChart) {
+            this.trendsChart.destroy();
+        }
+        
+        this.trendsChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: 'white',
+                        bodyColor: 'white',
+                        borderColor: '#5a6e5a',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y;
+                                if (value === null) return null;
+                                
+                                if (label === 'Pain' || label === 'Fatigue') {
+                                    return `${label}: ${value}/10`;
+                                } else {
+                                    return `${label}: ${value}/10`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Date',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            color: '#374151'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Rating (0-10)',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            color: '#374151'
+                        },
+                        min: 0,
+                        max: 10,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                elements: {
+                    point: {
+                        radius: 4,
+                        hoverRadius: 6,
+                        borderWidth: 2
+                    },
+                    line: {
+                        borderWidth: 3
+                    }
+                }
+            }
+        });
+    }
+
+    updateStatistics(chartData) {
+        if (!chartData.datasets || chartData.datasets.length === 0) {
+            this.updateSampleStatistics();
+            return;
+        }
+        
+        // Calculate averages for each metric
+        const stats = {};
+        chartData.datasets.forEach(dataset => {
+            const label = dataset.label.toLowerCase();
+            const validData = dataset.data.filter(val => val !== null && val !== undefined);
+            if (validData.length > 0) {
+                stats[label] = (validData.reduce((a, b) => a + b, 0) / validData.length).toFixed(1);
+            }
+        });
+        
+        // Update DOM elements
+        document.getElementById('avg-mood').textContent = stats.mood || '--';
+        document.getElementById('avg-energy').textContent = stats.energy || '--';
+        document.getElementById('avg-pain').textContent = stats.pain || '--';
+        document.getElementById('total-entries').textContent = chartData.total_entries || '--';
+    }
+
+    updateSampleStatistics() {
+        document.getElementById('avg-mood').textContent = '6.7';
+        document.getElementById('avg-energy').textContent = '5.9';
+        document.getElementById('avg-pain').textContent = '3.4';
+        document.getElementById('total-entries').textContent = '12';
+    }
+
+    generateInsights(chartData) {
+        const container = document.getElementById('insights-container');
+        const insights = [];
+        
+        if (!chartData.datasets || chartData.datasets.length === 0) {
+            this.generateSampleInsights();
+            return;
+        }
+        
+        // Analyze trends for insights
+        chartData.datasets.forEach(dataset => {
+            const label = dataset.label;
+            const validData = dataset.data.filter(val => val !== null && val !== undefined);
+            
+            if (validData.length >= 3) {
+                const recent = validData.slice(-3);
+                const earlier = validData.slice(0, -3);
+                
+                if (recent.length > 0 && earlier.length > 0) {
+                    const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+                    const earlierAvg = earlier.reduce((a, b) => a + b, 0) / earlier.length;
+                    const diff = recentAvg - earlierAvg;
+                    
+                    if (Math.abs(diff) > 0.5) {
+                        if (label === 'Pain' || label === 'Fatigue' || label === 'Anxiety') {
+                            if (diff > 0) {
+                                insights.push(`Your ${label.toLowerCase()} has increased recently. Consider discussing this with your healthcare provider.`);
+                            } else {
+                                insights.push(`Great news! Your ${label.toLowerCase()} levels have been improving recently.`);
+                            }
+                        } else {
+                            if (diff > 0) {
+                                insights.push(`Your ${label.toLowerCase()} has been improving lately - keep up the good work!`);
+                            } else {
+                                insights.push(`Your ${label.toLowerCase()} has been lower recently. Remember to be gentle with yourself.`);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        if (insights.length === 0) {
+            insights.push('Your health patterns are stable. Keep tracking to identify trends over time.');
+        }
+        
+        // Update insights container
+        container.innerHTML = insights.map(insight => 
+            `<div class="text-sage-600 flex items-start">
+                <i class="fas fa-lightbulb mr-2 text-yellow-500 mt-1 flex-shrink-0"></i>
+                <span>${insight}</span>
+            </div>`
+        ).join('');
+    }
+
+    generateSampleInsights() {
+        const container = document.getElementById('insights-container');
+        const sampleInsights = [
+            'Your mood has been relatively stable this week - that\'s wonderful!',
+            'Your energy levels show a slight upward trend. Great progress!',
+            'Your pain levels have been manageable. Keep up your current self-care routine.'
+        ];
+        
+        container.innerHTML = sampleInsights.map(insight => 
+            `<div class="text-sage-600 flex items-start">
+                <i class="fas fa-lightbulb mr-2 text-yellow-500 mt-1 flex-shrink-0"></i>
+                <span>${insight}</span>
+            </div>`
+        ).join('');
     }
 }
 
