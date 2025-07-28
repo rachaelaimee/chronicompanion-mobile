@@ -182,6 +182,168 @@ async def generate_weekly_reflection(db: Session = Depends(get_db)):
             detail=f"Failed to generate weekly reflection: {str(e)}"
         )
 
+# Advanced AI Endpoints
+@app.get("/api/ai/predictive-insights")
+async def get_predictive_insights(
+    days: int = 7,
+    db: Session = Depends(get_db)
+):
+    """Generate predictive insights based on recent patterns"""
+    try:
+        # Get recent entries
+        start_date = datetime.now() - timedelta(days=days)
+        entries = db.query(JournalEntry).filter(
+            JournalEntry.timestamp >= start_date
+        ).order_by(JournalEntry.timestamp.desc()).all()
+        
+        if not entries:
+            return {"message": "Not enough data for predictive insights. Add more journal entries."}
+        
+        # Convert entries to dict format
+        entries_data = [{
+            'entry_type': entry.entry_type,
+            'date': entry.date,
+            'mood_overall': entry.mood_overall,
+            'energy_level': entry.energy_level,
+            'pain_level': entry.pain_level,
+            'anxiety_level': entry.anxiety_level,
+            'fatigue_level': entry.fatigue_level,
+            'additional_notes': entry.additional_notes
+        } for entry in entries]
+        
+        # Generate predictive insights
+        insights = openai_service.generate_predictive_insights(entries_data)
+        
+        return {
+            "insights": insights or {"prediction": "Unable to generate insights at this time."},
+            "based_on_entries": len(entries),
+            "generated_at": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate predictive insights: {str(e)}"
+        )
+
+@app.post("/api/ai/coping-strategies")
+async def get_coping_strategies(
+    current_symptoms: dict,
+    db: Session = Depends(get_db)
+):
+    """Generate personalized coping strategies based on current symptoms"""
+    try:
+        # Get recent entries for context
+        recent_entries = db.query(JournalEntry).order_by(
+            JournalEntry.timestamp.desc()
+        ).limit(14).all()
+        
+        entries_data = [{
+            'mood_overall': entry.mood_overall,
+            'energy_level': entry.energy_level,
+            'pain_level': entry.pain_level,
+            'anxiety_level': entry.anxiety_level,
+            'fatigue_level': entry.fatigue_level,
+            'additional_notes': entry.additional_notes
+        } for entry in recent_entries]
+        
+        # Generate coping strategies
+        strategies = openai_service.generate_coping_strategies(current_symptoms, entries_data)
+        
+        return {
+            "strategies": strategies or {"immediate_strategies": ["Take a moment to breathe deeply"]},
+            "generated_at": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate coping strategies: {str(e)}"
+        )
+
+@app.get("/api/ai/crisis-check")
+async def crisis_pattern_check(
+    db: Session = Depends(get_db)
+):
+    """Check for concerning patterns and provide gentle support"""
+    try:
+        # Get recent entries
+        recent_entries = db.query(JournalEntry).order_by(
+            JournalEntry.timestamp.desc()
+        ).limit(10).all()
+        
+        if not recent_entries:
+            return {"risk_level": "none", "message": "No recent entries to analyze."}
+        
+        entries_data = [{
+            'mood_overall': entry.mood_overall,
+            'energy_level': entry.energy_level,
+            'pain_level': entry.pain_level,
+            'anxiety_level': entry.anxiety_level,
+            'fatigue_level': entry.fatigue_level,
+            'additional_notes': entry.additional_notes,
+            'date': entry.date
+        } for entry in recent_entries]
+        
+        # Perform crisis pattern detection
+        crisis_analysis = openai_service.detect_crisis_patterns(entries_data)
+        
+        return {
+            "analysis": crisis_analysis or {"risk_level": "none", "supportive_message": "You're doing well by tracking your health."},
+            "analyzed_entries": len(recent_entries),
+            "generated_at": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to perform crisis check: {str(e)}"
+        )
+
+@app.get("/api/ai/weekly-coaching")
+async def get_weekly_coaching(
+    db: Session = Depends(get_db)
+):
+    """Generate comprehensive weekly wellness coaching"""
+    try:
+        # Get past week's entries
+        start_date = datetime.now() - timedelta(days=7)
+        entries = db.query(JournalEntry).filter(
+            JournalEntry.timestamp >= start_date
+        ).order_by(JournalEntry.timestamp.asc()).all()
+        
+        if not entries:
+            return {"message": "Not enough recent entries for weekly coaching. Add more journal entries this week."}
+        
+        entries_data = [{
+            'entry_type': entry.entry_type,
+            'date': entry.date,
+            'mood_overall': entry.mood_overall,
+            'energy_level': entry.energy_level,
+            'pain_level': entry.pain_level,
+            'anxiety_level': entry.anxiety_level,
+            'fatigue_level': entry.fatigue_level,
+            'morning_hopes': entry.morning_hopes,
+            'evening_gratitude': entry.evening_gratitude,
+            'additional_notes': entry.additional_notes
+        } for entry in entries]
+        
+        # Generate weekly coaching
+        coaching = openai_service.generate_weekly_coaching(entries_data)
+        
+        return {
+            "coaching": coaching or {"weekly_summary": "You've shown strength by continuing to track your health this week."},
+            "entries_analyzed": len(entries),
+            "week_period": f"{start_date.strftime('%Y-%m-%d')} to {datetime.now().strftime('%Y-%m-%d')}",
+            "generated_at": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate weekly coaching: {str(e)}"
+        )
+
 # Export Endpoints
 @app.get("/api/export")
 async def export_entries(

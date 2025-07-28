@@ -220,4 +220,249 @@ class OpenAIService:
             context_parts.append("Key moments:")
             context_parts.extend(highlights)
         
+        return "\n".join(context_parts)
+
+    def generate_predictive_insights(self, entries_data: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Generate predictive insights based on patterns"""
+        if not self.enabled:
+            return None
+            
+        try:
+            # Analyze recent patterns
+            recent_entries = entries_data[-7:] if len(entries_data) >= 7 else entries_data
+            context = self._build_pattern_context(recent_entries)
+            
+            prompt = f"""You are an AI health pattern analyst for someone with chronic illness.
+            
+Analyze these recent journal entries for patterns and provide gentle predictive insights:
+
+{context}
+
+Based on these patterns, provide insights in JSON format:
+{{
+    "prediction": "Brief prediction about upcoming days (1-2 sentences)",
+    "confidence": "low/medium/high", 
+    "suggestions": ["suggestion1", "suggestion2", "suggestion3"],
+    "warning_signs": ["sign1", "sign2"],
+    "positive_trends": ["trend1", "trend2"]
+}}
+
+Be gentle, trauma-informed, and focus on empowerment rather than alarm."""
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=400,
+                temperature=0.6
+            )
+            
+            import json
+            try:
+                return json.loads(response.choices[0].message.content.strip())
+            except json.JSONDecodeError:
+                # Fallback if JSON parsing fails
+                return {
+                    "prediction": response.choices[0].message.content.strip(),
+                    "confidence": "medium",
+                    "suggestions": [],
+                    "warning_signs": [],
+                    "positive_trends": []
+                }
+            
+        except Exception as e:
+            print(f"Error generating predictive insights: {e}")
+            return None
+
+    def generate_coping_strategies(self, current_symptoms: Dict[str, Any], entries_data: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Generate personalized coping strategy suggestions"""
+        if not self.enabled:
+            return None
+            
+        try:
+            # Build context about current state
+            current_context = f"""
+Current Status:
+- Mood: {current_symptoms.get('mood', 'Not specified')}/10
+- Energy: {current_symptoms.get('energy', 'Not specified')}/10
+- Pain: {current_symptoms.get('pain', 'Not specified')}/10
+- Anxiety: {current_symptoms.get('anxiety', 'Not specified')}/10
+- Fatigue: {current_symptoms.get('fatigue', 'Not specified')}/10
+"""
+            
+            prompt = f"""You are a compassionate chronic illness coach. Based on current symptoms, provide personalized coping strategies.
+
+{current_context}
+
+Provide coping strategies in JSON format:
+{{
+    "immediate_strategies": ["strategy1", "strategy2", "strategy3"],
+    "energy_management": ["tip1", "tip2"],
+    "pain_relief": ["technique1", "technique2"],
+    "mood_support": ["activity1", "activity2"],
+    "self_care": ["selfcare1", "selfcare2"],
+    "when_to_seek_help": "gentle guidance about seeking professional support"
+}}
+
+Focus on evidence-based, gentle, and accessible strategies. Consider spoon theory and chronic illness limitations."""
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=500,
+                temperature=0.7
+            )
+            
+            import json  
+            try:
+                return json.loads(response.choices[0].message.content.strip())
+            except json.JSONDecodeError:
+                return {"immediate_strategies": ["Take gentle, deep breaths", "Rest in a comfortable position", "Reach out to a trusted friend"]}
+                
+        except Exception as e:
+            print(f"Error generating coping strategies: {e}")
+            return None
+
+    def detect_crisis_patterns(self, entries_data: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Detect concerning patterns and provide gentle support"""
+        if not self.enabled:
+            return None
+            
+        try:
+            # Analyze recent entries for concerning patterns
+            recent_entries = entries_data[-5:] if len(entries_data) >= 5 else entries_data
+            context = self._build_crisis_context(recent_entries)
+            
+            prompt = f"""You are a trauma-informed mental health AI assistant. Analyze these journal entries for concerning patterns that might indicate someone needs extra support.
+
+{context}
+
+Analyze for patterns like:
+- Consistently low mood/energy
+- Increasing pain/anxiety
+- Social isolation mentions
+- Hopelessness indicators
+- Major life stressors
+
+Respond in JSON format:
+{{
+    "risk_level": "none/low/medium/high",
+    "concerning_patterns": ["pattern1", "pattern2"],
+    "supportive_message": "Gentle, caring message acknowledging their struggle",
+    "gentle_suggestions": ["suggestion1", "suggestion2"],
+    "resources": ["resource1", "resource2"],
+    "check_in_frequency": "none/daily/twice_daily"
+}}
+
+Be gentle, never alarmist. Focus on support and empowerment."""
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=400,
+                temperature=0.5
+            )
+            
+            import json
+            try:
+                return json.loads(response.choices[0].message.content.strip())
+            except json.JSONDecodeError:
+                return {"risk_level": "none", "concerning_patterns": [], "supportive_message": "You're doing great by tracking your health."}
+                
+        except Exception as e:
+            print(f"Error in crisis detection: {e}")
+            return None
+
+    def generate_weekly_coaching(self, entries_data: List[Dict[str, Any]], goals: List[str] = None) -> Optional[Dict[str, Any]]:
+        """Generate comprehensive weekly wellness coaching"""
+        if not self.enabled:
+            return None
+            
+        try:
+            weekly_context = self._build_weekly_context(entries_data[-7:] if len(entries_data) >= 7 else entries_data)
+            goals_context = f"User goals: {', '.join(goals)}" if goals else "No specific goals set"
+            
+            prompt = f"""You are an AI wellness coach specializing in chronic illness support. Provide comprehensive weekly coaching based on this data.
+
+{weekly_context}
+{goals_context}
+
+Provide coaching in JSON format:
+{{
+    "weekly_summary": "Compassionate summary of their week",
+    "achievements": ["achievement1", "achievement2"],
+    "areas_for_growth": ["gentle area1", "gentle area2"],
+    "next_week_focus": "One main focus area for next week",
+    "specific_goals": ["achievable goal1", "achievable goal2"],
+    "motivational_message": "Encouraging message for the week ahead",
+    "self_care_prescription": ["selfcare1", "selfcare2", "selfcare3"]
+}}
+
+Use chronic illness-informed language. Celebrate small wins. Be realistic about limitations."""
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=500,
+                temperature=0.7
+            )
+            
+            import json
+            try:
+                return json.loads(response.choices[0].message.content.strip())
+            except json.JSONDecodeError:
+                return {"weekly_summary": "You've shown incredible strength this week.", "achievements": ["Continued tracking your health"], "motivational_message": "Keep being gentle with yourself."}
+                
+        except Exception as e:
+            print(f"Error generating weekly coaching: {e}")
+            return None
+
+    def _build_pattern_context(self, entries_data: List[Dict[str, Any]]) -> str:
+        """Build context for pattern analysis"""
+        if not entries_data:
+            return "No recent entries available for analysis."
+        
+        context_parts = []
+        context_parts.append(f"Analyzing {len(entries_data)} recent entries:")
+        
+        # Extract trends
+        mood_values = [e.get('mood_overall') for e in entries_data if e.get('mood_overall') is not None]
+        energy_values = [e.get('energy_level') for e in entries_data if e.get('energy_level') is not None]
+        pain_values = [e.get('pain_level') for e in entries_data if e.get('pain_level') is not None]
+        
+        if mood_values:
+            trend = "increasing" if mood_values[-1] > mood_values[0] else "decreasing" if mood_values[-1] < mood_values[0] else "stable"
+            context_parts.append(f"Mood trend: {trend} (recent: {mood_values[-3:]})")
+        
+        if energy_values:
+            trend = "increasing" if energy_values[-1] > energy_values[0] else "decreasing" if energy_values[-1] < energy_values[0] else "stable"
+            context_parts.append(f"Energy trend: {trend} (recent: {energy_values[-3:]})")
+        
+        if pain_values:
+            trend = "increasing" if pain_values[-1] > pain_values[0] else "decreasing" if pain_values[-1] < pain_values[0] else "stable"
+            context_parts.append(f"Pain trend: {trend} (recent: {pain_values[-3:]})")
+        
+        return "\n".join(context_parts)
+
+    def _build_crisis_context(self, entries_data: List[Dict[str, Any]]) -> str:
+        """Build context for crisis pattern detection"""
+        if not entries_data:
+            return "No recent entries available for analysis."
+        
+        context_parts = []
+        context_parts.append(f"Analyzing {len(entries_data)} recent entries for concerning patterns:")
+        
+        # Look for concerning patterns
+        low_mood_count = sum(1 for e in entries_data if e.get('mood_overall', 10) <= 3)
+        high_pain_count = sum(1 for e in entries_data if e.get('pain_level', 0) >= 7)
+        high_anxiety_count = sum(1 for e in entries_data if e.get('anxiety_level', 0) >= 7)
+        
+        context_parts.append(f"Low mood entries (≤3): {low_mood_count}/{len(entries_data)}")
+        context_parts.append(f"High pain entries (≥7): {high_pain_count}/{len(entries_data)}")
+        context_parts.append(f"High anxiety entries (≥7): {high_anxiety_count}/{len(entries_data)}")
+        
+        # Include recent text entries for context
+        for entry in entries_data[-2:]:
+            if entry.get('additional_notes'):
+                context_parts.append(f"Recent note: {entry['additional_notes'][:150]}...")
+        
         return "\n".join(context_parts) 

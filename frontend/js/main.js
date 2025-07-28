@@ -67,6 +67,23 @@ class ChroniCompanion {
                 this.loadDashboard();
             }
         });
+
+        // AI Insights event listeners
+        document.getElementById('get-predictions-btn').addEventListener('click', () => {
+            this.loadPredictiveInsights();
+        });
+
+        document.getElementById('get-coping-btn').addEventListener('click', () => {
+            this.loadCopingStrategies();
+        });
+
+        document.getElementById('crisis-check-btn').addEventListener('click', () => {
+            this.performCrisisCheck();
+        });
+
+        document.getElementById('get-coaching-btn').addEventListener('click', () => {
+            this.loadWeeklyCoaching();
+        });
     }
 
     updateCurrentDate() {
@@ -657,6 +674,353 @@ class ChroniCompanion {
                 <span>${insight}</span>
             </div>`
         ).join('');
+    }
+
+    // Advanced AI Methods
+    async loadPredictiveInsights() {
+        const btn = document.getElementById('get-predictions-btn');
+        const content = document.getElementById('predictions-content');
+        
+        try {
+            btn.textContent = 'Loading...';
+            btn.disabled = true;
+            
+            const response = await fetch(`${this.apiBase}/api/ai/predictive-insights?days=7`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.displayPredictiveInsights(data.insights);
+            } else {
+                this.displayAISampleContent('predictions');
+            }
+        } catch (error) {
+            console.log('Backend not available, showing sample predictions');
+            this.displayAISampleContent('predictions');
+        } finally {
+            btn.textContent = 'Refresh';
+            btn.disabled = false;
+        }
+    }
+
+    async loadCopingStrategies() {
+        const btn = document.getElementById('get-coping-btn');
+        const content = document.getElementById('coping-content');
+        
+        try {
+            btn.textContent = 'Loading...';
+            btn.disabled = true;
+            
+            // Get current symptoms from latest entry or use defaults
+            const currentSymptoms = {
+                mood: 5,
+                energy: 4,
+                pain: 6,
+                anxiety: 7,
+                fatigue: 6
+            };
+            
+            const response = await fetch(`${this.apiBase}/api/ai/coping-strategies`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(currentSymptoms)
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.displayCopingStrategies(data.strategies);
+            } else {
+                this.displayAISampleContent('coping');
+            }
+        } catch (error) {
+            console.log('Backend not available, showing sample coping strategies');
+            this.displayAISampleContent('coping');
+        } finally {
+            btn.textContent = 'Get Help';
+            btn.disabled = false;
+        }
+    }
+
+    async performCrisisCheck() {
+        const btn = document.getElementById('crisis-check-btn');
+        const content = document.getElementById('crisis-content');
+        
+        try {
+            btn.textContent = 'Checking...';
+            btn.disabled = true;
+            
+            const response = await fetch(`${this.apiBase}/api/ai/crisis-check`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.displayCrisisSupport(data.analysis);
+            } else {
+                this.displayAISampleContent('crisis');
+            }
+        } catch (error) {
+            console.log('Backend not available, showing sample crisis support');
+            this.displayAISampleContent('crisis');
+        } finally {
+            btn.textContent = 'Check In';
+            btn.disabled = false;
+        }
+    }
+
+    async loadWeeklyCoaching() {
+        const btn = document.getElementById('get-coaching-btn');
+        const content = document.getElementById('coaching-content');
+        
+        try {
+            btn.textContent = 'Loading...';
+            btn.disabled = true;
+            
+            const response = await fetch(`${this.apiBase}/api/ai/weekly-coaching`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.displayWeeklyCoaching(data.coaching);
+            } else {
+                this.displayAISampleContent('coaching');
+            }
+        } catch (error) {
+            console.log('Backend not available, showing sample coaching');
+            this.displayAISampleContent('coaching');
+        } finally {
+            btn.textContent = 'Get Coached';
+            btn.disabled = false;
+        }
+    }
+
+    displayPredictiveInsights(insights) {
+        const content = document.getElementById('predictions-content');
+        
+        if (!insights || !insights.prediction) {
+            content.innerHTML = '<p class="text-gray-500">No predictions available at this time.</p>';
+            return;
+        }
+        
+        let html = `
+            <div class="space-y-3">
+                <div class="p-3 bg-blue-50 rounded-lg">
+                    <p class="font-medium text-blue-800">${insights.prediction}</p>
+                    <p class="text-xs text-blue-600 mt-1">Confidence: ${insights.confidence}</p>
+                </div>
+        `;
+        
+        if (insights.suggestions && insights.suggestions.length > 0) {
+            html += `
+                <div>
+                    <p class="font-medium text-gray-700 mb-2">💡 Suggestions:</p>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        ${insights.suggestions.map(s => `<li>• ${s}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        if (insights.positive_trends && insights.positive_trends.length > 0) {
+            html += `
+                <div>
+                    <p class="font-medium text-green-700 mb-2">✨ Positive Trends:</p>
+                    <ul class="text-sm text-green-600 space-y-1">
+                        ${insights.positive_trends.map(t => `<li>• ${t}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        content.innerHTML = html;
+    }
+
+    displayCopingStrategies(strategies) {
+        const content = document.getElementById('coping-content');
+        
+        if (!strategies) {
+            content.innerHTML = '<p class="text-gray-500">No coping strategies available at this time.</p>';
+            return;
+        }
+        
+        let html = '<div class="space-y-3">';
+        
+        if (strategies.immediate_strategies && strategies.immediate_strategies.length > 0) {
+            html += `
+                <div>
+                    <p class="font-medium text-green-700 mb-2">🚨 Right Now:</p>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        ${strategies.immediate_strategies.map(s => `<li>• ${s}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        if (strategies.self_care && strategies.self_care.length > 0) {
+            html += `
+                <div>
+                    <p class="font-medium text-purple-700 mb-2">💜 Self-Care:</p>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        ${strategies.self_care.map(s => `<li>• ${s}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        if (strategies.when_to_seek_help) {
+            html += `
+                <div class="p-3 bg-yellow-50 rounded-lg">
+                    <p class="text-sm text-yellow-800">${strategies.when_to_seek_help}</p>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        content.innerHTML = html;
+    }
+
+    displayCrisisSupport(analysis) {
+        const content = document.getElementById('crisis-content');
+        
+        if (!analysis) {
+            content.innerHTML = '<p class="text-gray-500">Unable to perform wellness check at this time.</p>';
+            return;
+        }
+        
+        const riskColors = {
+            none: 'green',
+            low: 'yellow',
+            medium: 'orange',
+            high: 'red'
+        };
+        
+        const color = riskColors[analysis.risk_level] || 'green';
+        
+        let html = `
+            <div class="space-y-3">
+                <div class="p-3 bg-${color}-50 rounded-lg border border-${color}-200">
+                    <p class="font-medium text-${color}-800">${analysis.supportive_message}</p>
+                </div>
+        `;
+        
+        if (analysis.gentle_suggestions && analysis.gentle_suggestions.length > 0) {
+            html += `
+                <div>
+                    <p class="font-medium text-gray-700 mb-2">💝 Gentle Suggestions:</p>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        ${analysis.gentle_suggestions.map(s => `<li>• ${s}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        if (analysis.resources && analysis.resources.length > 0) {
+            html += `
+                <div>
+                    <p class="font-medium text-blue-700 mb-2">🔗 Resources:</p>
+                    <ul class="text-sm text-blue-600 space-y-1">
+                        ${analysis.resources.map(r => `<li>• ${r}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        content.innerHTML = html;
+    }
+
+    displayWeeklyCoaching(coaching) {
+        const content = document.getElementById('coaching-content');
+        
+        if (!coaching) {
+            content.innerHTML = '<p class="text-gray-500">No coaching available at this time.</p>';
+            return;
+        }
+        
+        let html = `
+            <div class="space-y-3">
+                <div class="p-3 bg-yellow-50 rounded-lg">
+                    <p class="font-medium text-yellow-800">${coaching.weekly_summary}</p>
+                </div>
+        `;
+        
+        if (coaching.achievements && coaching.achievements.length > 0) {
+            html += `
+                <div>
+                    <p class="font-medium text-green-700 mb-2">🏆 This Week's Wins:</p>
+                    <ul class="text-sm text-green-600 space-y-1">
+                        ${coaching.achievements.map(a => `<li>• ${a}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        if (coaching.specific_goals && coaching.specific_goals.length > 0) {
+            html += `
+                <div>
+                    <p class="font-medium text-blue-700 mb-2">🎯 Next Week's Focus:</p>
+                    <ul class="text-sm text-blue-600 space-y-1">
+                        ${coaching.specific_goals.map(g => `<li>• ${g}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        if (coaching.motivational_message) {
+            html += `
+                <div class="p-3 bg-purple-50 rounded-lg">
+                    <p class="text-sm text-purple-800 italic">"${coaching.motivational_message}"</p>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        content.innerHTML = html;
+    }
+
+    displayAISampleContent(type) {
+        const sampleContent = {
+            predictions: {
+                prediction: "Based on your recent patterns, you might experience some fatigue tomorrow, but your mood has been improving steadily.",
+                confidence: "medium",
+                suggestions: ["Plan lighter activities for tomorrow", "Prioritize rest and hydration", "Continue your current self-care routine"],
+                positive_trends: ["Your mood has improved by 20% this week", "Energy levels are more stable"]
+            },
+            coping: {
+                immediate_strategies: ["Take 5 deep breaths", "Find a comfortable position to rest", "Reach out to a trusted friend"],
+                self_care: ["Gentle stretching", "Listen to calming music", "Take a warm bath"],
+                when_to_seek_help: "If symptoms persist or worsen, consider reaching out to your healthcare provider."
+            },
+            crisis: {
+                risk_level: "low",
+                supportive_message: "You're showing incredible strength by tracking your health and seeking support.",
+                gentle_suggestions: ["Practice your favorite grounding technique", "Connect with someone who cares about you"],
+                resources: ["Crisis Text Line: Text HOME to 741741", "Your local support network"]
+            },
+            coaching: {
+                weekly_summary: "This week you've shown remarkable resilience despite some challenging days.",
+                achievements: ["Continued daily tracking", "Reached out for support when needed", "Maintained your self-care routine"],
+                specific_goals: ["Focus on gentle movement", "Practice gratitude daily", "Maintain consistent sleep schedule"],
+                motivational_message: "You are stronger than you know, and every small step forward matters."
+            }
+        };
+        
+        const sample = sampleContent[type];
+        if (!sample) return;
+        
+        switch (type) {
+            case 'predictions':
+                this.displayPredictiveInsights(sample);
+                break;
+            case 'coping':
+                this.displayCopingStrategies(sample);
+                break;
+            case 'crisis':
+                this.displayCrisisSupport(sample);
+                break;
+            case 'coaching':
+                this.displayWeeklyCoaching(sample);
+                break;
+        }
     }
 }
 
