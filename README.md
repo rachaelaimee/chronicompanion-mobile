@@ -88,21 +88,51 @@
 
 4. **Start the application**
 
-   ```bash
-   python3 run_app.py
-   ```
+### 🎯 **Easy Launch Options**
 
-5. **Open your journal**
+#### Option 1: Complete App (Recommended) ⭐
 
-   - Backend runs at: `http://localhost:8000`
-   - Open `frontend/index.html` in your browser
-   - Or serve frontend: `cd frontend && python3 -m http.server 3000`
+**Start everything and open in browser automatically:**
+
+```bash
+python3 start_app.py
+```
+
+This will:
+
+- ✅ Start the backend server (API + Database)
+- ✅ Start the frontend server
+- ✅ Automatically open your browser to the app
+- ✅ Clean up any existing processes
+- ✅ Handle graceful shutdown with Ctrl+C
+
+#### Option 2: Frontend Only
+
+**Just the frontend (if backend is already running):**
+
+```bash
+python3 run_frontend.py
+```
+
+#### Option 3: Manual Setup
+
+**For developers who want control:**
+
+```bash
+# Terminal 1: Start backend
+python3 run_app.py
+
+# Terminal 2: Start frontend and open browser
+python3 run_frontend.py
+# Or manually: cd frontend && python3 -m http.server 3000
+```
 
 ### Validation
 
-- Visit `http://localhost:8000/health` to verify backend
-- Check `http://localhost:8000/docs` for API documentation
-- Create your first journal entry to test functionality
+- **Backend**: Visit `http://localhost:8000/health` to verify API
+- **API Docs**: Check `http://localhost:8000/docs` for interactive documentation
+- **Frontend**: App available at `http://localhost:3000` (when using start_app.py)
+- **Test**: Create your first journal entry to verify full functionality
 
 ## 🏗️ Architecture
 
