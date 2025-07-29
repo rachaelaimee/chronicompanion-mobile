@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChroniCompanion - Your Daily Journey</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#5a6e5a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ChroniCompanion">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="shortcut icon" href="/icons/icon-192x192.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -41,6 +52,163 @@
     </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Mobile-Optimized CSS -->
+    <style>
+        /* Mobile optimizations */
+        .mobile-optimized {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .mobile-optimized input[type="range"] {
+            -webkit-appearance: none;
+            height: 12px;
+            border-radius: 6px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .mobile-optimized input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #5a6e5a;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+
+        .mobile-optimized input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.2);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .mobile-optimized input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #5a6e5a;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+
+        .touch-active {
+            transform: scale(0.95);
+            transition: transform 0.1s ease;
+        }
+
+        .slider-active {
+            opacity: 0.8;
+        }
+
+        .value-updated {
+            animation: pulse 0.3s ease;
+            color: #5a6e5a;
+            font-weight: 600;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Enhance touch targets on mobile */
+        @media (max-width: 768px) {
+            button {
+                min-height: 44px;
+                padding: 12px 24px;
+            }
+
+            input, textarea, select {
+                min-height: 44px;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            .slider {
+                height: 44px !important;
+                margin: 8px 0;
+            }
+
+            nav button {
+                padding: 16px 20px;
+                font-size: 16px;
+            }
+
+            /* Improve spacing for mobile */
+            .container {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+
+            /* Stack navigation vertically on very small screens */
+            @media (max-width: 480px) {
+                nav {
+                    flex-direction: column;
+                    gap: 8px;
+                }
+
+                nav button {
+                    width: 100%;
+                    justify-content: center;
+                }
+            }
+        }
+
+        /* PWA specific styles */
+        @media (display-mode: standalone) {
+            body {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+        }
+
+        /* Offline indicator */
+        .offline-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #f59e0b;
+            color: white;
+            text-align: center;
+            padding: 8px;
+            font-size: 14px;
+            z-index: 1000;
+        }
+
+        /* Sync status indicator */
+        .sync-status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+
+        .sync-status.synced {
+            background: #10b981;
+        }
+
+        .sync-status.pending {
+            background: #f59e0b;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+    </style>
 </head>
 <body class="bg-gradient-to-br from-sage-50 to-lavender-50 min-h-screen font-sans">
     <div class="container mx-auto px-4 py-8 max-w-4xl">
@@ -477,6 +645,90 @@
         <i class="fas fa-check mr-2"></i>Entry saved successfully!
     </div>
 
+    <!-- PWA Installation Banner -->
+    <div id="installPrompt" class="fixed bottom-4 left-4 right-4 bg-sage-100 border border-sage-300 rounded-lg p-4 shadow-lg hidden">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="font-medium text-sage-800">Install ChroniCompanion</h3>
+                <p class="text-sm text-sage-600">Add to your home screen for easy access</p>
+            </div>
+            <div class="flex space-x-2">
+                <button id="installBtn" class="bg-sage-600 text-white px-4 py-2 rounded text-sm hover:bg-sage-700">
+                    Install
+                </button>
+                <button id="dismissBtn" class="text-sage-600 px-2 py-2 text-sm hover:text-sage-800">
+                    ×
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/main.js"></script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        const installPrompt = document.getElementById('installPrompt');
+        const installBtn = document.getElementById('installBtn');
+        const dismissBtn = document.getElementById('dismissBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent Chrome 67 and earlier from automatically showing the prompt
+            e.preventDefault();
+            // Stash the event so it can be triggered later
+            deferredPrompt = e;
+            // Show our custom install prompt
+            installPrompt.classList.remove('hidden');
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                // Show the install prompt
+                deferredPrompt.prompt();
+                // Wait for the user to respond to the prompt
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                // Clear the deferredPrompt
+                deferredPrompt = null;
+                // Hide the install prompt
+                installPrompt.classList.add('hidden');
+            }
+        });
+
+        dismissBtn.addEventListener('click', () => {
+            installPrompt.classList.add('hidden');
+            // Don't show again for this session
+            deferredPrompt = null;
+        });
+
+        // Hide install prompt if app is already installed
+        window.addEventListener('appinstalled', () => {
+            installPrompt.classList.add('hidden');
+            deferredPrompt = null;
+        });
+
+        // Add a way to manually trigger the install prompt for testing
+        window.showInstallPrompt = () => {
+            if (deferredPrompt) {
+                installPrompt.classList.remove('hidden');
+            } else {
+                console.log('Install prompt not available. App may already be installed or browser doesn\'t support PWA installation.');
+            }
+        };
+    </script>
 </body>
 </html> 

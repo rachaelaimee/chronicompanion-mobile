@@ -1,17 +1,168 @@
 // ChroniCompanion Frontend JavaScript
 class ChroniCompanion {
     constructor() {
-        this.apiBase = 'http://localhost:8000'; // Backend API URL
+        this.apiBase = 'http://localhost:8000'; // Backend API URL (will fallback to offline mode)
         this.currentView = 'entry-form';
+        this.db = null; // IndexedDB instance
+        this.isOnline = navigator.onLine;
+        this.isMobile = this.detectMobile();
         this.init();
     }
 
-    init() {
+    detectMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+               window.innerWidth <= 768;
+    }
+
+    async init() {
+        await this.initIndexedDB();
         this.setupEventListeners();
+        this.setupMobileOptimizations();
         this.updateCurrentDate();
         this.initializeSliders();
         this.loadEntries(); // Load existing entries on startup
         this.restoreViewState(); // Restore the last viewed page
+        this.setupOfflineHandling();
+        this.checkBackendConnection(); // Check if backend is available
+    }
+
+    async checkBackendConnection() {
+        try {
+            const response = await fetch(`${this.apiBase}/health`, { 
+                method: 'GET',
+                timeout: 2000 
+            });
+            if (response.ok) {
+                this.showNetworkStatus('Connected to server', 'success');
+            }
+        } catch (error) {
+            this.showNetworkStatus('Running in offline mode - entries saved locally', 'info');
+        }
+    }
+
+    // IndexedDB setup for offline functionality
+    async initIndexedDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('ChroniCompanionDB', 2);
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                this.db = request.result;
+                resolve();
+            };
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                
+                // Create entries store
+                if (!db.objectStoreNames.contains('entries')) {
+                    const entriesStore = db.createObjectStore('entries', { keyPath: 'id', autoIncrement: true });
+                    entriesStore.createIndex('date', 'date', { unique: false });
+                    entriesStore.createIndex('synced', 'synced', { unique: false });
+                }
+                
+                // Create pending sync store
+                if (!db.objectStoreNames.contains('pending_sync')) {
+                    db.createObjectStore('pending_sync', { keyPath: 'id', autoIncrement: true });
+                }
+            };
+        });
+    }
+
+    setupMobileOptimizations() {
+        if (this.isMobile) {
+            // Add mobile-specific CSS classes
+            document.body.classList.add('mobile-optimized');
+            
+            // Enhanced touch feedback for buttons
+            this.addTouchFeedback();
+            
+            // Prevent zoom on input focus (iOS)
+            const metaViewport = document.querySelector('meta[name="viewport"]');
+            if (metaViewport) {
+                metaViewport.setAttribute('content', 
+                    'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+            }
+            
+            // Add haptic feedback support
+            this.setupHapticFeedback();
+        }
+    }
+
+    addTouchFeedback() {
+        const buttons = document.querySelectorAll('button, .slider');
+        buttons.forEach(element => {
+            element.addEventListener('touchstart', (e) => {
+                element.classList.add('touch-active');
+                // Haptic feedback for supported devices
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(10);
+                }
+            });
+            
+            element.addEventListener('touchend', (e) => {
+                setTimeout(() => {
+                    element.classList.remove('touch-active');
+                }, 150);
+            });
+        });
+    }
+
+    setupHapticFeedback() {
+        // Add light haptic feedback for form interactions
+        const formElements = document.querySelectorAll('input[type="range"], button');
+        formElements.forEach(element => {
+            element.addEventListener('change', () => {
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(5); // Light vibration
+                }
+            });
+        });
+    }
+
+    setupOfflineHandling() {
+        window.addEventListener('online', () => {
+            this.isOnline = true;
+            this.showNetworkStatus('Connected', 'success');
+            this.syncPendingEntries();
+        });
+        
+        window.addEventListener('offline', () => {
+            this.isOnline = false;
+            this.showNetworkStatus('Offline - Entries will sync when connected', 'warning');
+        });
+    }
+
+    showNetworkStatus(message, type) {
+        const statusEl = document.createElement('div');
+        let bgColor, textColor;
+        
+        switch(type) {
+            case 'success':
+                bgColor = 'bg-green-100';
+                textColor = 'text-green-800';
+                break;
+            case 'warning':
+                bgColor = 'bg-yellow-100';
+                textColor = 'text-yellow-800';
+                break;
+            case 'info':
+                bgColor = 'bg-blue-100';
+                textColor = 'text-blue-800';
+                break;
+            default:
+                bgColor = 'bg-gray-100';
+                textColor = 'text-gray-800';
+        }
+        
+        statusEl.className = `fixed top-4 left-4 right-4 p-3 rounded-lg text-sm font-medium z-50 ${bgColor} ${textColor}`;
+        statusEl.textContent = message;
+        
+        document.body.appendChild(statusEl);
+        
+        setTimeout(() => {
+            statusEl.remove();
+        }, 4000);
     }
 
     restoreViewState() {
@@ -52,18 +203,37 @@ class ChroniCompanion {
             });
         });
 
+        // Enhanced slider event listeners for mobile
+        const sliders = document.querySelectorAll('.slider');
+        sliders.forEach(slider => {
+            // Desktop events
+            slider.addEventListener('input', (e) => {
+                this.updateSliderValue(e.target);
+            });
+            
+            // Mobile-optimized touch events
+            if (this.isMobile) {
+                slider.addEventListener('touchstart', (e) => {
+                    slider.classList.add('slider-active');
+                });
+                
+                slider.addEventListener('touchend', (e) => {
+                    slider.classList.remove('slider-active');
+                    // Trigger change event for haptic feedback
+                    slider.dispatchEvent(new Event('change'));
+                });
+                
+                slider.addEventListener('touchmove', (e) => {
+                    // Update value in real-time during touch
+                    this.updateSliderValue(slider);
+                });
+            }
+        });
+
         // Form submission
         document.getElementById('daily-entry-form').addEventListener('submit', (e) => {
             e.preventDefault();
             this.submitEntry();
-        });
-
-        // Slider updates
-        const sliders = document.querySelectorAll('.slider');
-        sliders.forEach(slider => {
-            slider.addEventListener('input', (e) => {
-                this.updateSliderValue(e.target);
-            });
         });
 
         // Dashboard filter controls
@@ -112,6 +282,12 @@ class ChroniCompanion {
         const sliders = document.querySelectorAll('.slider');
         sliders.forEach(slider => {
             this.updateSliderValue(slider);
+            
+            // Enhanced mobile slider styling
+            if (this.isMobile) {
+                slider.style.height = '3rem'; // Larger touch target
+                slider.style.borderRadius = '1.5rem';
+            }
         });
     }
 
@@ -119,6 +295,14 @@ class ChroniCompanion {
         const valueDisplay = document.getElementById(slider.name + '_value');
         if (valueDisplay) {
             valueDisplay.textContent = slider.value;
+            
+            // Add visual feedback for mobile
+            if (this.isMobile) {
+                valueDisplay.classList.add('value-updated');
+                setTimeout(() => {
+                    valueDisplay.classList.remove('value-updated');
+                }, 200);
+            }
         }
     }
 
@@ -187,32 +371,112 @@ class ChroniCompanion {
             entryData[key] = value;
         }
 
-        // Add timestamp
+        // Add timestamp and metadata
         entryData.timestamp = new Date().toISOString();
         entryData.date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+        entryData.id = Date.now().toString();
+        entryData.synced = false;
 
-        try {
-            const response = await fetch(`${this.apiBase}/api/entries`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(entryData)
-            });
+        if (this.isOnline) {
+            try {
+                const response = await fetch(`${this.apiBase}/api/entries`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(entryData)
+                });
 
-            if (response.ok) {
-                this.showSuccessMessage('Entry saved successfully!');
+                if (response.ok) {
+                    entryData.synced = true;
+                    await this.saveToIndexedDB(entryData);
+                    this.showSuccessMessage('Entry saved successfully!');
+                    this.resetForm();
+                    return;
+                } else {
+                    throw new Error('Failed to save entry');
+                }
+            } catch (error) {
+                console.log('Failed to sync with server, saving locally');
+                await this.saveToIndexedDB(entryData);
+                await this.addToPendingSync(entryData);
+                this.showSuccessMessage('Entry saved offline - will sync when connected');
                 this.resetForm();
-                // If we're in a development environment without backend, save to localStorage
-            } else {
-                throw new Error('Failed to save entry');
             }
-        } catch (error) {
-            console.log('Backend not available, saving to localStorage for development');
-            this.saveToLocalStorage(entryData);
-            this.showSuccessMessage('Entry saved locally!');
+        } else {
+            // Offline - save to IndexedDB and queue for sync
+            await this.saveToIndexedDB(entryData);
+            await this.addToPendingSync(entryData);
+            this.showSuccessMessage('Entry saved offline - will sync when connected');
             this.resetForm();
         }
+    }
+
+    async saveToIndexedDB(entryData) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['entries'], 'readwrite');
+            const store = transaction.objectStore('entries');
+            const request = store.put(entryData);
+            
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async addToPendingSync(entryData) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['pending_sync'], 'readwrite');
+            const store = transaction.objectStore('pending_sync');
+            const request = store.add({
+                data: entryData,
+                timestamp: new Date().toISOString()
+            });
+            
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async syncPendingEntries() {
+        if (!this.isOnline || !this.db) return;
+
+        return new Promise((resolve) => {
+            const transaction = this.db.transaction(['pending_sync'], 'readwrite');
+            const store = transaction.objectStore('pending_sync');
+            const request = store.getAll();
+
+            request.onsuccess = async () => {
+                const pendingEntries = request.result;
+                
+                for (const pendingEntry of pendingEntries) {
+                    try {
+                        const response = await fetch(`${this.apiBase}/api/entries`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(pendingEntry.data)
+                        });
+
+                        if (response.ok) {
+                            // Mark as synced in entries store
+                            const entryTransaction = this.db.transaction(['entries'], 'readwrite');
+                            const entryStore = entryTransaction.objectStore('entries');
+                            pendingEntry.data.synced = true;
+                            entryStore.put(pendingEntry.data);
+
+                            // Remove from pending sync
+                            const deleteTransaction = this.db.transaction(['pending_sync'], 'readwrite');
+                            const deleteStore = deleteTransaction.objectStore('pending_sync');
+                            deleteStore.delete(pendingEntry.id);
+                        }
+                    } catch (error) {
+                        console.log('Sync failed for entry:', pendingEntry.id);
+                    }
+                }
+                resolve();
+            };
+        });
     }
 
     saveToLocalStorage(entryData) {
@@ -232,18 +496,54 @@ class ChroniCompanion {
     }
 
     async loadEntries() {
-        try {
-            const response = await fetch(`${this.apiBase}/api/entries`);
-            if (response.ok) {
-                const entries = await response.json();
-                this.displayEntries(entries);
-            } else {
-                throw new Error('Failed to load entries');
+        // Always load from IndexedDB first for immediate display
+        const localEntries = await this.loadEntriesFromIndexedDB();
+        this.displayEntries(localEntries);
+
+        // Try to sync with server in background if online
+        if (this.isOnline) {
+            try {
+                const response = await fetch(`${this.apiBase}/api/entries`);
+                if (response.ok) {
+                    const serverEntries = await response.json();
+                    // Merge and update local database
+                    await this.mergeEntries(serverEntries);
+                    // Reload display with merged data
+                    const updatedEntries = await this.loadEntriesFromIndexedDB();
+                    this.displayEntries(updatedEntries);
+                }
+            } catch (error) {
+                console.log('Server sync failed, using local data');
             }
-        } catch (error) {
-            console.log('Backend not available, loading from localStorage');
-            const entries = this.loadEntriesFromLocalStorage();
-            this.displayEntries(entries);
+        }
+    }
+
+    async loadEntriesFromIndexedDB() {
+        return new Promise((resolve) => {
+            const transaction = this.db.transaction(['entries'], 'readonly');
+            const store = transaction.objectStore('entries');
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                const entries = request.result.sort((a, b) => 
+                    new Date(b.timestamp) - new Date(a.timestamp)
+                );
+                resolve(entries);
+            };
+
+            request.onerror = () => {
+                console.log('Failed to load from IndexedDB, falling back to localStorage');
+                const entries = this.loadEntriesFromLocalStorage();
+                resolve(entries);
+            };
+        });
+    }
+
+    async mergeEntries(serverEntries) {
+        // This function merges server entries with local ones
+        for (const serverEntry of serverEntries) {
+            serverEntry.synced = true;
+            await this.saveToIndexedDB(serverEntry);
         }
     }
 
