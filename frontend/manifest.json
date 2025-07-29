@@ -4,9 +4,13 @@
   "description": "Gentle journaling for chronic illness and mental health management",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
   "background_color": "#f8f9fa",
   "theme_color": "#5a6e5a",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "id": "chronicompanion-health-journal",
+  "categories": ["health", "medical", "lifestyle"],
+  "lang": "en",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -32,9 +36,5 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ],
-  "categories": ["health", "medical", "lifestyle"],
-  "lang": "en",
-  "scope": "/",
-  "id": "chronicompanion-health-journal"
+  ]
 } 
