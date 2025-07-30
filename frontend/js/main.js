@@ -24,6 +24,7 @@ class ChroniCompanion {
         this.restoreViewState(); // Restore the last viewed page
         this.setupOfflineHandling();
         this.checkBackendConnection(); // Check if backend is available
+        this.checkPremiumStatus(); // Check premium subscription status
     }
 
     async checkBackendConnection() {
