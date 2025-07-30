@@ -1,0 +1,19 @@
+{
+  "name": "ChroniCompanion - Health Journal",
+  "short_name": "ChroniCompanion", 
+  "description": "Gentle journaling for chronic illness and mental health management",
+  "start_url": "https://rachaelaimee.github.io/chronicompanion-mobile/frontend/",
+  "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#5a6e5a",
+  "orientation": "portrait-primary",
+  "scope": "https://rachaelaimee.github.io/chronicompanion-mobile/frontend/",
+  "icons": [
+    {
+      "src": "./frontend/icons/icon-512x512.png",
+      "sizes": "512x512", 
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+} 

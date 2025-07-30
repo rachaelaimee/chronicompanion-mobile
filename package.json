@@ -1,0 +1,25 @@
+{
+  "name": "chronicompanion-copy",
+  "version": "1.0.0",
+  "description": "A Progressive Web App version of ChroniCompanion for mobile devices.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rachaelaimee/chronicompanion-mobile.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Rachaelaimee/chronicompanion-mobile/issues"
+  },
+  "homepage": "https://github.com/Rachaelaimee/chronicompanion-mobile#readme",
+  "dependencies": {
+    "@capacitor/android": "^7.4.2",
+    "@capacitor/cli": "^7.4.2",
+    "@capacitor/core": "^7.4.2"
+  }
+}
