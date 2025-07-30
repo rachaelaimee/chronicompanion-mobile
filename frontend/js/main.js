@@ -1019,10 +1019,12 @@ class ChroniCompanion {
         }
     }
 
-    showMobileDownloadModal(url, filename) {
+    showMobileDownloadModal(url, filename, blob) {
         // Create mobile download modal
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.id = 'pdf-download-modal';
+        
         modal.innerHTML = `
             <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
                 <div class="text-center mb-6">
@@ -1032,12 +1034,17 @@ class ChroniCompanion {
                 </div>
                 
                 <div class="space-y-3">
-                    <a href="${url}" download="${filename}" 
+                    <button id="mobile-download-btn" 
                        class="w-full bg-green-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center justify-center">
                         <i class="fas fa-download mr-2"></i>Download PDF
-                    </a>
+                    </button>
                     
-                    <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                    <button id="share-pdf-btn" 
+                       class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center">
+                        <i class="fas fa-share mr-2"></i>Share PDF
+                    </button>
+                    
+                    <button onclick="app.closePdfModal()" 
                             class="w-full text-gray-600 py-2 hover:text-gray-800">
                         Close
                     </button>
@@ -1046,7 +1053,7 @@ class ChroniCompanion {
                 <div class="mt-4 p-3 bg-blue-50 rounded-lg">
                     <p class="text-xs text-blue-700">
                         <i class="fas fa-info-circle mr-1"></i>
-                        File will save to your Downloads folder. You can find it in your Files app or browser downloads.
+                        Try "Share PDF" if download doesn't work. This will let you save to Files, email, or other apps.
                     </p>
                 </div>
             </div>
@@ -1055,13 +1062,91 @@ class ChroniCompanion {
         document.body.appendChild(modal);
         document.body.style.overflow = 'hidden';
         
+        // Add event listeners for the buttons
+        const downloadBtn = modal.querySelector('#mobile-download-btn');
+        const shareBtn = modal.querySelector('#share-pdf-btn');
+        
+        downloadBtn.addEventListener('click', () => {
+            this.tryMobileDownload(url, filename, blob);
+        });
+        
+        shareBtn.addEventListener('click', () => {
+            this.tryMobileShare(filename, blob);
+        });
+        
         // Auto-remove after 30 seconds
         setTimeout(() => {
             if (modal.parentElement) {
-                modal.remove();
-                document.body.style.overflow = 'auto';
+                this.closePdfModal();
             }
         }, 30000);
+    }
+
+    async tryMobileDownload(url, filename, blob) {
+        try {
+            // Method 1: Try direct blob download with user interaction
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.style.display = 'none';
+            a.target = '_blank';
+            
+            // Add to DOM, click, and remove
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            // Give user feedback
+            this.showSuccessMessage('Download started! Check your Downloads folder or notification bar.');
+            this.closePdfModal();
+            
+        } catch (error) {
+            console.error('Direct download failed:', error);
+            this.showErrorMessage('Download failed. Please try the Share option instead.');
+        }
+    }
+
+    async tryMobileShare(filename, blob) {
+        try {
+            // Method 2: Use Web Share API if available
+            if (navigator.share && navigator.canShare) {
+                const file = new File([blob], filename, { type: 'application/pdf' });
+                
+                if (navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: 'ChroniCompanion Health Report',
+                        text: 'Your personal health tracking report',
+                        files: [file]
+                    });
+                    
+                    this.showSuccessMessage('PDF shared successfully!');
+                    this.closePdfModal();
+                    return;
+                }
+            }
+            
+            // Fallback: Open in new tab (user can then save)
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            this.showInfoMessage('PDF opened in new tab. Use your browser menu to download or share it.');
+            this.closePdfModal();
+            
+        } catch (error) {
+            console.error('Share failed:', error);
+            this.showErrorMessage('Share failed. PDF opened in new tab instead.');
+            // Still try to open in new tab as fallback
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            this.closePdfModal();
+        }
+    }
+
+    closePdfModal() {
+        const modal = document.getElementById('pdf-download-modal');
+        if (modal) {
+            modal.remove();
+            document.body.style.overflow = 'auto';
+        }
     }
 
     exportDashboard() {
@@ -1114,7 +1199,7 @@ class ChroniCompanion {
                 // For mobile, add explicit user interaction
                 if (this.isMobile) {
                     // Show modal with download link for mobile
-                    this.showMobileDownloadModal(url, filename);
+                    this.showMobileDownloadModal(url, filename, blob);
                 } else {
                     // Desktop: automatic download
                     document.body.appendChild(a);
