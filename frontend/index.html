@@ -237,6 +237,12 @@
                 <button id="export-btn" class="bg-sage-400 hover:bg-sage-500 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center mb-2">
                     <i class="fas fa-download mr-2"></i>Export
                 </button>
+                <button id="premium-btn" class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center mb-2">
+                    <i class="fas fa-star mr-2"></i>Premium
+                </button>
+                <button id="support-btn" class="bg-yellow-400 hover:bg-yellow-500 text-white px-6 py-2 rounded-full transition-colors duration-200 flex items-center mb-2">
+                    <i class="fas fa-heart mr-2"></i>Support
+                </button>
             </div>
         </nav>
 
@@ -249,6 +255,93 @@
                 </div>
                 <div class="p-6" id="modal-content">
                     <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Premium Upgrade Modal -->
+        <div id="premium-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+                <div class="bg-gradient-to-r from-purple-500 to-pink-500 p-6 rounded-t-2xl text-white text-center">
+                    <i class="fas fa-star text-3xl mb-2"></i>
+                    <h2 class="text-2xl font-bold">ChroniCompanion Plus</h2>
+                    <p class="text-purple-100">Unlock AI-powered insights</p>
+                </div>
+                <div class="p-6">
+                    <div class="text-center mb-6">
+                        <div class="text-3xl font-bold text-gray-800">$2.99</div>
+                        <div class="text-gray-600">per month</div>
+                    </div>
+                    
+                    <div class="space-y-3 mb-6">
+                        <div class="flex items-center">
+                            <i class="fas fa-robot text-purple-500 mr-3"></i>
+                            <span>AI Entry Summaries</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-lightbulb text-yellow-500 mr-3"></i>
+                            <span>Personalized Insights</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-chart-line text-green-500 mr-3"></i>
+                            <span>Predictive Health Analytics</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-heart text-red-500 mr-3"></i>
+                            <span>Mental Health Support</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-palette text-indigo-500 mr-3"></i>
+                            <span>Premium Themes</span>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <button onclick="app.startPremiumTrial()" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-colors">
+                            Start 7-Day Free Trial
+                        </button>
+                        <button onclick="app.closePremiumModal()" class="w-full text-gray-600 py-2 hover:text-gray-800">
+                            Maybe Later
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Support Modal -->
+        <div id="support-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+                <div class="bg-gradient-to-r from-yellow-400 to-orange-500 p-6 rounded-t-2xl text-white text-center">
+                    <i class="fas fa-heart text-3xl mb-2"></i>
+                    <h2 class="text-2xl font-bold">Support ChroniCompanion</h2>
+                    <p class="text-yellow-100">Help keep this app free & improving</p>
+                </div>
+                <div class="p-6">
+                    <p class="text-gray-600 mb-6 text-center">Your support helps us maintain servers, add features, and keep the core app free for everyone!</p>
+                    
+                    <div class="space-y-4 mb-6">
+                        <button onclick="app.watchSupportAd()" class="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center justify-center">
+                            <i class="fas fa-play mr-2"></i>Watch a Short Ad (30s)
+                        </button>
+                        
+                        <div class="text-center text-gray-500">or</div>
+                        
+                        <div class="grid grid-cols-3 gap-3">
+                            <button onclick="app.donate(1)" class="bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                                $1
+                            </button>
+                            <button onclick="app.donate(3)" class="bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                                $3
+                            </button>
+                            <button onclick="app.donate(5)" class="bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                                $5
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button onclick="app.closeSupportModal()" class="w-full text-gray-600 py-2 hover:text-gray-800">
+                        No Thanks
+                    </button>
                 </div>
             </div>
         </div>

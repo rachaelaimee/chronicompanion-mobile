@@ -198,6 +198,15 @@ class ChroniCompanion {
             this.showView('dashboard');
         });
 
+        // Premium and support buttons
+        document.getElementById('premium-btn').addEventListener('click', () => {
+            this.showPremiumModal();
+        });
+
+        document.getElementById('support-btn').addEventListener('click', () => {
+            this.showSupportModal();
+        });
+
         // Entry type radio buttons
         const entryTypeRadios = document.querySelectorAll('input[name="entry_type"]');
         entryTypeRadios.forEach(radio => {
@@ -881,6 +890,109 @@ class ChroniCompanion {
         const modal = document.getElementById('entry-details-modal');
         modal.classList.add('hidden');
         document.body.style.overflow = 'auto'; // Restore background scroll
+    }
+
+    // Premium & Monetization Functions
+    showPremiumModal() {
+        const modal = document.getElementById('premium-modal');
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    closePremiumModal() {
+        const modal = document.getElementById('premium-modal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    showSupportModal() {
+        const modal = document.getElementById('support-modal');
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeSupportModal() {
+        const modal = document.getElementById('support-modal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    startPremiumTrial() {
+        // Store trial start date
+        localStorage.setItem('premium_trial_start', new Date().toISOString());
+        localStorage.setItem('premium_status', 'trial');
+        
+        this.showSuccessMessage('7-day premium trial started! Enjoy AI-powered insights!');
+        this.closePremiumModal();
+        
+        // Enable premium features
+        this.isPremium = true;
+        this.updateUIForPremium();
+    }
+
+    watchSupportAd() {
+        // Placeholder for ad integration (Google AdMob, etc.)
+        this.showInfoMessage('Thank you for supporting ChroniCompanion! 💙');
+        
+        // In real implementation, integrate with ad networks:
+        // - Google AdMob for mobile
+        // - Google AdSense for web
+        // - Unity Ads, etc.
+        
+        // For now, simulate ad completion
+        setTimeout(() => {
+            this.showSuccessMessage('Thank you for watching! Your support helps keep this app free.');
+            this.closeSupportModal();
+        }, 2000);
+    }
+
+    donate(amount) {
+        // Placeholder for donation integration
+        this.showInfoMessage(`Redirecting to donation page ($${amount})...`);
+        
+        // In real implementation, integrate with:
+        // - Stripe for payments
+        // - PayPal
+        // - Buy Me a Coffee
+        // - Ko-fi
+        
+        // For now, just show success
+        setTimeout(() => {
+            this.showSuccessMessage(`Thank you for your $${amount} donation! ❤️`);
+            this.closeSupportModal();
+        }, 1500);
+    }
+
+    updateUIForPremium() {
+        // Add premium indicator to UI
+        const premiumBtn = document.getElementById('premium-btn');
+        if (this.isPremium) {
+            premiumBtn.innerHTML = '<i class="fas fa-crown mr-2"></i>Premium';
+            premiumBtn.classList.add('ring-2', 'ring-yellow-300');
+        }
+    }
+
+    checkPremiumStatus() {
+        const trialStart = localStorage.getItem('premium_trial_start');
+        const premiumStatus = localStorage.getItem('premium_status');
+        
+        if (trialStart && premiumStatus === 'trial') {
+            const trialStartDate = new Date(trialStart);
+            const now = new Date();
+            const daysSinceStart = (now - trialStartDate) / (1000 * 60 * 60 * 24);
+            
+            if (daysSinceStart < 7) {
+                this.isPremium = true;
+                this.updateUIForPremium();
+            } else {
+                // Trial expired
+                localStorage.setItem('premium_status', 'expired');
+                this.isPremium = false;
+            }
+        } else if (premiumStatus === 'active') {
+            this.isPremium = true;
+            this.updateUIForPremium();
+        }
     }
 
     async exportEntries() {
