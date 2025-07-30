@@ -1,7 +1,7 @@
 // ChroniCompanion Frontend JavaScript
 class ChroniCompanion {
     constructor() {
-        this.apiBase = 'http://localhost:8000'; // Backend API URL (will fallback to offline mode)
+        this.apiBase = 'https://chronicompanion-mobile-production.up.railway.app'; // Backend API URL (will fallback to offline mode)
         this.currentView = 'entry-form';
         this.db = null; // IndexedDB instance
         this.isOnline = navigator.onLine;
