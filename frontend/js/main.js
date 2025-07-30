@@ -192,7 +192,11 @@ class ChroniCompanion {
         });
 
         document.getElementById('export-btn').addEventListener('click', () => {
-            this.exportEntries();
+            if (this.currentView === 'dashboard') {
+                this.exportDashboard();
+            } else {
+                this.exportEntries();
+            }
         });
 
         document.getElementById('dashboard-btn').addEventListener('click', () => {
@@ -348,6 +352,9 @@ class ChroniCompanion {
 
         // Update active nav button
         this.updateActiveNavButton(viewId);
+        
+        // Show/hide export button based on view
+        this.updateExportButtonVisibility(viewId);
 
         // Load data specific to this view
         if (viewId === 'dashboard') {
@@ -371,6 +378,22 @@ class ChroniCompanion {
             document.getElementById('view-entries-btn').classList.add('ring-2', 'ring-offset-2', 'ring-lavender-300');
         } else if (viewId === 'dashboard') {
             document.getElementById('dashboard-btn').classList.add('ring-2', 'ring-offset-2', 'ring-emerald-300');
+        }
+    }
+
+    updateExportButtonVisibility(viewId) {
+        const exportBtn = document.getElementById('export-btn');
+        if (viewId === 'entries-list') {
+            // Show export button on entries page
+            exportBtn.style.display = 'flex';
+            exportBtn.innerHTML = '<i class="fas fa-download mr-2"></i>Export Data';
+        } else if (viewId === 'dashboard') {
+            // Show different export on dashboard
+            exportBtn.style.display = 'flex';
+            exportBtn.innerHTML = '<i class="fas fa-chart-bar mr-2"></i>Export Charts';
+        } else {
+            // Hide export button on entry form
+            exportBtn.style.display = 'none';
         }
     }
 
@@ -996,10 +1019,63 @@ class ChroniCompanion {
         }
     }
 
+    showMobileDownloadModal(url, filename) {
+        // Create mobile download modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                <div class="text-center mb-6">
+                    <i class="fas fa-file-pdf text-red-500 text-4xl mb-3"></i>
+                    <h3 class="text-xl font-bold text-gray-800">Your Health Report is Ready!</h3>
+                    <p class="text-gray-600 text-sm mt-2">PDF format • ${filename}</p>
+                </div>
+                
+                <div class="space-y-3">
+                    <a href="${url}" download="${filename}" 
+                       class="w-full bg-green-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center justify-center">
+                        <i class="fas fa-download mr-2"></i>Download PDF
+                    </a>
+                    
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                            class="w-full text-gray-600 py-2 hover:text-gray-800">
+                        Close
+                    </button>
+                </div>
+                
+                <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p class="text-xs text-blue-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        File will save to your Downloads folder. You can find it in your Files app or browser downloads.
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+        
+        // Auto-remove after 30 seconds
+        setTimeout(() => {
+            if (modal.parentElement) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+        }, 30000);
+    }
+
+    exportDashboard() {
+        // For now, show that dashboard export is not available
+        this.showInfoMessage('Dashboard export feature coming soon! Use "Export Data" from the entries page for your health report.');
+        
+        // Future: Implement dashboard chart export as image or PDF
+        // Could export chart images, statistics summary, etc.
+    }
+
     async exportEntries() {
         try {
             // Show loading message
-            this.showInfoMessage('Generating your health report...');
+            this.showInfoMessage('Generating your health report PDF...');
             
             const response = await fetch(`${this.apiBase}/api/export`, {
                 method: 'GET',
@@ -1034,17 +1110,20 @@ class ChroniCompanion {
                 a.href = url;
                 a.download = filename;
                 a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
                 
-                // Show success message with file location info
+                // For mobile, add explicit user interaction
                 if (this.isMobile) {
-                    this.showSuccessMessage('Report downloaded! Check your Downloads folder or Files app.');
+                    // Show modal with download link for mobile
+                    this.showMobileDownloadModal(url, filename);
                 } else {
+                    // Desktop: automatic download
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
                     this.showSuccessMessage('Report exported successfully!');
                 }
+                
+                window.URL.revokeObjectURL(url);
             } else {
                 throw new Error('Failed to export entries');
             }
