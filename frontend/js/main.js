@@ -1168,11 +1168,13 @@ class ChroniCompanion {
 
             if (response.ok) {
                 const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
                 const filename = `ChroniCompanion_Report_${new Date().toISOString().split('T')[0]}.pdf`;
                 
-                // For mobile devices, try the share API first
-                if (this.isMobile && navigator.share && navigator.canShare) {
+                // For Capacitor mobile apps, use native file system
+                if (this.isMobile && window.Capacitor) {
+                    await this.savePdfWithCapacitor(blob, filename);
+                } else if (this.isMobile && navigator.share && navigator.canShare) {
+                    // Fallback: Web Share API for mobile browsers
                     try {
                         const file = new File([blob], filename, { type: 'application/pdf' });
                         if (navigator.canShare({ files: [file] })) {
@@ -1182,43 +1184,175 @@ class ChroniCompanion {
                                 files: [file]
                             });
                             this.showSuccessMessage('Report shared successfully!');
-                            window.URL.revokeObjectURL(url);
                             return;
                         }
                     } catch (shareError) {
                         console.log('Share API failed, falling back to download:', shareError);
                     }
-                }
-                
-                // Fallback to download
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.style.display = 'none';
-                
-                // For mobile, add explicit user interaction
-                if (this.isMobile) {
-                    // Show modal with download link for mobile
-                    this.showMobileDownloadModal(url, filename, blob);
                 } else {
-                    // Desktop: automatic download
+                    // Desktop: standard download
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.style.display = 'none';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
                     this.showSuccessMessage('Report exported successfully!');
                 }
-                
-                window.URL.revokeObjectURL(url);
             } else {
                 throw new Error('Failed to export entries');
             }
         } catch (error) {
-            console.log('Backend not available, showing export placeholder');
+            console.error('Export failed:', error);
             if (this.isOnline) {
                 this.showErrorMessage('Export failed. Please check your internet connection and try again.');
             } else {
                 this.showInfoMessage('Export requires internet connection. Please connect and try again.');
             }
+        }
+    }
+
+    async savePdfWithCapacitor(blob, filename) {
+        try {
+            // Convert blob to base64
+            const base64Data = await this.blobToBase64(blob);
+            
+            // Import Capacitor plugins dynamically
+            const { Filesystem, Directory } = await import('@capacitor/filesystem');
+            const { Share } = await import('@capacitor/share');
+            
+            // Save file to Documents directory
+            const result = await Filesystem.writeFile({
+                path: filename,
+                data: base64Data,
+                directory: Directory.Documents,
+                recursive: true
+            });
+            
+            this.showSuccessMessage('PDF saved to Documents folder!');
+            
+            // Show options to user
+            this.showCapacitorPdfModal(result.uri, filename);
+            
+        } catch (error) {
+            console.error('Capacitor file save failed:', error);
+            
+            // Fallback to old method
+            this.showErrorMessage('Native save failed. Trying alternative method...');
+            const url = window.URL.createObjectURL(blob);
+            this.showMobileDownloadModal(url, filename, blob);
+        }
+    }
+
+    async blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = reject;
+            reader.onload = () => {
+                // Remove data:application/pdf;base64, prefix
+                const result = reader.result.split(',')[1];
+                resolve(result);
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    showCapacitorPdfModal(fileUri, filename) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.id = 'capacitor-pdf-modal';
+        
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                <div class="text-center mb-6">
+                    <i class="fas fa-check-circle text-green-500 text-4xl mb-3"></i>
+                    <h3 class="text-xl font-bold text-gray-800">PDF Saved Successfully!</h3>
+                    <p class="text-gray-600 text-sm mt-2">${filename}</p>
+                    <p class="text-green-600 text-xs mt-1">Saved to Documents folder</p>
+                </div>
+                
+                <div class="space-y-3">
+                    <button id="share-capacitor-pdf" 
+                       class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center">
+                        <i class="fas fa-share mr-2"></i>Share PDF
+                    </button>
+                    
+                    <button id="open-files-app" 
+                       class="w-full bg-green-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center justify-center">
+                        <i class="fas fa-folder-open mr-2"></i>Open Files App
+                    </button>
+                    
+                    <button onclick="app.closeCapacitorPdfModal()" 
+                            class="w-full text-gray-600 py-2 hover:text-gray-800">
+                        Close
+                    </button>
+                </div>
+                
+                <div class="mt-4 p-3 bg-green-50 rounded-lg">
+                    <p class="text-xs text-green-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Your PDF is saved in Documents folder and ready to share or email!
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+        
+        // Add event listeners
+        modal.querySelector('#share-capacitor-pdf').addEventListener('click', () => {
+            this.shareCapacitorPdf(fileUri, filename);
+        });
+        
+        modal.querySelector('#open-files-app').addEventListener('click', () => {
+            this.openFilesApp();
+        });
+    }
+
+    async shareCapacitorPdf(fileUri, filename) {
+        try {
+            const { Share } = await import('@capacitor/share');
+            
+            await Share.share({
+                title: 'ChroniCompanion Health Report',
+                text: 'Your personal health tracking report',
+                url: fileUri,
+                dialogTitle: 'Share your health report'
+            });
+            
+            this.closeCapacitorPdfModal();
+            
+        } catch (error) {
+            console.error('Capacitor share failed:', error);
+            this.showErrorMessage('Share failed. PDF is saved in your Documents folder.');
+        }
+    }
+
+    async openFilesApp() {
+        // Try to open Files app or show instruction
+        try {
+            // On Android, try to open Files app
+            if (window.Capacitor && window.Capacitor.getPlatform() === 'android') {
+                // This will open the default file manager
+                window.open('content://com.android.externalstorage.documents/document/primary%3ADocuments', '_system');
+            }
+        } catch (error) {
+            console.log('Could not open Files app directly');
+        }
+        
+        this.showInfoMessage('Look for "Documents" folder in your Files app to find the PDF.');
+        this.closeCapacitorPdfModal();
+    }
+
+    closeCapacitorPdfModal() {
+        const modal = document.getElementById('capacitor-pdf-modal');
+        if (modal) {
+            modal.remove();
+            document.body.style.overflow = 'auto';
         }
     }
 
