@@ -33,9 +33,12 @@ class ChroniCompanion {
                 timeout: 2000 
             });
             if (response.ok) {
+                this.isOnline = true; // Set online when API responds
                 this.showNetworkStatus('Connected to server', 'success');
+                this.syncPendingEntries(); // Sync any pending entries
             }
         } catch (error) {
+            this.isOnline = false; // Set offline when API fails
             this.showNetworkStatus('Running in offline mode - entries saved locally', 'info');
         }
     }
@@ -369,6 +372,22 @@ class ChroniCompanion {
         const entryData = {};
         for (let [key, value] of formData.entries()) {
             entryData[key] = value;
+        }
+
+        // Ensure entry_type is set (default to evening if not selected)
+        if (!entryData.entry_type) {
+            // Check which radio button is selected
+            const morningRadio = document.querySelector('input[name="entry_type"][value="morning"]');
+            const eveningRadio = document.querySelector('input[name="entry_type"][value="evening"]');
+            
+            if (morningRadio && morningRadio.checked) {
+                entryData.entry_type = 'morning';
+            } else if (eveningRadio && eveningRadio.checked) {
+                entryData.entry_type = 'evening';
+            } else {
+                // Default to evening if nothing selected
+                entryData.entry_type = 'evening';
+            }
         }
 
         // Add timestamp and metadata
