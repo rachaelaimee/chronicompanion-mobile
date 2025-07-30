@@ -677,15 +677,217 @@ class ChroniCompanion {
         return qualityMap[quality] || 'N/A';
     }
 
-    viewEntryDetails(entryId) {
-        // This would open a modal or navigate to a detailed view
-        console.log('Viewing entry details for:', entryId);
-        // For now, just show an alert
-        alert('Entry details view would open here. This will be implemented in the next phase!');
+    async viewEntryDetails(entryId) {
+        try {
+            // Find the entry in our local data first
+            let entry = null;
+            
+            // Try to get from IndexedDB first
+            if (this.db) {
+                const transaction = this.db.transaction(['entries'], 'readonly');
+                const store = transaction.objectStore('entries');
+                const request = store.get(entryId);
+                
+                request.onsuccess = (event) => {
+                    entry = event.target.result;
+                    if (entry) {
+                        this.showEntryModal(entry);
+                    }
+                };
+            }
+            
+            // If online, also try to get from API for most up-to-date data
+            if (this.isOnline) {
+                try {
+                    const response = await fetch(`${this.apiBase}/api/entries`);
+                    if (response.ok) {
+                        const entries = await response.json();
+                        entry = entries.find(e => e.id == entryId || e.timestamp === entryId);
+                        if (entry) {
+                            this.showEntryModal(entry);
+                        }
+                    }
+                } catch (error) {
+                    console.log('Could not fetch from API, using local data');
+                }
+            }
+            
+        } catch (error) {
+            console.error('Error viewing entry details:', error);
+            this.showErrorMessage('Could not load entry details');
+        }
+    }
+
+    showEntryModal(entry) {
+        const modal = document.getElementById('entry-details-modal');
+        const title = document.getElementById('modal-title');
+        const content = document.getElementById('modal-content');
+        
+        // Format date and time
+        const date = new Date(entry.timestamp || entry.date);
+        const formattedDate = date.toLocaleDateString('en-US', { 
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+        });
+        const formattedTime = date.toLocaleTimeString('en-US', { 
+            hour: '2-digit', minute: '2-digit' 
+        });
+        
+        // Set modal title
+        const entryTypeIcon = entry.entry_type === 'morning' ? 
+            '<i class="fas fa-sun text-yellow-500"></i>' : 
+            '<i class="fas fa-moon text-indigo-500"></i>';
+        title.innerHTML = `${entryTypeIcon} ${entry.entry_type ? entry.entry_type.charAt(0).toUpperCase() + entry.entry_type.slice(1) : 'Unknown'} Entry`;
+        
+        // Build detailed content
+        let html = `
+            <div class="mb-6">
+                <div class="text-sage-600 text-sm mb-2">${formattedDate}</div>
+                <div class="text-sage-500 text-sm">${formattedTime}</div>
+            </div>
+        `;
+        
+        // Show relevant questions based on entry type
+        if (entry.entry_type === 'morning') {
+            if (entry.morning_feeling) {
+                html += `
+                    <div class="mb-6">
+                        <h4 class="text-lg font-medium text-sage-700 mb-2">How you felt starting the day</h4>
+                        <p class="text-sage-600 bg-sage-50 p-4 rounded-lg">${entry.morning_feeling}</p>
+                    </div>
+                `;
+            }
+            if (entry.morning_hopes) {
+                html += `
+                    <div class="mb-6">
+                        <h4 class="text-lg font-medium text-sage-700 mb-2">Hopes for the day</h4>
+                        <p class="text-sage-600 bg-sage-50 p-4 rounded-lg">${entry.morning_hopes}</p>
+                    </div>
+                `;
+            }
+            if (entry.morning_symptoms) {
+                html += `
+                    <div class="mb-6">
+                        <h4 class="text-lg font-medium text-sage-700 mb-2">Morning symptoms</h4>
+                        <p class="text-sage-600 bg-sage-50 p-4 rounded-lg">${entry.morning_symptoms}</p>
+                    </div>
+                `;
+            }
+        } else {
+            if (entry.evening_day_review) {
+                html += `
+                    <div class="mb-6">
+                        <h4 class="text-lg font-medium text-sage-700 mb-2">Day review</h4>
+                        <p class="text-sage-600 bg-sage-50 p-4 rounded-lg">${entry.evening_day_review}</p>
+                    </div>
+                `;
+            }
+            if (entry.evening_gratitude) {
+                html += `
+                    <div class="mb-6">
+                        <h4 class="text-lg font-medium text-sage-700 mb-2">Gratitude</h4>
+                        <p class="text-sage-600 bg-sage-50 p-4 rounded-lg">${entry.evening_gratitude}</p>
+                    </div>
+                `;
+            }
+            if (entry.evening_symptoms) {
+                html += `
+                    <div class="mb-6">
+                        <h4 class="text-lg font-medium text-sage-700 mb-2">Evening symptoms</h4>
+                        <p class="text-sage-600 bg-sage-50 p-4 rounded-lg">${entry.evening_symptoms}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Wellness metrics
+        html += `
+            <div class="mb-6">
+                <h4 class="text-lg font-medium text-sage-700 mb-4">Wellness Metrics</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-sage-50 p-4 rounded-lg">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-smile text-sage-500 mr-2"></i>
+                            <span class="font-medium text-sage-700">Mood</span>
+                        </div>
+                        <div class="text-2xl font-bold text-sage-800">${entry.mood_overall || 'N/A'}/10</div>
+                    </div>
+                    <div class="bg-sage-50 p-4 rounded-lg">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-battery-half text-sage-500 mr-2"></i>
+                            <span class="font-medium text-sage-700">Energy</span>
+                        </div>
+                        <div class="text-2xl font-bold text-sage-800">${entry.energy_level || 'N/A'}/10</div>
+                    </div>
+                    <div class="bg-sage-50 p-4 rounded-lg">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-thermometer-half text-lavender-500 mr-2"></i>
+                            <span class="font-medium text-sage-700">Pain</span>
+                        </div>
+                        <div class="text-2xl font-bold text-sage-800">${entry.pain_level || 'N/A'}/10</div>
+                    </div>
+                    <div class="bg-sage-50 p-4 rounded-lg">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-bed text-indigo-500 mr-2"></i>
+                            <span class="font-medium text-sage-700">Sleep</span>
+                        </div>
+                        <div class="text-lg font-bold text-sage-800">${this.formatSleepQuality(entry.sleep_quality)}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Additional notes
+        if (entry.additional_notes) {
+            html += `
+                <div class="mb-6">
+                    <h4 class="text-lg font-medium text-sage-700 mb-2">Additional Notes</h4>
+                    <p class="text-sage-600 bg-sage-50 p-4 rounded-lg italic">"${entry.additional_notes}"</p>
+                </div>
+            `;
+        }
+        
+        // AI insights if available
+        if (entry.ai_summary || entry.ai_insights) {
+            html += `<div class="border-t border-sage-200 pt-6 mt-6">`;
+            if (entry.ai_summary) {
+                html += `
+                    <div class="mb-4">
+                        <h4 class="text-lg font-medium text-sage-700 mb-2 flex items-center">
+                            <i class="fas fa-robot text-indigo-500 mr-2"></i>AI Summary
+                        </h4>
+                        <p class="text-sage-600 bg-indigo-50 p-4 rounded-lg">${entry.ai_summary}</p>
+                    </div>
+                `;
+            }
+            if (entry.ai_insights) {
+                html += `
+                    <div class="mb-4">
+                        <h4 class="text-lg font-medium text-sage-700 mb-2 flex items-center">
+                            <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>AI Insights
+                        </h4>
+                        <p class="text-sage-600 bg-yellow-50 p-4 rounded-lg">${entry.ai_insights}</p>
+                    </div>
+                `;
+            }
+            html += `</div>`;
+        }
+        
+        content.innerHTML = html;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Prevent background scroll
+    }
+
+    closeEntryModal() {
+        const modal = document.getElementById('entry-details-modal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto'; // Restore background scroll
     }
 
     async exportEntries() {
         try {
+            // Show loading message
+            this.showInfoMessage('Generating your health report...');
+            
             const response = await fetch(`${this.apiBase}/api/export`, {
                 method: 'GET',
             });
@@ -693,20 +895,53 @@ class ChroniCompanion {
             if (response.ok) {
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
+                const filename = `ChroniCompanion_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                
+                // For mobile devices, try the share API first
+                if (this.isMobile && navigator.share && navigator.canShare) {
+                    try {
+                        const file = new File([blob], filename, { type: 'application/pdf' });
+                        if (navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                title: 'ChroniCompanion Health Report',
+                                text: 'Your personal health tracking report',
+                                files: [file]
+                            });
+                            this.showSuccessMessage('Report shared successfully!');
+                            window.URL.revokeObjectURL(url);
+                            return;
+                        }
+                    } catch (shareError) {
+                        console.log('Share API failed, falling back to download:', shareError);
+                    }
+                }
+                
+                // Fallback to download
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `chroni_companion_export_${new Date().toISOString().split('T')[0]}.pdf`;
+                a.download = filename;
+                a.style.display = 'none';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
-                this.showSuccessMessage('Entries exported successfully!');
+                
+                // Show success message with file location info
+                if (this.isMobile) {
+                    this.showSuccessMessage('Report downloaded! Check your Downloads folder or Files app.');
+                } else {
+                    this.showSuccessMessage('Report exported successfully!');
+                }
             } else {
                 throw new Error('Failed to export entries');
             }
         } catch (error) {
             console.log('Backend not available, showing export placeholder');
-            alert('Export functionality will be available once the backend is connected. For now, your entries are safely stored locally!');
+            if (this.isOnline) {
+                this.showErrorMessage('Export failed. Please check your internet connection and try again.');
+            } else {
+                this.showInfoMessage('Export requires internet connection. Please connect and try again.');
+            }
         }
     }
 
@@ -733,6 +968,42 @@ class ChroniCompanion {
         // Hide after 3 seconds
         setTimeout(() => {
             successMessage.classList.add('translate-x-full');
+        }, 3000);
+    }
+
+    showErrorMessage(message) {
+        // Create error message element if it doesn't exist
+        let errorMessage = document.getElementById('error-message');
+        if (!errorMessage) {
+            errorMessage = document.createElement('div');
+            errorMessage.id = 'error-message';
+            errorMessage.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50';
+            document.body.appendChild(errorMessage);
+        }
+        
+        errorMessage.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i>${message}`;
+        errorMessage.classList.remove('translate-x-full');
+        
+        setTimeout(() => {
+            errorMessage.classList.add('translate-x-full');
+        }, 4000);
+    }
+
+    showInfoMessage(message) {
+        // Create info message element if it doesn't exist
+        let infoMessage = document.getElementById('info-message');
+        if (!infoMessage) {
+            infoMessage = document.createElement('div');
+            infoMessage.id = 'info-message';
+            infoMessage.className = 'fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50';
+            document.body.appendChild(infoMessage);
+        }
+        
+        infoMessage.innerHTML = `<i class="fas fa-info-circle mr-2"></i>${message}`;
+        infoMessage.classList.remove('translate-x-full');
+        
+        setTimeout(() => {
+            infoMessage.classList.add('translate-x-full');
         }, 3000);
     }
 
