@@ -195,12 +195,17 @@ class ChroniCompanion {
             console.log('🔥 EXPORT BUTTON CLICKED!');
             console.log('🔥 Current view:', this.currentView);
             
+            // Show alert so user can see what's happening
+            alert(`🔥 EXPORT BUTTON CLICKED!\nCurrent view: ${this.currentView}`);
+            
             if (this.currentView === 'dashboard') {
                 console.log('🔥 Calling exportDashboard...');
+                alert('🔥 Calling exportDashboard...');
                 this.exportDashboard();
             } else {
                 console.log('🔥 Calling exportEntries...');
-                this.exportEntries();
+                alert('🔥 Calling exportEntries...');
+            this.exportEntries();
             }
         });
 
@@ -734,14 +739,14 @@ class ChroniCompanion {
             if (this.isOnline) {
                 try {
                     const response = await fetch(`${this.apiBase}/api/entries`);
-                    if (response.ok) {
+            if (response.ok) {
                         const entries = await response.json();
                         entry = entries.find(e => e.id == entryId || e.timestamp === entryId);
                         if (entry) {
                             this.showEntryModal(entry);
                         }
-                    }
-                } catch (error) {
+            }
+        } catch (error) {
                     console.log('Could not fetch from API, using local data');
                 }
             }
@@ -1158,27 +1163,37 @@ class ChroniCompanion {
     // 📱 SIMPLE ANDROID-COMPATIBLE PDF EXPORT
     async exportEntries() {
         console.log('🚀 Starting simple PDF export...');
+        alert('🚀 Starting simple PDF export...');
         
         try {
             // Show loading message
             this.showInfoMessage('Generating your health report PDF...');
+            alert('📢 Showing loading message...');
             
             console.log('🌐 Making API request to:', `${this.apiBase}/api/export`);
+            alert(`🌐 Making API request to: ${this.apiBase}/api/export`);
+            
             const response = await fetch(`${this.apiBase}/api/export`, {
                 method: 'GET',
             });
 
             console.log('📡 API Response status:', response.status, response.statusText);
+            alert(`📡 API Response: ${response.status} ${response.statusText}`);
 
             if (response.ok) {
                 console.log('✅ API Success - Getting blob...');
+                alert('✅ API Success - Getting blob...');
+                
                 const blob = await response.blob();
                 console.log('📦 Blob created, size:', blob.size, 'type:', blob.type);
+                alert(`📦 Blob created! Size: ${blob.size} bytes, Type: ${blob.type}`);
                 
                 const filename = `ChroniCompanion_Report_${new Date().toISOString().split('T')[0]}.pdf`;
                 console.log('📁 Filename:', filename);
+                alert(`📁 Filename: ${filename}`);
                 
                 // 🎯 SIMPLE APPROACH: Direct blob download
+                alert('🎯 About to call simpleDownloadPDF...');
                 this.simpleDownloadPDF(blob, filename);
                 
             } else {
@@ -1186,6 +1201,8 @@ class ChroniCompanion {
             }
         } catch (error) {
             console.error('❌ EXPORT FAILED:', error);
+            alert(`❌ EXPORT FAILED: ${error.message}`);
+            
             if (this.isOnline) {
                 this.showErrorMessage(`Export failed: ${error.message}. Please try again.`);
             } else {
@@ -1193,6 +1210,7 @@ class ChroniCompanion {
             }
         }
         console.log('🏁 EXPORT FUNCTION COMPLETED');
+        alert('🏁 EXPORT FUNCTION COMPLETED');
     }
 
     // 🧪 SIMPLE TEST FUNCTION - CALL FROM BROWSER CONSOLE
@@ -1223,11 +1241,13 @@ class ChroniCompanion {
     simpleDownloadPDF(blob, filename) {
         console.log('📱 Starting simple PDF download...');
         console.log('📦 Blob size:', blob.size, 'type:', blob.type);
+        alert(`📱 Starting PDF download!\nBlob size: ${blob.size} bytes\nType: ${blob.type}`);
         
         try {
             // Create blob URL
             const url = URL.createObjectURL(blob); 
             console.log('🔗 Created blob URL');
+            alert('🔗 Created blob URL successfully!');
             
             // Try direct download first
             const a = document.createElement('a');
@@ -1238,8 +1258,11 @@ class ChroniCompanion {
             // Add to DOM and click
             document.body.appendChild(a);
             console.log('⬇️ Triggering download...');
+            alert('⬇️ About to trigger download...');
+            
             a.click();
             document.body.removeChild(a);
+            alert('✅ Download click triggered!');
             
             // Clean up blob URL after a delay
             setTimeout(() => {
@@ -1249,9 +1272,11 @@ class ChroniCompanion {
             
             console.log('✅ Download triggered successfully!');
             this.showSuccessMessage('PDF download started! Check your Downloads folder.');
+            alert('✅ Download process completed! Check Downloads folder.');
             
         } catch (error) {
             console.error('❌ Direct download failed:', error);
+            alert(`❌ Direct download failed: ${error.message}`);
             
             // Fallback: Open PDF in new tab for manual save
             try {
@@ -1260,9 +1285,11 @@ class ChroniCompanion {
                 
                 if (newTab) {
                     console.log('📄 Opened PDF in new tab as fallback');
+                    alert('📄 Opened PDF in new tab as fallback');
                     this.showInfoMessage('PDF opened in new tab. Use browser menu to save.');
                 } else {
                     console.log('❌ Could not open new tab');
+                    alert('❌ Could not open new tab - popups blocked?');
                     this.showErrorMessage('Download blocked. Please allow popups and try again.');
                 }
                 
@@ -1270,6 +1297,7 @@ class ChroniCompanion {
                 
             } catch (fallbackError) {
                 console.error('❌ Fallback failed too:', fallbackError);
+                alert(`❌ Fallback failed too: ${fallbackError.message}`);
                 this.showErrorMessage('PDF generation failed. Please try again.');
             }
         }
@@ -1316,4 +1344,4 @@ style.textContent = `
         overflow: hidden;
     }
 `;
-document.head.appendChild(style);
+document.head.appendChild(style); 
