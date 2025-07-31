@@ -1266,131 +1266,101 @@ class ChroniCompanion {
         }
     }
 
-    // 🎯 DIRECT PDF VIEWER APPROACH (LET ANDROID HANDLE IT!)
+    // 📱 ANDROID "OPEN WITH" DIALOG APPROACH (LIKE OTHER APPS!)
     async saveWithCapacitorFilesystem(blob, filename) {
         try {
-            console.log('🎯 Using direct PDF viewer approach - let Android handle the PDF!');
+            console.log('📱 Using Android "Open With" dialog approach - just like other apps!');
             
-            // Create blob URL for the PDF
-            const blobUrl = URL.createObjectURL(blob);
-            console.log('📄 Created PDF blob URL:', blobUrl);
-            
-            // STRATEGY 1: Open PDF directly in new window/tab (Android will handle it)
-            console.log('🔗 Opening PDF directly - Android will show download/save options...');
-            
-            try {
-                // DEBUG: Log blob URL details
-                console.log('🔍 Blob URL created:', blobUrl);
-                console.log('🔍 Blob size:', blob.size, 'bytes');
-                console.log('🔍 Blob type:', blob.type);
-                
-                // Try multiple approaches to open the PDF
-                let pdfOpened = false;
-                
-                // Method 1: Direct window.open
-                console.log('🔗 Trying Method 1: Direct window.open...');
-                const pdfWindow = window.open(blobUrl, '_blank', 'noopener,noreferrer');
-                
-                if (pdfWindow && !pdfWindow.closed) {
-                    console.log('✅ Method 1 succeeded - PDF window opened!');
-                    pdfOpened = true;
-                } else {
-                    console.warn('⚠️ Method 1 failed - window.open returned null or was blocked');
-                    
-                    // Method 2: Try navigation via location
-                    console.log('🔗 Trying Method 2: Location navigation...');
-                    try {
-                        window.location.href = blobUrl;
-                        console.log('✅ Method 2 attempted - location navigation');
-                        pdfOpened = true;
-                    } catch (navError) {
-                        console.warn('⚠️ Method 2 failed:', navError);
-                    }
-                }
-                
-                if (pdfOpened) {
-                    // Show user-friendly message
-                    this.showPDFViewerModal(filename, blobUrl);
-                    
-                    // Clean up after a reasonable time
-                    setTimeout(() => {
-                        URL.revokeObjectURL(blobUrl);
-                    }, 300000); // 5 minutes
-                    
-                    return;
-                } else {
-                    console.warn('⚠️ All PDF opening methods failed, trying alternatives...');
-                }
-            } catch (windowError) {
-                console.warn('❌ PDF opening failed:', windowError);
-            }
-            
-            // STRATEGY 2: Try Web Share API as fallback
+            // STRATEGY 1: Web Share API with Files (BEST - Shows "Open With" dialog)
             if (navigator.share) {
-                console.log('📤 Trying Web Share API as fallback...');
+                console.log('📤 Trying Web Share API with file - this will show "Open With" dialog...');
                 
                 try {
                     const file = new File([blob], filename, { type: 'application/pdf' });
                     
-                    // Try sharing the file directly
+                    // Check if we can share files (this triggers the "Open With" dialog)
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        console.log('✅ Web Share API supports files - showing Android "Open With" dialog...');
+                        
                         await navigator.share({
                             title: 'ChroniCompanion Health Report',
-                            text: 'My health tracking report',
+                            text: 'Choose an app to open your PDF health report',
                             files: [file]
                         });
                         
-                        console.log('✅ PDF shared via Web Share API!');
-                        this.showSuccessMessage('🎉 PDF shared! Choose where to save it.');
+                        console.log('🎉 "Open With" dialog shown successfully!');
+                        this.showOpenWithSuccessModal(filename);
                         return;
-                    } else {
-                        // Share the blob URL instead
-                        await navigator.share({
-                            title: 'ChroniCompanion Health Report',
-                            text: 'My health tracking report - tap to view/download',
-                            url: blobUrl
-                        });
                         
-                        console.log('✅ PDF URL shared!');
-                        this.showSuccessMessage('🎉 PDF link shared! Tap the shared link to view/download.');
-                        return;
+                    } else {
+                        console.log('📱 File sharing not supported, trying URL share...');
                     }
                 } catch (shareError) {
-                    if (shareError.name !== 'AbortError') {
-                        console.warn('❌ Web Share API failed:', shareError);
-                    } else {
-                        console.log('ℹ️ User cancelled share');
-                        this.showInfoMessage('Share cancelled by user.');
+                    if (shareError.name === 'AbortError') {
+                        console.log('ℹ️ User cancelled "Open With" dialog');
+                        this.showInfoMessage('Open With dialog cancelled by user.');
                         return;
+                    } else {
+                        console.warn('❌ File share failed, trying alternatives...', shareError);
                     }
                 }
             }
             
-            // STRATEGY 3: Direct navigation to PDF (force browser to handle it)
-            console.log('🔄 Trying direct navigation to PDF...');
-            
-            try {
-                // Create a temporary link and navigate to it
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+            // STRATEGY 2: Web Share API with URL (Fallback)
+            if (navigator.share) {
+                console.log('📤 Trying Web Share API with URL...');
                 
-                // Show helpful modal
-                this.showPDFViewerModal(filename, blobUrl);
-                
-                console.log('✅ Direct navigation triggered!');
-                
-            } catch (navError) {
-                console.error('❌ Direct navigation failed:', navError);
-                this.showErrorMessage('Unable to open PDF. Please try again.');
+                try {
+                    const blobUrl = URL.createObjectURL(blob);
+                    console.log('📄 Created blob URL for sharing:', blobUrl);
+                    
+                    await navigator.share({
+                        title: 'ChroniCompanion Health Report',
+                        text: 'Tap to open your PDF health report',
+                        url: blobUrl
+                    });
+                    
+                    console.log('✅ PDF URL shared successfully!');
+                    this.showSuccessMessage('🎉 PDF shared! Tap the shared link to choose how to open it.');
+                    
+                    // Clean up after a delay
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 300000);
+                    return;
+                    
+                } catch (shareError) {
+                    if (shareError.name === 'AbortError') {
+                        console.log('ℹ️ User cancelled share dialog');
+                        this.showInfoMessage('Share cancelled by user.');
+                        return;
+                    } else {
+                        console.warn('❌ URL share failed:', shareError);
+                    }
+                }
             }
             
+            // STRATEGY 3: Show manual instructions (if Web Share isn't available)
+            console.log('📋 Web Share API not available - showing manual download instructions...');
+            
+            const blobUrl = URL.createObjectURL(blob);
+            
+            // Try a simple download trigger
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Show instructions modal
+            this.showManualDownloadModal(filename, blobUrl);
+            
+            // Clean up after a delay
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 300000);
+            
         } catch (error) {
-            console.error('❌ All PDF viewing methods failed:', error);
-            this.showErrorMessage(`Failed to view PDF: ${error.message}`);
+            console.error('❌ All PDF methods failed:', error);
+            this.showErrorMessage(`Failed to prepare PDF: ${error.message}`);
         }
     }
 
@@ -1590,56 +1560,117 @@ class ChroniCompanion {
         }
     }
 
-    // 🔄 RETRY PDF OPEN WITH MULTIPLE METHODS
-    retryPDFOpen(blobUrl) {
-        console.log('🔄 Retrying PDF open with multiple methods...');
+    // 🎉 "OPEN WITH" SUCCESS MODAL
+    showOpenWithSuccessModal(filename) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.id = 'open-with-success-modal';
         
-        try {
-            // Method 1: Try window.open with different parameters
-            console.log('🔗 Retry Method 1: window.open with different params...');
-            let pdfWindow = window.open(blobUrl, '_blank', 'location=yes,hidden=no,clearcache=yes,clearsessioncache=yes');
-            
-            if (pdfWindow && !pdfWindow.closed) {
-                console.log('✅ Retry Method 1 worked!');
-                this.showSuccessMessage('📄 PDF opened! Look for the new tab/window.');
-                return;
-            }
-            
-            // Method 2: Try simple window.open
-            console.log('🔗 Retry Method 2: Simple window.open...');
-            pdfWindow = window.open(blobUrl);
-            
-            if (pdfWindow && !pdfWindow.closed) {
-                console.log('✅ Retry Method 2 worked!');
-                this.showSuccessMessage('📄 PDF opened! Look for the new tab/window.');
-                return;
-            }
-            
-            // Method 3: Try location.href
-            console.log('🔗 Retry Method 3: Direct navigation...');
-            window.location.href = blobUrl;
-            this.showSuccessMessage('📄 PDF should be opening... If not, try the share option below.');
-            
-        } catch (error) {
-            console.error('❌ All retry methods failed:', error);
-            
-            // Last resort: Show share options
-            console.log('🔗 Last resort: Trying Web Share API...');
-            if (navigator.share) {
-                navigator.share({
-                    title: 'ChroniCompanion Health Report',
-                    text: 'Health tracking report - tap to view/download',
-                    url: blobUrl
-                }).then(() => {
-                    console.log('✅ Shared via Web Share API');
-                    this.showSuccessMessage('📤 PDF shared! Tap the shared link to view/download.');
-                }).catch(shareError => {
-                    console.error('❌ Share also failed:', shareError);
-                    this.showErrorMessage('Unable to open PDF. Please try exporting again.');
-                });
-            } else {
-                this.showErrorMessage('Unable to open PDF. Please try exporting again.');
-            }
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                <div class="text-center mb-6">
+                    <i class="fas fa-external-link-alt text-green-500 text-4xl mb-3"></i>
+                    <h3 class="text-xl font-bold text-gray-800">🎉 "Open With" Dialog Shown!</h3>
+                    <p class="text-gray-600 text-sm mt-2">Choose your favorite PDF app</p>
+                    <p class="text-gray-500 text-xs mt-1 font-mono break-all">${filename}</p>
+                </div>
+                
+                <div class="space-y-4 mb-6">
+                    <div class="p-4 bg-green-50 rounded-lg">
+                        <h4 class="font-semibold text-green-800 mb-2">✅ What just happened:</h4>
+                        <ul class="text-sm text-green-700 space-y-1">
+                            <li>• Android showed you app choices</li>
+                            <li>• Pick <strong>Adobe Reader</strong>, <strong>Chrome</strong>, or <strong>Files</strong></li>
+                            <li>• Your PDF will open in that app</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="p-4 bg-blue-50 rounded-lg">
+                        <h4 class="font-semibold text-blue-800 mb-2">💡 Pro tip:</h4>
+                        <p class="text-sm text-blue-700">
+                            Most PDF apps have a save/download button. Use that to save your report permanently!
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="app.closeOpenWithSuccessModal()" 
+                            class="w-full bg-green-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors">
+                        <i class="fas fa-check mr-2"></i>Perfect!
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    }
+
+    // 🚪 CLOSE "OPEN WITH" SUCCESS MODAL
+    closeOpenWithSuccessModal() {
+        const modal = document.getElementById('open-with-success-modal');
+        if (modal) {
+            document.body.removeChild(modal);
+            document.body.style.overflow = '';
+        }
+    }
+
+    // 📋 MANUAL DOWNLOAD MODAL
+    showManualDownloadModal(filename, blobUrl) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.id = 'manual-download-modal';
+        
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                <div class="text-center mb-6">
+                    <i class="fas fa-download text-blue-500 text-4xl mb-3"></i>
+                    <h3 class="text-xl font-bold text-gray-800">📱 Manual Download</h3>
+                    <p class="text-gray-600 text-sm mt-2">Your PDF is ready for download</p>
+                    <p class="text-gray-500 text-xs mt-1 font-mono break-all">${filename}</p>
+                </div>
+                
+                <div class="space-y-4 mb-6">
+                    <div class="p-4 bg-orange-50 rounded-lg">
+                        <h4 class="font-semibold text-orange-800 mb-2">📂 Where to look:</h4>
+                        <ul class="text-sm text-orange-700 space-y-1">
+                            <li>• Check your <strong>Downloads</strong> folder</li>
+                            <li>• Look in <strong>notification bar</strong></li>
+                            <li>• Try your <strong>Files</strong> app</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="p-4 bg-blue-50 rounded-lg">
+                        <h4 class="font-semibold text-blue-800 mb-2">🔄 If not found:</h4>
+                        <p class="text-sm text-blue-700">
+                            Try the "Open Link" button below - it might trigger your browser's download
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="window.location.href='${blobUrl}'" 
+                            class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-external-link-alt mr-2"></i>Open Link
+                    </button>
+                    <button onclick="app.closeManualDownloadModal()" 
+                            class="w-full bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-check mr-2"></i>Got it!
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    }
+
+    // 🚪 CLOSE MANUAL DOWNLOAD MODAL
+    closeManualDownloadModal() {
+        const modal = document.getElementById('manual-download-modal');
+        if (modal) {
+            document.body.removeChild(modal);
+            document.body.style.overflow = '';
         }
     }
 
