@@ -1266,79 +1266,78 @@ class ChroniCompanion {
         }
     }
 
-    // 🔧 ANDROID NATIVE DOWNLOAD MANAGER (BYPASS ALL PERMISSIONS!)
+    // 🚀 MODERN FILE SYSTEM ACCESS API (CHROME 132+ ANDROID WEBVIEW!)
     async saveWithCapacitorFilesystem(blob, filename) {
         try {
-            console.log('🚀 Using Android native download manager...');
+            console.log('🚀 Using modern File System Access API...');
             
-            // Create a data URL from the blob  
-            const url = URL.createObjectURL(blob);
-            
-            // Check if we're in Capacitor
-            if (window.Capacitor && window.Capacitor.getPlatform() === 'android') {
-                console.log('📱 Android detected - triggering native download...');
+            // Check if File System Access API is available (Chrome 132+ Android WebView)
+            if ('showSaveFilePicker' in window) {
+                console.log('✅ File System Access API detected - using modern save dialog...');
                 
-                // Use Android's native download manager through web intent
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = filename;
-                link.style.display = 'none';
-                
-                // Add special attributes for Android WebView
-                link.setAttribute('target', '_blank');
-                link.setAttribute('rel', 'noopener');
-                
-                document.body.appendChild(link);
-                
-                // Try multiple click strategies for Android WebView
-                console.log('🖱️ Triggering download click...');
-                
-                // Strategy 1: Direct click
-                link.click();
-                
-                // Strategy 2: Dispatch click event
-                setTimeout(() => {
-                    const clickEvent = new MouseEvent('click', {
-                        view: window,
-                        bubbles: true,
-                        cancelable: true
+                try {
+                    // Show native save dialog with suggested filename
+                    const fileHandle = await window.showSaveFilePicker({
+                        suggestedName: filename,
+                        types: [{
+                            description: 'PDF files',
+                            accept: { 'application/pdf': ['.pdf'] }
+                        }]
                     });
-                    link.dispatchEvent(clickEvent);
-                }, 100);
-                
-                // Strategy 3: Try to open in new tab as fallback
-                setTimeout(() => {
-                    try {
-                        window.open(url, '_blank');
-                    } catch (e) {
-                        console.warn('Fallback window.open failed:', e);
+                    
+                    // Write the blob to the chosen file
+                    const writableStream = await fileHandle.createWritable();
+                    await writableStream.write(blob);
+                    await writableStream.close();
+                    
+                    console.log('✅ File saved successfully with File System Access API!');
+                    this.showSuccessMessage('🎉 PDF saved successfully! File has been saved to your chosen location.');
+                    return;
+                    
+                } catch (fsError) {
+                    if (fsError.name === 'AbortError') {
+                        console.log('ℹ️ User cancelled save dialog');
+                        this.showInfoMessage('Save cancelled by user.');
+                        return;
+                    } else {
+                        console.warn('❌ File System Access API failed:', fsError);
+                        // Continue to fallback methods
                     }
-                }, 200);
-                
-                // Clean up
-                setTimeout(() => {
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                }, 1000);
-                
-                // Show success message (optimistic)
-                setTimeout(() => {
-                    this.showSuccessMessage('📱 Download started! Check your Downloads folder or notification bar.');
-                }, 500);
-                
-                console.log('✅ Native download triggered!');
-                
-            } else {
-                // Fallback for non-Android or web
-                console.log('💻 Not Android - using standard download...');
-                this.standardWebDownload(blob, filename);
+                }
             }
             
-        } catch (error) {
-            console.error('❌ Native download failed:', error);
+            // Fallback 1: Try Web Share API for mobile
+            if (navigator.share && 'canShare' in navigator) {
+                console.log('📱 Trying Web Share API...');
+                
+                const file = new File([blob], filename, { type: 'application/pdf' });
+                
+                if (navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            title: 'ChroniCompanion Health Report',
+                            text: 'My health tracking report from ChroniCompanion',
+                            files: [file]
+                        });
+                        console.log('✅ File shared successfully!');
+                        return;
+                    } catch (shareError) {
+                        console.warn('❌ Web Share API failed:', shareError);
+                        // Continue to final fallback
+                    }
+                }
+            }
             
-            // Ultimate fallback: standard web download
-            console.log('🔄 Falling back to standard web download...');
+            // Fallback 2: Standard download approach
+            console.log('💾 Using standard download fallback...');
+            this.standardWebDownload(blob, filename);
+            
+        } catch (error) {
+            console.error('❌ All save methods failed:', error);
+            this.showErrorMessage(`Save failed: ${error.message}`);
+            
+            // Final fallback: standard web download
+            console.log('🔄 Final fallback to standard web download...');
             this.standardWebDownload(blob, filename);
         }
     }
