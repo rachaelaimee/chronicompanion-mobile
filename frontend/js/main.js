@@ -1266,86 +1266,133 @@ class ChroniCompanion {
         }
     }
 
-    // 📱 WEBVIEW-COMPATIBLE PDF SAVE (WORKS WITH CURRENT CAPACITOR!)
+    // 🚀 MOST RELIABLE WEBVIEW PDF SAVE (PRIORITIZES WEB SHARE API!)
     async saveWithCapacitorFilesystem(blob, filename) {
         try {
-            console.log('📱 Using WebView-compatible PDF save...');
+            console.log('🚀 Using most reliable WebView PDF save approach...');
             
-            // Strategy 1: Try Web Share API first (works well in Capacitor)
-            if (navigator.share && 'canShare' in navigator) {
-                console.log('📤 Trying Web Share API for mobile...');
+            // STRATEGY 1: Web Share API (THE MOST RELIABLE FOR CAPACITOR!)
+            if (navigator.share) {
+                console.log('📤 Trying Web Share API (most reliable approach)...');
                 
-                const file = new File([blob], filename, { type: 'application/pdf' });
-                
-                if (navigator.canShare({ files: [file] })) {
-                    try {
+                try {
+                    const file = new File([blob], filename, { type: 'application/pdf' });
+                    
+                    // Check if sharing files is supported
+                    const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
+                    
+                    if (canShareFiles) {
+                        console.log('✅ Web Share API supports file sharing...');
+                        
                         await navigator.share({
                             title: 'ChroniCompanion Health Report',
                             text: 'My health tracking report from ChroniCompanion',
                             files: [file]
                         });
-                        console.log('✅ PDF shared successfully via Web Share API!');
-                        this.showSuccessMessage('🎉 PDF shared successfully! Choose where to save or share your health report.');
+                        
+                        console.log('🎉 PDF shared successfully via Web Share API!');
+                        this.showSuccessMessage('🎉 PDF shared successfully! Choose where to save your health report.');
                         return;
-                    } catch (shareError) {
-                        if (shareError.name === 'AbortError') {
-                            console.log('ℹ️ User cancelled share dialog');
-                            this.showInfoMessage('Share cancelled by user.');
-                            return;
-                        } else {
-                            console.warn('❌ Web Share API failed:', shareError);
-                            // Continue to next strategy
-                        }
+                        
+                    } else {
+                        console.log('📱 Trying basic Web Share (without files)...');
+                        
+                        // Fallback: share blob URL via Web Share API
+                        const blobUrl = URL.createObjectURL(blob);
+                        
+                        await navigator.share({
+                            title: 'ChroniCompanion Health Report',
+                            text: 'My health tracking report from ChroniCompanion',
+                            url: blobUrl
+                        });
+                        
+                        console.log('✅ PDF URL shared successfully!');
+                        this.showSuccessMessage('🎉 PDF shared successfully! Tap the shared link to download.');
+                        
+                        // Clean up after a delay
+                        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+                        return;
                     }
-                } else {
-                    console.log('📱 Web Share API cannot share files, trying alternative...');
+                    
+                } catch (shareError) {
+                    if (shareError.name === 'AbortError') {
+                        console.log('ℹ️ User cancelled share dialog');
+                        this.showInfoMessage('Share cancelled by user.');
+                        return;
+                    } else {
+                        console.warn('❌ Web Share API failed:', shareError);
+                        // Continue to next strategy
+                    }
                 }
             }
             
-            // Strategy 2: Create data URL and prompt user to save
-            console.log('💾 Creating downloadable data URL...');
+            // STRATEGY 2: Enhanced Blob URL Download (NO DATA URL!)
+            console.log('💾 Using enhanced blob URL download...');
             
             try {
-                // Convert blob to base64 data URL
-                const reader = new FileReader();
-                const dataUrlPromise = new Promise((resolve, reject) => {
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = reject;
-                });
-                reader.readAsDataURL(blob);
+                // Create blob URL (more reliable than data URL for large files)
+                const blobUrl = URL.createObjectURL(blob);
                 
-                const dataUrl = await dataUrlPromise;
-                
-                // Try to trigger download using data URL
+                // Create download link with enhanced attributes
                 const link = document.createElement('a');
-                link.href = dataUrl;
+                link.href = blobUrl;
                 link.download = filename;
                 link.style.display = 'none';
                 
+                // Enhanced attributes for better WebView compatibility
+                link.setAttribute('target', '_blank');
+                link.setAttribute('rel', 'noopener noreferrer');
+                
                 document.body.appendChild(link);
+                
+                // Multiple click attempts for WebView reliability
+                console.log('🖱️ Triggering enhanced download...');
+                
+                // Primary click
                 link.click();
-                document.body.removeChild(link);
                 
-                console.log('✅ Data URL download triggered!');
+                // Backup click with delay
+                setTimeout(() => {
+                    const clickEvent = new MouseEvent('click', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    link.dispatchEvent(clickEvent);
+                }, 100);
                 
-                // Show instructions to user about where to find the file
+                // Try opening in new window as final attempt
+                setTimeout(() => {
+                    try {
+                        const newWindow = window.open(blobUrl, '_blank');
+                        if (!newWindow) {
+                            console.log('⚠️ Popup blocked, trying alternative...');
+                        }
+                    } catch (e) {
+                        console.warn('Window.open failed:', e);
+                    }
+                }, 200);
+                
+                // Cleanup
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                }, 5000);
+                
+                console.log('✅ Enhanced download triggered!');
                 this.showPDFInstructionsModal(filename);
                 
-            } catch (dataUrlError) {
-                console.error('❌ Data URL approach failed:', dataUrlError);
+            } catch (blobError) {
+                console.error('❌ Enhanced blob download failed:', blobError);
                 
-                // Strategy 3: Final fallback - standard blob URL
-                console.log('🔄 Using standard blob URL fallback...');
+                // STRATEGY 3: Final fallback
+                console.log('🔄 Using final fallback...');
                 this.standardWebDownload(blob, filename);
             }
             
         } catch (error) {
-            console.error('❌ All WebView save methods failed:', error);
+            console.error('❌ All reliable save methods failed:', error);
             this.showErrorMessage(`Save failed: ${error.message}`);
-            
-            // Final fallback: standard web download
-            console.log('🔄 Final fallback to standard web download...');
-            this.standardWebDownload(blob, filename);
         }
     }
 
