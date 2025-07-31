@@ -1266,63 +1266,76 @@ class ChroniCompanion {
         }
     }
 
-    // 🔧 CAPACITOR FILESYSTEM DOWNLOAD WITH MULTIPLE FALLBACKS
+    // 🔧 ANDROID NATIVE DOWNLOAD MANAGER (BYPASS ALL PERMISSIONS!)
     async saveWithCapacitorFilesystem(blob, filename) {
         try {
-            console.log('🔄 Converting blob to base64...');
-            const base64Data = await this.blobToBase64(blob);
-            console.log('✅ Base64 conversion complete');
+            console.log('🚀 Using Android native download manager...');
             
-            // Check if Capacitor plugins are available
-            if (!window.Capacitor || !window.Capacitor.Plugins) {
-                throw new Error('Capacitor plugins not available');
-            }
+            // Create a data URL from the blob  
+            const url = URL.createObjectURL(blob);
             
-            console.log('📦 Using Capacitor Filesystem...');
-            
-            // Try multiple directories in order of preference
-            const directories = [
-                { name: 'DATA', desc: 'App Data' },          // App's private data (should always work)
-                { name: 'CACHE', desc: 'Cache' },            // App cache (should always work)  
-                { name: 'EXTERNAL_STORAGE', desc: 'External Storage' }, // External storage
-                { name: 'DOCUMENTS', desc: 'Documents' }     // Documents folder
-            ];
-            
-            let savedResult = null;
-            let savedDirectory = null;
-            
-            for (const dir of directories) {
-                try {
-                    console.log(`💾 Trying to save to ${dir.desc}...`);
-                    const result = await window.Capacitor.Plugins.Filesystem.writeFile({
-                        path: filename,
-                        data: base64Data,
-                        directory: dir.name,
-                        recursive: true
+            // Check if we're in Capacitor
+            if (window.Capacitor && window.Capacitor.getPlatform() === 'android') {
+                console.log('📱 Android detected - triggering native download...');
+                
+                // Use Android's native download manager through web intent
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.style.display = 'none';
+                
+                // Add special attributes for Android WebView
+                link.setAttribute('target', '_blank');
+                link.setAttribute('rel', 'noopener');
+                
+                document.body.appendChild(link);
+                
+                // Try multiple click strategies for Android WebView
+                console.log('🖱️ Triggering download click...');
+                
+                // Strategy 1: Direct click
+                link.click();
+                
+                // Strategy 2: Dispatch click event
+                setTimeout(() => {
+                    const clickEvent = new MouseEvent('click', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true
                     });
-                    
-                    console.log(`✅ File saved successfully to ${dir.desc}!`);
-                    console.log('📁 File URI:', result.uri);
-                    
-                    savedResult = result;
-                    savedDirectory = dir;
-                    break; // Success! Stop trying other directories
-                    
-                } catch (dirError) {
-                    console.warn(`❌ Failed to save to ${dir.desc}:`, dirError.message);
-                    continue; // Try next directory
-                }
-            }
-            
-            if (savedResult) {
-                // Show success with share option
-                this.showPDFSuccessModal(filename, savedResult.uri, savedDirectory.desc);
+                    link.dispatchEvent(clickEvent);
+                }, 100);
+                
+                // Strategy 3: Try to open in new tab as fallback
+                setTimeout(() => {
+                    try {
+                        window.open(url, '_blank');
+                    } catch (e) {
+                        console.warn('Fallback window.open failed:', e);
+                    }
+                }, 200);
+                
+                // Clean up
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                }, 1000);
+                
+                // Show success message (optimistic)
+                setTimeout(() => {
+                    this.showSuccessMessage('📱 Download started! Check your Downloads folder or notification bar.');
+                }, 500);
+                
+                console.log('✅ Native download triggered!');
+                
             } else {
-                throw new Error('All directory attempts failed');
+                // Fallback for non-Android or web
+                console.log('💻 Not Android - using standard download...');
+                this.standardWebDownload(blob, filename);
             }
             
         } catch (error) {
-            console.error('❌ All Capacitor filesystem attempts failed:', error);
+            console.error('❌ Native download failed:', error);
             
             // Ultimate fallback: standard web download
             console.log('🔄 Falling back to standard web download...');
