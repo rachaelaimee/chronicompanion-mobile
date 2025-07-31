@@ -1266,7 +1266,7 @@ class ChroniCompanion {
         }
     }
 
-    // 🔧 CAPACITOR FILESYSTEM DOWNLOAD (ANDROID)
+    // 🔧 CAPACITOR FILESYSTEM DOWNLOAD WITH MULTIPLE FALLBACKS
     async saveWithCapacitorFilesystem(blob, filename) {
         try {
             console.log('🔄 Converting blob to base64...');
@@ -1280,27 +1280,52 @@ class ChroniCompanion {
             
             console.log('📦 Using Capacitor Filesystem...');
             
-            // Try to save to External Storage (Downloads-like area)
-            console.log('💾 Saving to External Storage...');
-            const result = await window.Capacitor.Plugins.Filesystem.writeFile({
-                path: filename,
-                data: base64Data,
-                directory: 'EXTERNAL_STORAGE', // External storage should be accessible
-                recursive: true
-            });
+            // Try multiple directories in order of preference
+            const directories = [
+                { name: 'DATA', desc: 'App Data' },          // App's private data (should always work)
+                { name: 'CACHE', desc: 'Cache' },            // App cache (should always work)  
+                { name: 'EXTERNAL_STORAGE', desc: 'External Storage' }, // External storage
+                { name: 'DOCUMENTS', desc: 'Documents' }     // Documents folder
+            ];
             
-            console.log('✅ File saved successfully!');
-            console.log('📁 File URI:', result.uri);
+            let savedResult = null;
+            let savedDirectory = null;
             
-            // Show success with share option
-            this.showPDFSuccessModal(filename, result.uri);
+            for (const dir of directories) {
+                try {
+                    console.log(`💾 Trying to save to ${dir.desc}...`);
+                    const result = await window.Capacitor.Plugins.Filesystem.writeFile({
+                        path: filename,
+                        data: base64Data,
+                        directory: dir.name,
+                        recursive: true
+                    });
+                    
+                    console.log(`✅ File saved successfully to ${dir.desc}!`);
+                    console.log('📁 File URI:', result.uri);
+                    
+                    savedResult = result;
+                    savedDirectory = dir;
+                    break; // Success! Stop trying other directories
+                    
+                } catch (dirError) {
+                    console.warn(`❌ Failed to save to ${dir.desc}:`, dirError.message);
+                    continue; // Try next directory
+                }
+            }
+            
+            if (savedResult) {
+                // Show success with share option
+                this.showPDFSuccessModal(filename, savedResult.uri, savedDirectory.desc);
+            } else {
+                throw new Error('All directory attempts failed');
+            }
             
         } catch (error) {
-            console.error('❌ Capacitor filesystem failed:', error);
-            this.showErrorMessage(`Failed to save PDF: ${error.message}`);
+            console.error('❌ All Capacitor filesystem attempts failed:', error);
             
-            // Fallback to standard download
-            console.log('🔄 Falling back to standard download...');
+            // Ultimate fallback: standard web download
+            console.log('🔄 Falling back to standard web download...');
             this.standardWebDownload(blob, filename);
         }
     }
@@ -1329,7 +1354,7 @@ class ChroniCompanion {
     }
 
     // 🎉 PDF SUCCESS MODAL WITH SHARE OPTION
-    showPDFSuccessModal(filename, fileUri) {
+    showPDFSuccessModal(filename, fileUri, directoryDesc = 'storage') {
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
         modal.id = 'pdf-success-modal';
@@ -1357,7 +1382,7 @@ class ChroniCompanion {
                 <div class="mt-4 p-3 bg-green-50 rounded-lg">
                     <p class="text-xs text-green-700">
                         <i class="fas fa-info-circle mr-1"></i>
-                        PDF saved to external storage. Use "Share PDF" to send it to other apps.
+                        PDF saved to ${directoryDesc.toLowerCase()}. Use "Share PDF" to send it to other apps.
                     </p>
                 </div>
             </div>
