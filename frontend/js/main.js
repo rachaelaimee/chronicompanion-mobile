@@ -1266,101 +1266,67 @@ class ChroniCompanion {
         }
     }
 
-    // 📱 ANDROID "OPEN WITH" DIALOG APPROACH (LIKE OTHER APPS!)
+    // 🚀 DEAD SIMPLE: SAVE FILE + OPEN IN NATIVE PDF APP
     async saveWithCapacitorFilesystem(blob, filename) {
         try {
-            console.log('📱 Using Android "Open With" dialog approach - just like other apps!');
+            console.log('🚀 DEAD SIMPLE approach: Save file + open in native PDF app');
             
-            // STRATEGY 1: Web Share API with Files (BEST - Shows "Open With" dialog)
+            // Convert blob to base64 for Capacitor
+            const base64Data = await this.blobToBase64(blob);
+            
+            console.log('💾 Saving PDF file...');
+            
+            // Save to app's cache directory (no permissions needed)
+            const savedFile = await window.Capacitor.Plugins.Filesystem.writeFile({
+                path: filename,
+                data: base64Data,
+                directory: window.Capacitor.Plugins.Filesystem.Directory.CACHE
+            });
+            
+            console.log('✅ PDF saved to:', savedFile.uri);
+            
+            // Open the file in native PDF app using file-opener plugin
+            console.log('📱 Opening PDF in native app...');
+            
+            // Import the file opener plugin
+            const { FileOpener } = window.Capacitor.Plugins;
+            
+            await FileOpener.open({
+                filePath: savedFile.uri,
+                contentType: 'application/pdf'
+            });
+            
+            console.log('🎉 PDF opened in native app successfully!');
+            this.showSuccessMessage('📄 PDF opened! Your device chose the best app to view it.');
+            
+        } catch (error) {
+            console.error('❌ Failed to open PDF:', error);
+            
+            // If file opener fails, fall back to Web Share API
+            console.log('🔄 File opener failed, trying Web Share API fallback...');
+            
             if (navigator.share) {
-                console.log('📤 Trying Web Share API with file - this will show "Open With" dialog...');
-                
                 try {
                     const file = new File([blob], filename, { type: 'application/pdf' });
                     
-                    // Check if we can share files (this triggers the "Open With" dialog)
                     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                        console.log('✅ Web Share API supports files - showing Android "Open With" dialog...');
-                        
                         await navigator.share({
                             title: 'ChroniCompanion Health Report',
-                            text: 'Choose an app to open your PDF health report',
+                            text: 'Choose an app to open your PDF',
                             files: [file]
                         });
                         
-                        console.log('🎉 "Open With" dialog shown successfully!');
-                        this.showOpenWithSuccessModal(filename);
+                        console.log('✅ Fallback share successful');
+                        this.showSuccessMessage('📤 Choose an app to open your PDF!');
                         return;
-                        
-                    } else {
-                        console.log('📱 File sharing not supported, trying URL share...');
                     }
                 } catch (shareError) {
-                    if (shareError.name === 'AbortError') {
-                        console.log('ℹ️ User cancelled "Open With" dialog');
-                        this.showInfoMessage('Open With dialog cancelled by user.');
-                        return;
-                    } else {
-                        console.warn('❌ File share failed, trying alternatives...', shareError);
-                    }
+                    console.warn('❌ Share fallback also failed:', shareError);
                 }
             }
             
-            // STRATEGY 2: Web Share API with URL (Fallback)
-            if (navigator.share) {
-                console.log('📤 Trying Web Share API with URL...');
-                
-                try {
-                    const blobUrl = URL.createObjectURL(blob);
-                    console.log('📄 Created blob URL for sharing:', blobUrl);
-                    
-                    await navigator.share({
-                        title: 'ChroniCompanion Health Report',
-                        text: 'Tap to open your PDF health report',
-                        url: blobUrl
-                    });
-                    
-                    console.log('✅ PDF URL shared successfully!');
-                    this.showSuccessMessage('🎉 PDF shared! Tap the shared link to choose how to open it.');
-                    
-                    // Clean up after a delay
-                    setTimeout(() => URL.revokeObjectURL(blobUrl), 300000);
-                    return;
-                    
-                } catch (shareError) {
-                    if (shareError.name === 'AbortError') {
-                        console.log('ℹ️ User cancelled share dialog');
-                        this.showInfoMessage('Share cancelled by user.');
-                        return;
-                    } else {
-                        console.warn('❌ URL share failed:', shareError);
-                    }
-                }
-            }
-            
-            // STRATEGY 3: Show manual instructions (if Web Share isn't available)
-            console.log('📋 Web Share API not available - showing manual download instructions...');
-            
-            const blobUrl = URL.createObjectURL(blob);
-            
-            // Try a simple download trigger
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.download = filename;
-            link.style.display = 'none';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Show instructions modal
-            this.showManualDownloadModal(filename, blobUrl);
-            
-            // Clean up after a delay
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 300000);
-            
-        } catch (error) {
-            console.error('❌ All PDF methods failed:', error);
-            this.showErrorMessage(`Failed to prepare PDF: ${error.message}`);
+            // Final fallback: show error
+            this.showErrorMessage(`Unable to open PDF: ${error.message}`);
         }
     }
 
@@ -1560,119 +1526,7 @@ class ChroniCompanion {
         }
     }
 
-    // 🎉 "OPEN WITH" SUCCESS MODAL
-    showOpenWithSuccessModal(filename) {
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
-        modal.id = 'open-with-success-modal';
-        
-        modal.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-                <div class="text-center mb-6">
-                    <i class="fas fa-external-link-alt text-green-500 text-4xl mb-3"></i>
-                    <h3 class="text-xl font-bold text-gray-800">🎉 "Open With" Dialog Shown!</h3>
-                    <p class="text-gray-600 text-sm mt-2">Choose your favorite PDF app</p>
-                    <p class="text-gray-500 text-xs mt-1 font-mono break-all">${filename}</p>
-                </div>
-                
-                <div class="space-y-4 mb-6">
-                    <div class="p-4 bg-green-50 rounded-lg">
-                        <h4 class="font-semibold text-green-800 mb-2">✅ What just happened:</h4>
-                        <ul class="text-sm text-green-700 space-y-1">
-                            <li>• Android showed you app choices</li>
-                            <li>• Pick <strong>Adobe Reader</strong>, <strong>Chrome</strong>, or <strong>Files</strong></li>
-                            <li>• Your PDF will open in that app</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="p-4 bg-blue-50 rounded-lg">
-                        <h4 class="font-semibold text-blue-800 mb-2">💡 Pro tip:</h4>
-                        <p class="text-sm text-blue-700">
-                            Most PDF apps have a save/download button. Use that to save your report permanently!
-                        </p>
-                    </div>
-                </div>
-                
-                <div class="space-y-3">
-                    <button onclick="app.closeOpenWithSuccessModal()" 
-                            class="w-full bg-green-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors">
-                        <i class="fas fa-check mr-2"></i>Perfect!
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        document.body.style.overflow = 'hidden';
-    }
-
-    // 🚪 CLOSE "OPEN WITH" SUCCESS MODAL
-    closeOpenWithSuccessModal() {
-        const modal = document.getElementById('open-with-success-modal');
-        if (modal) {
-            document.body.removeChild(modal);
-            document.body.style.overflow = '';
-        }
-    }
-
-    // 📋 MANUAL DOWNLOAD MODAL
-    showManualDownloadModal(filename, blobUrl) {
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
-        modal.id = 'manual-download-modal';
-        
-        modal.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-                <div class="text-center mb-6">
-                    <i class="fas fa-download text-blue-500 text-4xl mb-3"></i>
-                    <h3 class="text-xl font-bold text-gray-800">📱 Manual Download</h3>
-                    <p class="text-gray-600 text-sm mt-2">Your PDF is ready for download</p>
-                    <p class="text-gray-500 text-xs mt-1 font-mono break-all">${filename}</p>
-                </div>
-                
-                <div class="space-y-4 mb-6">
-                    <div class="p-4 bg-orange-50 rounded-lg">
-                        <h4 class="font-semibold text-orange-800 mb-2">📂 Where to look:</h4>
-                        <ul class="text-sm text-orange-700 space-y-1">
-                            <li>• Check your <strong>Downloads</strong> folder</li>
-                            <li>• Look in <strong>notification bar</strong></li>
-                            <li>• Try your <strong>Files</strong> app</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="p-4 bg-blue-50 rounded-lg">
-                        <h4 class="font-semibold text-blue-800 mb-2">🔄 If not found:</h4>
-                        <p class="text-sm text-blue-700">
-                            Try the "Open Link" button below - it might trigger your browser's download
-                        </p>
-                    </div>
-                </div>
-                
-                <div class="space-y-3">
-                    <button onclick="window.location.href='${blobUrl}'" 
-                            class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition-colors">
-                        <i class="fas fa-external-link-alt mr-2"></i>Open Link
-                    </button>
-                    <button onclick="app.closeManualDownloadModal()" 
-                            class="w-full bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-600 transition-colors">
-                        <i class="fas fa-check mr-2"></i>Got it!
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        document.body.style.overflow = 'hidden';
-    }
-
-    // 🚪 CLOSE MANUAL DOWNLOAD MODAL
-    closeManualDownloadModal() {
-        const modal = document.getElementById('manual-download-modal');
-        if (modal) {
-            document.body.removeChild(modal);
-            document.body.style.overflow = '';
-        }
-    }
+    // 🗑️ REMOVED ALL MODALS - KEEPING IT DEAD SIMPLE!
 
     // ❌ CLOSE PDF MODAL
     closePDFModal() {
