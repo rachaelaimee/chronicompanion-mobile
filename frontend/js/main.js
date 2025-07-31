@@ -191,23 +191,38 @@ class ChroniCompanion {
             this.showView('entries-list');
         });
 
-        document.getElementById('export-btn').addEventListener('click', () => {
-            console.log('🔥 EXPORT BUTTON CLICKED!');
-            console.log('🔥 Current view:', this.currentView);
+        const exportBtn = document.getElementById('export-btn');
+        console.log('🔍 Found export button:', exportBtn);
+        alert(`🔍 Found export button: ${exportBtn ? 'YES' : 'NO'}`);
+        
+        if (exportBtn) {
+            console.log('✅ Adding click listener to export button...');
+            alert('✅ Adding click listener to export button...');
             
-            // Show alert so user can see what's happening
-            alert(`🔥 EXPORT BUTTON CLICKED!\nCurrent view: ${this.currentView}`);
+            exportBtn.addEventListener('click', () => {
+                console.log('🔥 EXPORT BUTTON CLICKED!');
+                console.log('🔥 Current view:', this.currentView);
+                
+                // Show alert so user can see what's happening
+                alert(`🔥 EXPORT BUTTON CLICKED!\nCurrent view: ${this.currentView}`);
+                
+                if (this.currentView === 'dashboard') {
+                    console.log('🔥 Calling exportDashboard...');
+                    alert('🔥 Calling exportDashboard...');
+                    this.exportDashboard();
+                } else {
+                    console.log('🔥 Calling exportEntries...');
+                    alert('🔥 Calling exportEntries...');
+                    this.exportEntries();
+                }
+            });
             
-            if (this.currentView === 'dashboard') {
-                console.log('🔥 Calling exportDashboard...');
-                alert('🔥 Calling exportDashboard...');
-                this.exportDashboard();
-            } else {
-                console.log('🔥 Calling exportEntries...');
-                alert('🔥 Calling exportEntries...');
-            this.exportEntries();
-            }
-        });
+            console.log('✅ Export button click listener added successfully');
+            alert('✅ Export button click listener added successfully!');
+        } else {
+            console.error('❌ Export button not found!');
+            alert('❌ Export button not found! Check if element exists.');
+        }
 
         document.getElementById('dashboard-btn').addEventListener('click', () => {
             this.showView('dashboard');
@@ -1306,7 +1321,17 @@ class ChroniCompanion {
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.app = new ChroniCompanion();
+    console.log('🚀 DOM LOADED - Creating app...');
+    alert('🚀 DOM LOADED - Creating ChroniCompanion app...');
+    
+    try {
+        window.app = new ChroniCompanion();
+        console.log('✅ App created successfully');
+        alert('✅ ChroniCompanion app created successfully!');
+    } catch (error) {
+        console.error('❌ Failed to create app:', error);
+        alert(`❌ Failed to create app: ${error.message}`);
+    }
 });
 
 // Add some custom CSS for slider styling
