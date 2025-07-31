@@ -1266,49 +1266,14 @@ class ChroniCompanion {
         }
     }
 
-    // 🚀 MODERN FILE SYSTEM ACCESS API (CHROME 132+ ANDROID WEBVIEW!)
+    // 📱 WEBVIEW-COMPATIBLE PDF SAVE (WORKS WITH CURRENT CAPACITOR!)
     async saveWithCapacitorFilesystem(blob, filename) {
         try {
-            console.log('🚀 Using modern File System Access API...');
+            console.log('📱 Using WebView-compatible PDF save...');
             
-            // Check if File System Access API is available (Chrome 132+ Android WebView)
-            if ('showSaveFilePicker' in window) {
-                console.log('✅ File System Access API detected - using modern save dialog...');
-                
-                try {
-                    // Show native save dialog with suggested filename
-                    const fileHandle = await window.showSaveFilePicker({
-                        suggestedName: filename,
-                        types: [{
-                            description: 'PDF files',
-                            accept: { 'application/pdf': ['.pdf'] }
-                        }]
-                    });
-                    
-                    // Write the blob to the chosen file
-                    const writableStream = await fileHandle.createWritable();
-                    await writableStream.write(blob);
-                    await writableStream.close();
-                    
-                    console.log('✅ File saved successfully with File System Access API!');
-                    this.showSuccessMessage('🎉 PDF saved successfully! File has been saved to your chosen location.');
-                    return;
-                    
-                } catch (fsError) {
-                    if (fsError.name === 'AbortError') {
-                        console.log('ℹ️ User cancelled save dialog');
-                        this.showInfoMessage('Save cancelled by user.');
-                        return;
-                    } else {
-                        console.warn('❌ File System Access API failed:', fsError);
-                        // Continue to fallback methods
-                    }
-                }
-            }
-            
-            // Fallback 1: Try Web Share API for mobile
+            // Strategy 1: Try Web Share API first (works well in Capacitor)
             if (navigator.share && 'canShare' in navigator) {
-                console.log('📱 Trying Web Share API...');
+                console.log('📤 Trying Web Share API for mobile...');
                 
                 const file = new File([blob], filename, { type: 'application/pdf' });
                 
@@ -1319,21 +1284,63 @@ class ChroniCompanion {
                             text: 'My health tracking report from ChroniCompanion',
                             files: [file]
                         });
-                        console.log('✅ File shared successfully!');
+                        console.log('✅ PDF shared successfully via Web Share API!');
+                        this.showSuccessMessage('🎉 PDF shared successfully! Choose where to save or share your health report.');
                         return;
                     } catch (shareError) {
-                        console.warn('❌ Web Share API failed:', shareError);
-                        // Continue to final fallback
+                        if (shareError.name === 'AbortError') {
+                            console.log('ℹ️ User cancelled share dialog');
+                            this.showInfoMessage('Share cancelled by user.');
+                            return;
+                        } else {
+                            console.warn('❌ Web Share API failed:', shareError);
+                            // Continue to next strategy
+                        }
                     }
+                } else {
+                    console.log('📱 Web Share API cannot share files, trying alternative...');
                 }
             }
             
-            // Fallback 2: Standard download approach
-            console.log('💾 Using standard download fallback...');
-            this.standardWebDownload(blob, filename);
+            // Strategy 2: Create data URL and prompt user to save
+            console.log('💾 Creating downloadable data URL...');
+            
+            try {
+                // Convert blob to base64 data URL
+                const reader = new FileReader();
+                const dataUrlPromise = new Promise((resolve, reject) => {
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                });
+                reader.readAsDataURL(blob);
+                
+                const dataUrl = await dataUrlPromise;
+                
+                // Try to trigger download using data URL
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = filename;
+                link.style.display = 'none';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                console.log('✅ Data URL download triggered!');
+                
+                // Show instructions to user about where to find the file
+                this.showPDFInstructionsModal(filename);
+                
+            } catch (dataUrlError) {
+                console.error('❌ Data URL approach failed:', dataUrlError);
+                
+                // Strategy 3: Final fallback - standard blob URL
+                console.log('🔄 Using standard blob URL fallback...');
+                this.standardWebDownload(blob, filename);
+            }
             
         } catch (error) {
-            console.error('❌ All save methods failed:', error);
+            console.error('❌ All WebView save methods failed:', error);
             this.showErrorMessage(`Save failed: ${error.message}`);
             
             // Final fallback: standard web download
@@ -1421,6 +1428,61 @@ class ChroniCompanion {
         } catch (error) {
             console.error('❌ Share failed:', error);
             this.showErrorMessage(`Share failed: ${error.message}`);
+        }
+    }
+
+    // 📋 PDF DOWNLOAD INSTRUCTIONS MODAL
+    showPDFInstructionsModal(filename) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.id = 'pdf-instructions-modal';
+        
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                <div class="text-center mb-6">
+                    <i class="fas fa-download text-green-500 text-4xl mb-3"></i>
+                    <h3 class="text-xl font-bold text-gray-800">📱 PDF Download Started!</h3>
+                    <p class="text-gray-600 text-sm mt-2">Your health report is being downloaded</p>
+                    <p class="text-gray-500 text-xs mt-1 font-mono break-all">${filename}</p>
+                </div>
+                
+                <div class="space-y-4 mb-6">
+                    <div class="p-4 bg-blue-50 rounded-lg">
+                        <h4 class="font-semibold text-blue-800 mb-2">📂 Where to find your PDF:</h4>
+                        <ul class="text-sm text-blue-700 space-y-1">
+                            <li>• Check your <strong>Downloads</strong> folder</li>
+                            <li>• Look in your <strong>notification bar</strong></li>
+                            <li>• Try your <strong>Files</strong> app</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="p-4 bg-green-50 rounded-lg">
+                        <h4 class="font-semibold text-green-800 mb-2">💡 Pro tip:</h4>
+                        <p class="text-sm text-green-700">
+                            If you can't find it, try the share button next time - it lets you choose exactly where to save!
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="app.closePDFInstructionsModal()" 
+                            class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-check mr-2"></i>Got it!
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    }
+
+    // 🚪 CLOSE PDF INSTRUCTIONS MODAL
+    closePDFInstructionsModal() {
+        const modal = document.getElementById('pdf-instructions-modal');
+        if (modal) {
+            document.body.removeChild(modal);
+            document.body.style.overflow = '';
         }
     }
 
