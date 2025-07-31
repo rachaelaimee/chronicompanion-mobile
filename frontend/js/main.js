@@ -384,15 +384,11 @@ class ChroniCompanion {
     updateExportButtonVisibility(viewId) {
         const exportBtn = document.getElementById('export-btn');
         if (viewId === 'entries-list') {
-            // Show export button on entries page
+            // Show export button ONLY on entries page
             exportBtn.style.display = 'flex';
             exportBtn.innerHTML = '<i class="fas fa-download mr-2"></i>Export Data';
-        } else if (viewId === 'dashboard') {
-            // Show different export on dashboard
-            exportBtn.style.display = 'flex';
-            exportBtn.innerHTML = '<i class="fas fa-chart-bar mr-2"></i>Export Charts';
         } else {
-            // Hide export button on entry form
+            // Hide export button on all other pages (dashboard, entry form, etc.)
             exportBtn.style.display = 'none';
         }
     }
@@ -1150,209 +1146,105 @@ class ChroniCompanion {
     }
 
     exportDashboard() {
-        // For now, show that dashboard export is not available
+        // Dashboard export is not implemented yet
         this.showInfoMessage('Dashboard export feature coming soon! Use "Export Data" from the entries page for your health report.');
-        
-        // Future: Implement dashboard chart export as image or PDF
-        // Could export chart images, statistics summary, etc.
     }
 
+    // 📱 SIMPLE ANDROID-COMPATIBLE PDF EXPORT
     async exportEntries() {
+        console.log('🚀 Starting simple PDF export...');
+        
         try {
             // Show loading message
             this.showInfoMessage('Generating your health report PDF...');
             
+            console.log('🌐 Making API request to:', `${this.apiBase}/api/export`);
             const response = await fetch(`${this.apiBase}/api/export`, {
                 method: 'GET',
             });
 
+            console.log('📡 API Response status:', response.status, response.statusText);
+
             if (response.ok) {
+                console.log('✅ API Success - Getting blob...');
                 const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
+                console.log('📦 Blob created, size:', blob.size, 'type:', blob.type);
+                
                 const filename = `ChroniCompanion_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                console.log('📁 Filename:', filename);
                 
-                // For mobile devices, try the share API first
-                if (this.isMobile && navigator.share && navigator.canShare) {
-                    try {
-                        const file = new File([blob], filename, { type: 'application/pdf' });
-                        if (navigator.canShare({ files: [file] })) {
-                            await navigator.share({
-                                title: 'ChroniCompanion Health Report',
-                                text: 'Your personal health tracking report',
-                                files: [file]
-                            });
-                            this.showSuccessMessage('Report shared successfully!');
-                            window.URL.revokeObjectURL(url);
-                            return;
-                        }
-                    } catch (shareError) {
-                        console.log('Share API failed, falling back to download:', shareError);
-                    }
-                }
+                // 🎯 SIMPLE APPROACH: Direct blob download
+                this.simpleDownloadPDF(blob, filename);
                 
-                // Fallback to download
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.style.display = 'none';
-                
-                // For mobile, add explicit user interaction
-                if (this.isMobile) {
-                    // Show modal with download link for mobile
-                    this.showMobileDownloadModal(url, filename, blob);
-                } else {
-                    // Desktop: automatic download
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    this.showSuccessMessage('Report exported successfully!');
-                }
-                
-                window.URL.revokeObjectURL(url);
             } else {
-                throw new Error('Failed to export entries');
+                throw new Error(`API Error: ${response.status} ${response.statusText}`);
             }
         } catch (error) {
-            console.log('Backend not available, showing export placeholder');
+            console.error('❌ EXPORT FAILED:', error);
             if (this.isOnline) {
-                this.showErrorMessage('Export failed. Please check your internet connection and try again.');
+                this.showErrorMessage(`Export failed: ${error.message}. Please try again.`);
             } else {
                 this.showInfoMessage('Export requires internet connection. Please connect and try again.');
             }
         }
+        console.log('🏁 EXPORT FUNCTION COMPLETED');
     }
 
-    showMobileDownloadModal(url, filename, blob) {
-        // Create mobile download modal
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
-        modal.id = 'pdf-download-modal';
+    // 📱 SIMPLE PDF DOWNLOAD - ANDROID COMPATIBLE
+    simpleDownloadPDF(blob, filename) {
+        console.log('📱 Starting simple PDF download...');
+        console.log('📦 Blob size:', blob.size, 'type:', blob.type);
         
-        modal.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
-                <div class="text-center mb-6">
-                    <i class="fas fa-file-pdf text-red-500 text-4xl mb-3"></i>
-                    <h3 class="text-xl font-bold text-gray-800">Your Health Report is Ready!</h3>
-                    <p class="text-gray-600 text-sm mt-2">PDF format • ${filename}</p>
-                </div>
-                
-                <div class="space-y-3">
-                    <button id="mobile-download-btn" 
-                       class="w-full bg-green-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center justify-center">
-                        <i class="fas fa-download mr-2"></i>Download PDF
-                    </button>
-                    
-                    <button id="share-pdf-btn" 
-                       class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center">
-                        <i class="fas fa-share mr-2"></i>Share PDF
-                    </button>
-                    
-                    <button onclick="app.closePdfModal()" 
-                            class="w-full text-gray-600 py-2 hover:text-gray-800">
-                        Close
-                    </button>
-                </div>
-                
-                <div class="mt-4 p-3 bg-blue-50 rounded-lg">
-                    <p class="text-xs text-blue-700">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        Try "Share PDF" if download doesn't work. This will let you save to Files, email, or other apps.
-                    </p>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        document.body.style.overflow = 'hidden';
-        
-        // Add event listeners for the buttons
-        const downloadBtn = modal.querySelector('#mobile-download-btn');
-        const shareBtn = modal.querySelector('#share-pdf-btn');
-        
-        downloadBtn.addEventListener('click', () => {
-            this.tryMobileDownload(url, filename, blob);
-        });
-        
-        shareBtn.addEventListener('click', () => {
-            this.tryMobileShare(filename, blob);
-        });
-        
-        // Auto-remove after 30 seconds
-        setTimeout(() => {
-            if (modal.parentElement) {
-                this.closePdfModal();
-            }
-        }, 30000);
-    }
-
-    async tryMobileDownload(url, filename, blob) {
         try {
-            // Method 1: Try direct blob download with user interaction
+            // Create blob URL
+            const url = URL.createObjectURL(blob); 
+            console.log('🔗 Created blob URL');
+            
+            // Try direct download first
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
             a.style.display = 'none';
-            a.target = '_blank';
             
-            // Add to DOM, click, and remove
+            // Add to DOM and click
             document.body.appendChild(a);
+            console.log('⬇️ Triggering download...');
             a.click();
             document.body.removeChild(a);
             
-            // Give user feedback
-            this.showSuccessMessage('Download started! Check your Downloads folder or notification bar.');
-            this.closePdfModal();
+            // Clean up blob URL after a delay
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+                console.log('🧹 Blob URL cleaned up');
+            }, 2000);
+            
+            console.log('✅ Download triggered successfully!');
+            this.showSuccessMessage('PDF download started! Check your Downloads folder.');
             
         } catch (error) {
-            console.error('Direct download failed:', error);
-            this.showErrorMessage('Download failed. Please try the Share option instead.');
-        }
-    }
-
-    async tryMobileShare(filename, blob) {
-        try {
-            // Method 2: Use Web Share API if available
-            if (navigator.share && navigator.canShare) {
-                const file = new File([blob], filename, { type: 'application/pdf' });
+            console.error('❌ Direct download failed:', error);
+            
+            // Fallback: Open PDF in new tab for manual save
+            try {
+                const url = URL.createObjectURL(blob);
+                const newTab = window.open(url, '_blank');
                 
-                if (navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        title: 'ChroniCompanion Health Report',
-                        text: 'Your personal health tracking report',
-                        files: [file]
-                    });
-                    
-                    this.showSuccessMessage('PDF shared successfully!');
-                    this.closePdfModal();
-                    return;
+                if (newTab) {
+                    console.log('📄 Opened PDF in new tab as fallback');
+                    this.showInfoMessage('PDF opened in new tab. Use browser menu to save.');
+                } else {
+                    console.log('❌ Could not open new tab');
+                    this.showErrorMessage('Download blocked. Please allow popups and try again.');
                 }
+                
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+                
+            } catch (fallbackError) {
+                console.error('❌ Fallback failed too:', fallbackError);
+                this.showErrorMessage('PDF generation failed. Please try again.');
             }
-            
-            // Fallback: Open in new tab (user can then save)
-            const url = window.URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            this.showInfoMessage('PDF opened in new tab. Use your browser menu to download or share it.');
-            this.closePdfModal();
-            
-        } catch (error) {
-            console.error('Share failed:', error);
-            this.showErrorMessage('Share failed. PDF opened in new tab instead.');
-            // Still try to open in new tab as fallback
-            const url = window.URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            this.closePdfModal();
         }
     }
-
-    closePdfModal() {
-        const modal = document.getElementById('pdf-download-modal');
-        if (modal) {
-            modal.remove();
-            document.body.style.overflow = 'auto';
-        }
-    }
-
-    // ✨ SIMPLE AND WORKING - REMOVED ALL COMPLEX CAPACITOR LOGIC
 }
 
 // Initialize the app when DOM is loaded
