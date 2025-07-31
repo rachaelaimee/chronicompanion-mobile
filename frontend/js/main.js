@@ -1280,19 +1280,20 @@ class ChroniCompanion {
             
             console.log('📦 Using Capacitor Filesystem...');
             
-            // Try to save to Documents directory (more reliable than Downloads)
-            console.log('💾 Saving to Documents directory...');
+            // Try to save to External Storage (Downloads-like area)
+            console.log('💾 Saving to External Storage...');
             const result = await window.Capacitor.Plugins.Filesystem.writeFile({
                 path: filename,
                 data: base64Data,
-                directory: 'DOCUMENTS', // Use string instead of enum
+                directory: 'EXTERNAL_STORAGE', // External storage should be accessible
                 recursive: true
             });
             
             console.log('✅ File saved successfully!');
             console.log('📁 File URI:', result.uri);
             
-            this.showSuccessMessage(`✅ PDF saved successfully!\n\nFile: ${filename}\n\nOpen your Files app → Documents folder to find it.`);
+            // Show success with share option
+            this.showPDFSuccessModal(filename, result.uri);
             
         } catch (error) {
             console.error('❌ Capacitor filesystem failed:', error);
@@ -1324,6 +1325,74 @@ class ChroniCompanion {
         } catch (error) {
             console.error('❌ Standard download failed:', error);
             this.showErrorMessage('Download failed. Please try again.');
+        }
+    }
+
+    // 🎉 PDF SUCCESS MODAL WITH SHARE OPTION
+    showPDFSuccessModal(filename, fileUri) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.id = 'pdf-success-modal';
+        
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                <div class="text-center mb-6">
+                    <i class="fas fa-check-circle text-green-500 text-4xl mb-3"></i>
+                    <h3 class="text-xl font-bold text-gray-800">🎉 PDF Saved!</h3>
+                    <p class="text-gray-600 text-sm mt-2">Your health report is ready</p>
+                    <p class="text-gray-500 text-xs mt-1 font-mono break-all">${filename}</p>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="app.sharePDF('${fileUri}', '${filename}')" 
+                            class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-share mr-2"></i>Share PDF
+                    </button>
+                    <button onclick="app.closePDFModal()" 
+                            class="w-full bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-check mr-2"></i>Done
+                    </button>
+                </div>
+                
+                <div class="mt-4 p-3 bg-green-50 rounded-lg">
+                    <p class="text-xs text-green-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        PDF saved to external storage. Use "Share PDF" to send it to other apps.
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    }
+
+    // 📤 SHARE PDF USING CAPACITOR SHARE
+    async sharePDF(fileUri, filename) {
+        try {
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share) {
+                await window.Capacitor.Plugins.Share.share({
+                    title: 'ChroniCompanion Health Report',
+                    text: 'My health tracking report from ChroniCompanion',
+                    url: fileUri,
+                    dialogTitle: 'Share your health report'
+                });
+                console.log('✅ PDF shared successfully');
+            } else {
+                throw new Error('Share plugin not available');
+            }
+        } catch (error) {
+            console.error('❌ Share failed:', error);
+            this.showErrorMessage(`Share failed: ${error.message}`);
+        }
+    }
+
+    // ❌ CLOSE PDF MODAL
+    closePDFModal() {
+        const modal = document.getElementById('pdf-success-modal');
+        if (modal) {
+            document.body.removeChild(modal);
+            document.body.style.overflow = 'auto';
         }
     }
 
