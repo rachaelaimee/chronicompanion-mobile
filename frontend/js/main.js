@@ -193,32 +193,24 @@ class ChroniCompanion {
 
         const exportBtn = document.getElementById('export-btn');
         console.log('🔍 Found export button:', exportBtn);
-        alert(`🔍 Found export button: ${exportBtn ? 'YES' : 'NO'}`);
         
         if (exportBtn) {
             console.log('✅ Adding click listener to export button...');
-            alert('✅ Adding click listener to export button...');
             
             exportBtn.addEventListener('click', () => {
                 console.log('🔥 EXPORT BUTTON CLICKED!');
                 console.log('🔥 Current view:', this.currentView);
                 
-                // Show alert so user can see what's happening
-                alert(`🔥 EXPORT BUTTON CLICKED!\nCurrent view: ${this.currentView}`);
-                
                 if (this.currentView === 'dashboard') {
                     console.log('🔥 Calling exportDashboard...');
-                    alert('🔥 Calling exportDashboard...');
                     this.exportDashboard();
                 } else {
                     console.log('🔥 Calling exportEntries...');
-                    alert('🔥 Calling exportEntries...');
                     this.exportEntries();
                 }
             });
             
             console.log('✅ Export button click listener added successfully');
-            alert('✅ Export button click listener added successfully!');
         } else {
             console.error('❌ Export button not found!');
             alert('❌ Export button not found! Check if element exists.');
@@ -1178,37 +1170,27 @@ class ChroniCompanion {
     // 📱 SIMPLE ANDROID-COMPATIBLE PDF EXPORT
     async exportEntries() {
         console.log('🚀 Starting simple PDF export...');
-        alert('🚀 Starting simple PDF export...');
         
         try {
-            // Show loading message
+            // Show loading message (this was the function that was missing!)
             this.showInfoMessage('Generating your health report PDF...');
-            alert('📢 Showing loading message...');
             
             console.log('🌐 Making API request to:', `${this.apiBase}/api/export`);
-            alert(`🌐 Making API request to: ${this.apiBase}/api/export`);
-            
             const response = await fetch(`${this.apiBase}/api/export`, {
                 method: 'GET',
             });
 
             console.log('📡 API Response status:', response.status, response.statusText);
-            alert(`📡 API Response: ${response.status} ${response.statusText}`);
 
             if (response.ok) {
                 console.log('✅ API Success - Getting blob...');
-                alert('✅ API Success - Getting blob...');
-                
                 const blob = await response.blob();
                 console.log('📦 Blob created, size:', blob.size, 'type:', blob.type);
-                alert(`📦 Blob created! Size: ${blob.size} bytes, Type: ${blob.type}`);
                 
                 const filename = `ChroniCompanion_Report_${new Date().toISOString().split('T')[0]}.pdf`;
                 console.log('📁 Filename:', filename);
-                alert(`📁 Filename: ${filename}`);
                 
                 // 🎯 SIMPLE APPROACH: Direct blob download
-                alert('🎯 About to call simpleDownloadPDF...');
                 this.simpleDownloadPDF(blob, filename);
                 
             } else {
@@ -1216,7 +1198,6 @@ class ChroniCompanion {
             }
         } catch (error) {
             console.error('❌ EXPORT FAILED:', error);
-            alert(`❌ EXPORT FAILED: ${error.message}`);
             
             if (this.isOnline) {
                 this.showErrorMessage(`Export failed: ${error.message}. Please try again.`);
@@ -1225,7 +1206,25 @@ class ChroniCompanion {
             }
         }
         console.log('🏁 EXPORT FUNCTION COMPLETED');
-        alert('🏁 EXPORT FUNCTION COMPLETED');
+    }
+
+    // 📢 MESSAGE UTILITY FUNCTIONS (THESE WERE MISSING!)
+    showInfoMessage(message) {
+        console.log('ℹ️ INFO:', message);
+        alert(`ℹ️ ${message}`);
+        
+        // You can also add a toast notification here in the future
+        // For now, we'll just use alerts to ensure it works
+    }
+
+    showSuccessMessage(message) {
+        console.log('✅ SUCCESS:', message);
+        alert(`✅ ${message}`);
+    }
+
+    showErrorMessage(message) {
+        console.error('❌ ERROR:', message);
+        alert(`❌ ${message}`);
     }
 
     // 🧪 SIMPLE TEST FUNCTION - CALL FROM BROWSER CONSOLE
@@ -1252,82 +1251,103 @@ class ChroniCompanion {
         }
     }
 
-    // 📱 SIMPLE PDF DOWNLOAD - ANDROID COMPATIBLE
-    simpleDownloadPDF(blob, filename) {
-        console.log('📱 Starting simple PDF download...');
+    // 📱 ANDROID-COMPATIBLE PDF DOWNLOAD USING CAPACITOR FILESYSTEM
+    async simpleDownloadPDF(blob, filename) {
+        console.log('📱 Starting Android-compatible PDF download...');
         console.log('📦 Blob size:', blob.size, 'type:', blob.type);
-        alert(`📱 Starting PDF download!\nBlob size: ${blob.size} bytes\nType: ${blob.type}`);
         
+        // Check if we're in a Capacitor environment
+        if (this.isMobile && window.Capacitor) {
+            console.log('📱 Using Capacitor Filesystem for Android...');
+            await this.saveWithCapacitorFilesystem(blob, filename);
+        } else {
+            console.log('💻 Using standard download for web/desktop...');
+            this.standardWebDownload(blob, filename);
+        }
+    }
+
+    // 🔧 CAPACITOR FILESYSTEM DOWNLOAD (ANDROID)
+    async saveWithCapacitorFilesystem(blob, filename) {
         try {
-            // Create blob URL
-            const url = URL.createObjectURL(blob); 
-            console.log('🔗 Created blob URL');
-            alert('🔗 Created blob URL successfully!');
+            console.log('🔄 Converting blob to base64...');
+            const base64Data = await this.blobToBase64(blob);
+            console.log('✅ Base64 conversion complete');
             
-            // Try direct download first
+            // Check if Capacitor plugins are available
+            if (!window.Capacitor || !window.Capacitor.Plugins) {
+                throw new Error('Capacitor plugins not available');
+            }
+            
+            console.log('📦 Using Capacitor Filesystem...');
+            
+            // Try to save to Documents directory (more reliable than Downloads)
+            console.log('💾 Saving to Documents directory...');
+            const result = await window.Capacitor.Plugins.Filesystem.writeFile({
+                path: filename,
+                data: base64Data,
+                directory: 'DOCUMENTS', // Use string instead of enum
+                recursive: true
+            });
+            
+            console.log('✅ File saved successfully!');
+            console.log('📁 File URI:', result.uri);
+            
+            this.showSuccessMessage(`✅ PDF saved successfully!\n\nFile: ${filename}\n\nOpen your Files app → Documents folder to find it.`);
+            
+        } catch (error) {
+            console.error('❌ Capacitor filesystem failed:', error);
+            this.showErrorMessage(`Failed to save PDF: ${error.message}`);
+            
+            // Fallback to standard download
+            console.log('🔄 Falling back to standard download...');
+            this.standardWebDownload(blob, filename);
+        }
+    }
+
+    // 💻 STANDARD WEB DOWNLOAD (DESKTOP/BROWSER)
+    standardWebDownload(blob, filename) {
+        try {
+            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
             a.style.display = 'none';
             
-            // Add to DOM and click
             document.body.appendChild(a);
-            console.log('⬇️ Triggering download...');
-            alert('⬇️ About to trigger download...');
-            
             a.click();
             document.body.removeChild(a);
-            alert('✅ Download click triggered!');
             
-            // Clean up blob URL after a delay
-            setTimeout(() => {
-                URL.revokeObjectURL(url);
-                console.log('🧹 Blob URL cleaned up');
-            }, 2000);
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
             
-            console.log('✅ Download triggered successfully!');
             this.showSuccessMessage('PDF download started! Check your Downloads folder.');
-            alert('✅ Download process completed! Check Downloads folder.');
             
         } catch (error) {
-            console.error('❌ Direct download failed:', error);
-            alert(`❌ Direct download failed: ${error.message}`);
-            
-            // Fallback: Open PDF in new tab for manual save
-            try {
-                const url = URL.createObjectURL(blob);
-                const newTab = window.open(url, '_blank');
-                
-                if (newTab) {
-                    console.log('📄 Opened PDF in new tab as fallback');
-                    alert('📄 Opened PDF in new tab as fallback');
-                    this.showInfoMessage('PDF opened in new tab. Use browser menu to save.');
-                } else {
-                    console.log('❌ Could not open new tab');
-                    alert('❌ Could not open new tab - popups blocked?');
-                    this.showErrorMessage('Download blocked. Please allow popups and try again.');
-                }
-                
-                setTimeout(() => URL.revokeObjectURL(url), 5000);
-                
-            } catch (fallbackError) {
-                console.error('❌ Fallback failed too:', fallbackError);
-                alert(`❌ Fallback failed too: ${fallbackError.message}`);
-                this.showErrorMessage('PDF generation failed. Please try again.');
-            }
+            console.error('❌ Standard download failed:', error);
+            this.showErrorMessage('Download failed. Please try again.');
         }
+    }
+
+    // 🔧 CONVERT BLOB TO BASE64
+    async blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const base64String = reader.result.split(',')[1]; // Remove data:type;base64, prefix
+                resolve(base64String);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
     }
 }
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM LOADED - Creating app...');
-    alert('🚀 DOM LOADED - Creating ChroniCompanion app...');
     
     try {
         window.app = new ChroniCompanion();
         console.log('✅ App created successfully');
-        alert('✅ ChroniCompanion app created successfully!');
     } catch (error) {
         console.error('❌ Failed to create app:', error);
         alert(`❌ Failed to create app: ${error.message}`);
