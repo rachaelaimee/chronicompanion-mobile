@@ -192,9 +192,14 @@ class ChroniCompanion {
         });
 
         document.getElementById('export-btn').addEventListener('click', () => {
+            console.log('🔥 EXPORT BUTTON CLICKED!');
+            console.log('🔥 Current view:', this.currentView);
+            
             if (this.currentView === 'dashboard') {
+                console.log('🔥 Calling exportDashboard...');
                 this.exportDashboard();
             } else {
+                console.log('🔥 Calling exportEntries...');
                 this.exportEntries();
             }
         });
@@ -1188,6 +1193,30 @@ class ChroniCompanion {
             }
         }
         console.log('🏁 EXPORT FUNCTION COMPLETED');
+    }
+
+    // 🧪 SIMPLE TEST FUNCTION - CALL FROM BROWSER CONSOLE
+    async testBackendAPI() {
+        console.log('🧪 TESTING BACKEND API...');
+        console.log('🌐 API Base:', this.apiBase);
+        
+        try {
+            const response = await fetch(`${this.apiBase}/api/export`);
+            console.log('📡 Response status:', response.status);
+            console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                console.log('📦 Blob size:', blob.size, 'type:', blob.type);
+                alert(`✅ API works! Got ${blob.size} bytes of ${blob.type}`);
+            } else {
+                console.error('❌ API failed:', response.status, response.statusText);
+                alert(`❌ API failed: ${response.status} ${response.statusText}`);
+            }
+        } catch (error) {
+            console.error('❌ Network error:', error);
+            alert(`❌ Network error: ${error.message}`);
+        }
     }
 
     // 📱 SIMPLE PDF DOWNLOAD - ANDROID COMPATIBLE
