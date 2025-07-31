@@ -897,26 +897,8 @@ class ChroniCompanion {
                 const url = window.URL.createObjectURL(blob);
                 const filename = `ChroniCompanion_Report_${new Date().toISOString().split('T')[0]}.pdf`;
                 
-                // For mobile devices, try the share API first
-                if (this.isMobile && navigator.share && navigator.canShare) {
-                    try {
-                        const file = new File([blob], filename, { type: 'application/pdf' });
-                        if (navigator.canShare({ files: [file] })) {
-                            await navigator.share({
-                                title: 'ChroniCompanion Health Report',
-                                text: 'Your personal health tracking report',
-                                files: [file]
-                            });
-                            this.showSuccessMessage('Report shared successfully!');
-                            window.URL.revokeObjectURL(url);
-                            return;
-                        }
-                    } catch (shareError) {
-                        console.log('Share API failed, falling back to download:', shareError);
-                    }
-                }
-                
-                // Fallback to download
+                // Direct download for all devices - no sharing, just download
+                console.log('Starting PDF download for:', filename);
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = filename;
