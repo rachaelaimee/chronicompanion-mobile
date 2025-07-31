@@ -1271,6 +1271,11 @@ class ChroniCompanion {
         try {
             console.log('🚀 DEAD SIMPLE approach: Save file + open in native PDF app');
             
+            // Debug: Check what's available
+            console.log('🔍 Capacitor object:', window.Capacitor);
+            console.log('🔍 Capacitor.Plugins:', window.Capacitor?.Plugins);
+            console.log('🔍 Available plugins:', Object.keys(window.Capacitor?.Plugins || {}));
+            
             // Convert blob to base64 for Capacitor
             const base64Data = await this.blobToBase64(blob);
             
@@ -1280,7 +1285,7 @@ class ChroniCompanion {
             const savedFile = await window.Capacitor.Plugins.Filesystem.writeFile({
                 path: filename,
                 data: base64Data,
-                directory: window.Capacitor.Plugins.Filesystem.Directory.CACHE
+                directory: 'CACHE'
             });
             
             console.log('✅ PDF saved to:', savedFile.uri);
@@ -1288,10 +1293,8 @@ class ChroniCompanion {
             // Open the file in native PDF app using file-opener plugin
             console.log('📱 Opening PDF in native app...');
             
-            // Import the file opener plugin
-            const { FileOpener } = window.Capacitor.Plugins;
-            
-            await FileOpener.open({
+            // Use the file opener plugin
+            await window.Capacitor.Plugins.FileOpener.open({
                 filePath: savedFile.uri,
                 contentType: 'application/pdf'
             });
