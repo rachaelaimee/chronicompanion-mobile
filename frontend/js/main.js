@@ -1266,133 +1266,131 @@ class ChroniCompanion {
         }
     }
 
-    // 🚀 MOST RELIABLE WEBVIEW PDF SAVE (PRIORITIZES WEB SHARE API!)
+    // 🎯 DIRECT PDF VIEWER APPROACH (LET ANDROID HANDLE IT!)
     async saveWithCapacitorFilesystem(blob, filename) {
         try {
-            console.log('🚀 Using most reliable WebView PDF save approach...');
+            console.log('🎯 Using direct PDF viewer approach - let Android handle the PDF!');
             
-            // STRATEGY 1: Web Share API (THE MOST RELIABLE FOR CAPACITOR!)
+            // Create blob URL for the PDF
+            const blobUrl = URL.createObjectURL(blob);
+            console.log('📄 Created PDF blob URL:', blobUrl);
+            
+            // STRATEGY 1: Open PDF directly in new window/tab (Android will handle it)
+            console.log('🔗 Opening PDF directly - Android will show download/save options...');
+            
+            try {
+                // DEBUG: Log blob URL details
+                console.log('🔍 Blob URL created:', blobUrl);
+                console.log('🔍 Blob size:', blob.size, 'bytes');
+                console.log('🔍 Blob type:', blob.type);
+                
+                // Try multiple approaches to open the PDF
+                let pdfOpened = false;
+                
+                // Method 1: Direct window.open
+                console.log('🔗 Trying Method 1: Direct window.open...');
+                const pdfWindow = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+                
+                if (pdfWindow && !pdfWindow.closed) {
+                    console.log('✅ Method 1 succeeded - PDF window opened!');
+                    pdfOpened = true;
+                } else {
+                    console.warn('⚠️ Method 1 failed - window.open returned null or was blocked');
+                    
+                    // Method 2: Try navigation via location
+                    console.log('🔗 Trying Method 2: Location navigation...');
+                    try {
+                        window.location.href = blobUrl;
+                        console.log('✅ Method 2 attempted - location navigation');
+                        pdfOpened = true;
+                    } catch (navError) {
+                        console.warn('⚠️ Method 2 failed:', navError);
+                    }
+                }
+                
+                if (pdfOpened) {
+                    // Show user-friendly message
+                    this.showPDFViewerModal(filename, blobUrl);
+                    
+                    // Clean up after a reasonable time
+                    setTimeout(() => {
+                        URL.revokeObjectURL(blobUrl);
+                    }, 300000); // 5 minutes
+                    
+                    return;
+                } else {
+                    console.warn('⚠️ All PDF opening methods failed, trying alternatives...');
+                }
+            } catch (windowError) {
+                console.warn('❌ PDF opening failed:', windowError);
+            }
+            
+            // STRATEGY 2: Try Web Share API as fallback
             if (navigator.share) {
-                console.log('📤 Trying Web Share API (most reliable approach)...');
+                console.log('📤 Trying Web Share API as fallback...');
                 
                 try {
                     const file = new File([blob], filename, { type: 'application/pdf' });
                     
-                    // Check if sharing files is supported
-                    const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
-                    
-                    if (canShareFiles) {
-                        console.log('✅ Web Share API supports file sharing...');
-                        
+                    // Try sharing the file directly
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
                         await navigator.share({
                             title: 'ChroniCompanion Health Report',
-                            text: 'My health tracking report from ChroniCompanion',
+                            text: 'My health tracking report',
                             files: [file]
                         });
                         
-                        console.log('🎉 PDF shared successfully via Web Share API!');
-                        this.showSuccessMessage('🎉 PDF shared successfully! Choose where to save your health report.');
+                        console.log('✅ PDF shared via Web Share API!');
+                        this.showSuccessMessage('🎉 PDF shared! Choose where to save it.');
                         return;
-                        
                     } else {
-                        console.log('📱 Trying basic Web Share (without files)...');
-                        
-                        // Fallback: share blob URL via Web Share API
-                        const blobUrl = URL.createObjectURL(blob);
-                        
+                        // Share the blob URL instead
                         await navigator.share({
                             title: 'ChroniCompanion Health Report',
-                            text: 'My health tracking report from ChroniCompanion',
+                            text: 'My health tracking report - tap to view/download',
                             url: blobUrl
                         });
                         
-                        console.log('✅ PDF URL shared successfully!');
-                        this.showSuccessMessage('🎉 PDF shared successfully! Tap the shared link to download.');
-                        
-                        // Clean up after a delay
-                        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+                        console.log('✅ PDF URL shared!');
+                        this.showSuccessMessage('🎉 PDF link shared! Tap the shared link to view/download.');
                         return;
                     }
-                    
                 } catch (shareError) {
-                    if (shareError.name === 'AbortError') {
-                        console.log('ℹ️ User cancelled share dialog');
+                    if (shareError.name !== 'AbortError') {
+                        console.warn('❌ Web Share API failed:', shareError);
+                    } else {
+                        console.log('ℹ️ User cancelled share');
                         this.showInfoMessage('Share cancelled by user.');
                         return;
-                    } else {
-                        console.warn('❌ Web Share API failed:', shareError);
-                        // Continue to next strategy
                     }
                 }
             }
             
-            // STRATEGY 2: Enhanced Blob URL Download (NO DATA URL!)
-            console.log('💾 Using enhanced blob URL download...');
+            // STRATEGY 3: Direct navigation to PDF (force browser to handle it)
+            console.log('🔄 Trying direct navigation to PDF...');
             
             try {
-                // Create blob URL (more reliable than data URL for large files)
-                const blobUrl = URL.createObjectURL(blob);
-                
-                // Create download link with enhanced attributes
+                // Create a temporary link and navigate to it
                 const link = document.createElement('a');
                 link.href = blobUrl;
-                link.download = filename;
                 link.style.display = 'none';
-                
-                // Enhanced attributes for better WebView compatibility
-                link.setAttribute('target', '_blank');
-                link.setAttribute('rel', 'noopener noreferrer');
-                
                 document.body.appendChild(link);
-                
-                // Multiple click attempts for WebView reliability
-                console.log('🖱️ Triggering enhanced download...');
-                
-                // Primary click
                 link.click();
+                document.body.removeChild(link);
                 
-                // Backup click with delay
-                setTimeout(() => {
-                    const clickEvent = new MouseEvent('click', {
-                        view: window,
-                        bubbles: true,
-                        cancelable: true
-                    });
-                    link.dispatchEvent(clickEvent);
-                }, 100);
+                // Show helpful modal
+                this.showPDFViewerModal(filename, blobUrl);
                 
-                // Try opening in new window as final attempt
-                setTimeout(() => {
-                    try {
-                        const newWindow = window.open(blobUrl, '_blank');
-                        if (!newWindow) {
-                            console.log('⚠️ Popup blocked, trying alternative...');
-                        }
-                    } catch (e) {
-                        console.warn('Window.open failed:', e);
-                    }
-                }, 200);
+                console.log('✅ Direct navigation triggered!');
                 
-                // Cleanup
-                setTimeout(() => {
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
-                }, 5000);
-                
-                console.log('✅ Enhanced download triggered!');
-                this.showPDFInstructionsModal(filename);
-                
-            } catch (blobError) {
-                console.error('❌ Enhanced blob download failed:', blobError);
-                
-                // STRATEGY 3: Final fallback
-                console.log('🔄 Using final fallback...');
-                this.standardWebDownload(blob, filename);
+            } catch (navError) {
+                console.error('❌ Direct navigation failed:', navError);
+                this.showErrorMessage('Unable to open PDF. Please try again.');
             }
             
         } catch (error) {
-            console.error('❌ All reliable save methods failed:', error);
-            this.showErrorMessage(`Save failed: ${error.message}`);
+            console.error('❌ All PDF viewing methods failed:', error);
+            this.showErrorMessage(`Failed to view PDF: ${error.message}`);
         }
     }
 
@@ -1530,6 +1528,118 @@ class ChroniCompanion {
         if (modal) {
             document.body.removeChild(modal);
             document.body.style.overflow = '';
+        }
+    }
+
+    // 👁️ PDF VIEWER MODAL (NEW APPROACH)
+    showPDFViewerModal(filename, blobUrl) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.id = 'pdf-viewer-modal';
+        
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                <div class="text-center mb-6">
+                    <i class="fas fa-file-pdf text-red-500 text-4xl mb-3"></i>
+                    <h3 class="text-xl font-bold text-gray-800">📄 PDF Ready to View!</h3>
+                    <p class="text-gray-600 text-sm mt-2">Your health report is now accessible</p>
+                    <p class="text-gray-500 text-xs mt-1 font-mono break-all">${filename}</p>
+                </div>
+                
+                <div class="space-y-4 mb-6">
+                    <div class="p-4 bg-blue-50 rounded-lg">
+                        <h4 class="font-semibold text-blue-800 mb-2">📱 What happens next:</h4>
+                        <ul class="text-sm text-blue-700 space-y-1">
+                            <li>• PDF opens in Android's built-in viewer</li>
+                            <li>• Tap the <strong>download/save icon</strong> in the PDF viewer</li>
+                            <li>• Choose where to save (Downloads, Drive, etc.)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="p-4 bg-green-50 rounded-lg">
+                        <h4 class="font-semibold text-green-800 mb-2">💡 Pro tip:</h4>
+                        <p class="text-sm text-green-700">
+                            Android's PDF viewer has a share/download button at the top. Use that to save your report!
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="app.retryPDFOpen('${blobUrl}')" 
+                            class="w-full bg-red-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-600 transition-colors">
+                        <i class="fas fa-external-link-alt mr-2"></i>Open PDF Again
+                    </button>
+                    <button onclick="app.closePDFViewerModal()" 
+                            class="w-full bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-check mr-2"></i>Got it!
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    }
+
+    // 🚪 CLOSE PDF VIEWER MODAL
+    closePDFViewerModal() {
+        const modal = document.getElementById('pdf-viewer-modal');
+        if (modal) {
+            document.body.removeChild(modal);
+            document.body.style.overflow = '';
+        }
+    }
+
+    // 🔄 RETRY PDF OPEN WITH MULTIPLE METHODS
+    retryPDFOpen(blobUrl) {
+        console.log('🔄 Retrying PDF open with multiple methods...');
+        
+        try {
+            // Method 1: Try window.open with different parameters
+            console.log('🔗 Retry Method 1: window.open with different params...');
+            let pdfWindow = window.open(blobUrl, '_blank', 'location=yes,hidden=no,clearcache=yes,clearsessioncache=yes');
+            
+            if (pdfWindow && !pdfWindow.closed) {
+                console.log('✅ Retry Method 1 worked!');
+                this.showSuccessMessage('📄 PDF opened! Look for the new tab/window.');
+                return;
+            }
+            
+            // Method 2: Try simple window.open
+            console.log('🔗 Retry Method 2: Simple window.open...');
+            pdfWindow = window.open(blobUrl);
+            
+            if (pdfWindow && !pdfWindow.closed) {
+                console.log('✅ Retry Method 2 worked!');
+                this.showSuccessMessage('📄 PDF opened! Look for the new tab/window.');
+                return;
+            }
+            
+            // Method 3: Try location.href
+            console.log('🔗 Retry Method 3: Direct navigation...');
+            window.location.href = blobUrl;
+            this.showSuccessMessage('📄 PDF should be opening... If not, try the share option below.');
+            
+        } catch (error) {
+            console.error('❌ All retry methods failed:', error);
+            
+            // Last resort: Show share options
+            console.log('🔗 Last resort: Trying Web Share API...');
+            if (navigator.share) {
+                navigator.share({
+                    title: 'ChroniCompanion Health Report',
+                    text: 'Health tracking report - tap to view/download',
+                    url: blobUrl
+                }).then(() => {
+                    console.log('✅ Shared via Web Share API');
+                    this.showSuccessMessage('📤 PDF shared! Tap the shared link to view/download.');
+                }).catch(shareError => {
+                    console.error('❌ Share also failed:', shareError);
+                    this.showErrorMessage('Unable to open PDF. Please try exporting again.');
+                });
+            } else {
+                this.showErrorMessage('Unable to open PDF. Please try exporting again.');
+            }
         }
     }
 
