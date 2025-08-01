@@ -1295,16 +1295,17 @@ class ChroniCompanion {
         this.showSuccessMessage('7-day premium trial started! Enjoy AI-powered insights!');
         this.closePremiumModal();
         
-        // Force a status check to verify everything is working
+        // Force UI updates immediately without checking premium status again
         setTimeout(() => {
-            console.log('🔥 DEBUG: Post-trial verification check...');
-            this.checkPremiumStatus();
+            console.log('🔥 DEBUG: Post-trial UI update...');
             
-            // Also force update the AI button states immediately
+            // Force update the AI button states immediately
             this.updateAIButtonStates();
+            this.updateAIStatusIndicator();
             
             // Test if AI functions work now
             console.log('🔥 DEBUG: Testing AI access - isPremium:', this.isPremium);
+            console.log('🔥 DEBUG: localStorage check - premium_status:', localStorage.getItem('premium_status'));
         }, 100);
     }
 
@@ -1478,6 +1479,14 @@ class ChroniCompanion {
         console.log('🔍 DEBUG: Trial Start:', trialStart);
         console.log('🔍 DEBUG: Premium Status:', premiumStatus);
         console.log('🔍 DEBUG: Current isPremium before check:', this.isPremium);
+        
+        // If premium is already true and status is trial, don't override it
+        if (this.isPremium && premiumStatus === 'trial') {
+            console.log('🔍 DEBUG: Premium already active from trial, skipping override');
+            this.updateAIButtonStates();
+            this.updateAIStatusIndicator();
+            return;
+        }
 
         if (trialStart && premiumStatus === 'trial') {
             const trialStartDate = new Date(trialStart);
@@ -1534,6 +1543,20 @@ class ChroniCompanion {
             trialStart: localStorage.getItem('premium_trial_start'),
             premiumStatus: localStorage.getItem('premium_status')
         };
+    }
+    
+    // DEBUG: Test AI access manually
+    testAIAccess() {
+        console.log('🧪 TESTING AI ACCESS:');
+        console.log('🧪 isPremium:', this.isPremium);
+        console.log('🧪 localStorage premium_status:', localStorage.getItem('premium_status'));
+        console.log('🧪 localStorage premium_trial_start:', localStorage.getItem('premium_trial_start'));
+        
+        // Try to call an AI function
+        console.log('🧪 Attempting to call loadPredictiveInsights...');
+        this.loadPredictiveInsights();
+        
+        return 'Check console for results';
     }
 
     showMobileDownloadModal(url, filename, blob) {
@@ -1740,8 +1763,44 @@ class ChroniCompanion {
             // Manual test removed - was interfering with real data display
             
         } catch (error) {
-            console.error('Dashboard loading error:', error);
-            this.showDashboardError();
+            console.error('🚨 CRITICAL: Dashboard loading error:', error);
+            console.error('🚨 Error stack:', error.stack);
+            
+            // Try to show what we can despite the error
+            try {
+                // Attempt basic functionality
+                const basicEntries = this.loadEntriesFromLocalStorage();
+                console.log('🔧 FALLBACK: Attempting with localStorage entries:', basicEntries.length);
+                
+                if (basicEntries.length > 0) {
+                    // Try the functions individually with error handling
+                    try {
+                        this.createHealthTrendsChart(basicEntries, 'all');
+                        console.log('✅ Chart created with fallback');
+                    } catch (chartError) {
+                        console.error('Chart creation failed:', chartError);
+                    }
+                    
+                    try {
+                        this.updateDashboardAverages(basicEntries);
+                        console.log('✅ Averages updated with fallback');
+                    } catch (avgError) {
+                        console.error('Averages update failed:', avgError);
+                    }
+                    
+                    try {
+                        this.updateTotalEntriesCount(basicEntries.length);
+                        console.log('✅ Total count updated with fallback');
+                    } catch (countError) {
+                        console.error('Total count update failed:', countError);
+                    }
+                } else {
+                    this.showEmptyDashboard();
+                }
+            } catch (fallbackError) {
+                console.error('🚨 Fallback also failed:', fallbackError);
+                this.showDashboardError();
+            }
         } finally {
             if (loadingDiv) loadingDiv.classList.add('hidden');
         }
