@@ -736,6 +736,18 @@ class ChroniCompanion {
         };
         return qualityMap[quality] || 'N/A';
     }
+    
+    convertSleepQualityToNumber(quality) {
+        // Convert text sleep quality to numeric values for charting (0-10 scale)
+        const qualityToNumber = {
+            'excellent': 10,
+            'good': 8,
+            'fair': 6,
+            'poor': 4,
+            'very_poor': 2
+        };
+        return qualityToNumber[quality] || 0;
+    }
 
     async viewEntryDetails(entryId) {
         try {
@@ -1241,16 +1253,30 @@ class ChroniCompanion {
     }
 
     startPremiumTrial() {
+        console.log('🔥 DEBUG: startPremiumTrial() called');
+        
         // Store trial start date
-        localStorage.setItem('premium_trial_start', new Date().toISOString());
+        const trialStart = new Date().toISOString();
+        localStorage.setItem('premium_trial_start', trialStart);
         localStorage.setItem('premium_status', 'trial');
+        
+        console.log('🔥 DEBUG: Set premium_trial_start:', trialStart);
+        console.log('🔥 DEBUG: Set premium_status:', 'trial');
+
+        // Enable premium features IMMEDIATELY
+        this.isPremium = true;
+        this.updateUIForPremium();
+        
+        console.log('🔥 DEBUG: Set isPremium to:', this.isPremium);
 
         this.showSuccessMessage('7-day premium trial started! Enjoy AI-powered insights!');
         this.closePremiumModal();
-
-        // Enable premium features
-        this.isPremium = true;
-        this.updateUIForPremium();
+        
+        // Force a status check to verify everything is working
+        setTimeout(() => {
+            console.log('🔥 DEBUG: Post-trial verification check...');
+            this.checkPremiumStatus();
+        }, 100);
     }
 
     watchSupportAd() {
@@ -1314,9 +1340,10 @@ class ChroniCompanion {
         const trialStart = localStorage.getItem('premium_trial_start');
         const premiumStatus = localStorage.getItem('premium_status');
         
-        console.log('🔍 DEBUG: Premium Status Check');
+        console.log('🔍 DEBUG: Premium Status Check called');
         console.log('🔍 DEBUG: Trial Start:', trialStart);
         console.log('🔍 DEBUG: Premium Status:', premiumStatus);
+        console.log('🔍 DEBUG: Current isPremium before check:', this.isPremium);
 
         if (trialStart && premiumStatus === 'trial') {
             const trialStartDate = new Date(trialStart);
@@ -1345,6 +1372,30 @@ class ChroniCompanion {
         }
         
         console.log('🔍 DEBUG: Final isPremium status:', this.isPremium);
+        console.log('🔍 DEBUG: localStorage premium_trial_start:', localStorage.getItem('premium_trial_start'));
+        console.log('🔍 DEBUG: localStorage premium_status:', localStorage.getItem('premium_status'));
+    }
+    
+    // DEBUG: Helper function to check premium status from console
+    debugPremiumStatus() {
+        console.log('🔍 DEBUG HELPER: Current Premium Status');
+        console.log('🔍 isPremium:', this.isPremium);
+        console.log('🔍 premium_trial_start:', localStorage.getItem('premium_trial_start'));
+        console.log('🔍 premium_status:', localStorage.getItem('premium_status'));
+        
+        const trialStart = localStorage.getItem('premium_trial_start');
+        if (trialStart) {
+            const trialStartDate = new Date(trialStart);
+            const now = new Date();
+            const daysSinceStart = (now - trialStartDate) / (1000 * 60 * 60 * 24);
+            console.log('🔍 Days since trial start:', daysSinceStart);
+        }
+        
+        return {
+            isPremium: this.isPremium,
+            trialStart: localStorage.getItem('premium_trial_start'),
+            premiumStatus: localStorage.getItem('premium_status')
+        };
     }
 
     showMobileDownloadModal(url, filename, blob) {
@@ -1643,7 +1694,7 @@ class ChroniCompanion {
         if (metric === 'all' || metric === 'sleep') {
             datasets.push({
                 label: 'Sleep Quality',
-                data: entries.map(entry => entry.sleep_quality || 0),
+                data: entries.map(entry => this.convertSleepQualityToNumber(entry.sleep_quality)),
                 borderColor: 'rgb(147, 51, 234)',
                 backgroundColor: 'rgba(147, 51, 234, 0.1)',
                 tension: 0.4
