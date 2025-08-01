@@ -35,8 +35,7 @@ class ChroniCompanion {
         this.restoreViewState(); // Restore the last viewed page
         this.setupOfflineHandling();
         this.checkBackendConnection(); // Check if backend is available
-        this.checkPremiumStatus(); // Check premium subscription status
-        this.updateAIButtonStates(); // Update AI button states based on premium status
+        // SIMPLIFIED: Removed all premium/paywall complexity
         this.initializeAds(); // Initialize AdSense ads
         
         // Initialize Quick Insights with any existing entries
@@ -1046,14 +1045,7 @@ class ChroniCompanion {
             return;
         }
         
-        // 🎯 FREEMIUM LOGIC: Progressive value unlock based on usage
-        const userTier = this.getUserTier(entries.length);
-        console.log('🎯 User tier determined:', userTier);
-        
-        if (userTier === 'free') {
-            this.showFreeTierAIPreview(container, 'predictions', entries);
-            return;
-        }
+        // SIMPLIFIED: All AI features are now free - no paywall complexity
         
         // ⚡ Check offline cache first (8-hour intervals)
         const cacheKey = this.getAICacheKey('predictions', entries);
@@ -1094,47 +1086,7 @@ class ChroniCompanion {
         return !trialStart && premiumStatus !== 'active' && premiumStatus !== 'expired';
     }
     
-    // 🎁 FREE TIER PREVIEW (Spotify Model - Show Value First)
-    showFreeTierAIPreview(container, type, entries) {
-        const basicInsights = this.generateBasicOfflineInsights(entries);
-        
-        container.innerHTML = `
-            <div class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
-                <div class="flex items-center justify-between mb-3">
-                    <h4 class="font-medium text-blue-800 flex items-center">
-                        <i class="fas fa-brain mr-2"></i>AI Health Insights
-                    </h4>
-                    <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">FREE PREVIEW</span>
-                </div>
-                
-                <div class="space-y-3">
-                    ${basicInsights}
-                    
-                    <div class="border-t border-blue-200 pt-3 mt-3">
-                        <div class="bg-white/50 backdrop-blur-sm rounded-lg p-3 border border-dashed border-blue-300">
-                            <div class="flex items-center text-blue-600 mb-2">
-                                <i class="fas fa-lock mr-2"></i>
-                                <span class="font-medium text-sm">Premium AI Features</span>
-                            </div>
-                            <ul class="text-xs text-blue-700 space-y-1 ml-4">
-                                <li>• Detailed pattern analysis</li>
-                                <li>• Predictive health trends</li>
-                                <li>• Personalized recommendations</li>
-                                <li>• Weekly coaching insights</li>
-                            </ul>
-                            <button onclick="app.showSoftPaywall('insights')" class="mt-3 w-full bg-blue-500 text-white py-2 px-4 rounded-lg text-sm hover:bg-blue-600 transition-colors">
-                                ✨ Unlock Full AI Analysis - 7 Days Free
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="text-xs text-blue-600 mt-3 flex items-center">
-                    <i class="fas fa-offline mr-1"></i>
-                    <span>Works offline • Based on ${entries.length} entries</span>
-                </div>
-            </div>`;
-    }
+    // REMOVED: Simplified - no more paywall preview system
     
     // 🧠 OFFLINE AI - SMART LOCAL INSIGHTS
     generateBasicOfflineInsights(entries) {
@@ -1173,58 +1125,7 @@ class ChroniCompanion {
         return { trend, focus, tip };
     }
     
-    // 🎯 2025 SOFT PAYWALL (Tinder/Duolingo Style)
-    showSoftPaywall(feature) {
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
-        modal.innerHTML = `
-            <div class="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
-                <div class="text-center">
-                    <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-                        <i class="fas fa-brain text-white text-2xl"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">Unlock Your Full Health Potential</h3>
-                    <p class="text-gray-600 mb-6">Get comprehensive AI insights, predictive analysis, and personalized recommendations.</p>
-                    
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                        <div class="font-medium text-green-800 mb-2">✨ 7-Day Free Trial</div>
-                        <div class="text-sm text-green-700">Full access to all AI features • Cancel anytime</div>
-                    </div>
-                    
-                    <button onclick="app.startPremiumTrial(); app.closeSoftPaywall()" class="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 px-6 rounded-lg font-medium hover:shadow-lg transition-all">
-                        Start Free Trial
-                    </button>
-                    
-                    <button onclick="app.closeSoftPaywall()" class="w-full mt-3 text-gray-500 py-2 text-sm hover:text-gray-700">
-                        Maybe Later
-                    </button>
-                </div>
-            </div>`;
-        
-        document.body.appendChild(modal);
-        modal.paywall = true;
-        
-        // Add click outside to close functionality
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                this.closeSoftPaywall();
-            }
-        });
-    }
-    
-    closeSoftPaywall() {
-        // Try multiple methods to find and remove the modal
-        const modal = document.querySelector('[class*="fixed inset-0"]') || 
-                     document.querySelector('.fixed.inset-0') ||
-                     document.querySelector('div[class*="bg-black bg-opacity-50"]');
-        
-        if (modal) {
-            console.log('🔧 Removing paywall modal');
-            modal.remove();
-        } else {
-            console.log('⚠️ No paywall modal found to remove');
-        }
-    }
+    // REMOVED: All paywall modal system for simplicity
     
     // 🤖 SMART INSIGHTS GENERATOR (Online + Offline Hybrid)
     async generateSmartInsights(container, type, entries) {
@@ -1380,15 +1281,8 @@ class ChroniCompanion {
 
     // 🎯 COPING STRATEGIES AI FUNCTION
     async loadCopingStrategies() {
-        console.log('🤖 DEBUG: loadCopingStrategies called');
-        
         const container = document.getElementById('coping-content');
-        console.log('🔍 DEBUG: coping-content container found:', !!container);
-        
-        if (!container) {
-            console.error('❌ coping-content container not found!');
-            return;
-        }
+        if (!container) return;
 
         // Get user's entries for analysis
         const entries = await this.loadEntriesFromIndexedDB() || this.loadEntriesFromLocalStorage();
@@ -1406,11 +1300,9 @@ class ChroniCompanion {
             return;
         }
 
-        // Show loading
         container.innerHTML = '<div class="text-center py-4"><i class="fas fa-heart fa-spin mr-2 text-purple-500"></i>Finding personalized strategies...</div>';
 
         try {
-            // Try to call backend API for coping strategies
             const response = await fetch(`${this.apiBase}/api/ai/coping-strategies`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
@@ -1439,14 +1331,12 @@ class ChroniCompanion {
                         <h4 class="font-medium text-purple-800 mb-2 flex items-center">
                             <i class="fas fa-heart mr-2"></i>Personalized Coping Strategies
                         </h4>
-                        <div class="text-purple-700 text-sm">${strategyHtml || 'No specific strategies identified at this time.'}</div>
+                        <div class="text-purple-700 text-sm">${strategyHtml || 'Take gentle breaths and be kind to yourself.'}</div>
                     </div>`;
             } else {
                 throw new Error(`Server returned ${response.status}`);
             }
         } catch (error) {
-            console.log('🔄 Online AI failed, using offline strategies:', error.message);
-            
             // Fallback to offline strategies
             const offlineStrategies = this.generateOfflineCopingStrategies(entries);
             container.innerHTML = `
@@ -1783,17 +1673,13 @@ class ChroniCompanion {
         }
     }
 
-    // Premium & Monetization Functions
+    // SIMPLIFIED: Basic functions to avoid breaking buttons
     showPremiumModal() {
-        const modal = document.getElementById('premium-modal');
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
+        this.showInfoMessage('Premium features are temporarily disabled for stability. All AI features are now free!');
     }
 
     closePremiumModal() {
-        const modal = document.getElementById('premium-modal');
-        modal.classList.add('hidden');
-        document.body.style.overflow = 'auto';
+        // No longer needed - simplified system
     }
 
     showSupportModal() {
@@ -1818,53 +1704,7 @@ class ChroniCompanion {
     }
 
     startPremiumTrial() {
-        console.log('🔥 DEBUG: startPremiumTrial() called');
-        
-        // Store trial start date
-        const trialStart = new Date().toISOString();
-        localStorage.setItem('premium_trial_start', trialStart);
-        localStorage.setItem('premium_status', 'trial');
-        
-        console.log('🔥 DEBUG: Set premium_trial_start:', trialStart);
-        console.log('🔥 DEBUG: Set premium_status:', 'trial');
-
-        // Enable premium features IMMEDIATELY
-        this.isPremium = true;
-        this.updateUIForPremium();
-        
-        console.log('🔥 DEBUG: Set isPremium to:', this.isPremium);
-
-        this.showSuccessMessage('🎉 7-day premium trial activated! All AI features now unlocked!');
-        
-        // Close any paywall modals immediately
-        this.closeSoftPaywall();
-        
-        // Force UI updates immediately
-        setTimeout(() => {
-            console.log('🔥 DEBUG: Post-trial UI update...');
-            
-            // Force update the AI button states immediately
-            this.updateAIButtonStates();
-            this.updateAIStatusIndicator();
-            
-            // If user is viewing AI Health Companion, refresh the view to show unlocked features
-            if (this.currentView === 'dashboard' || document.querySelector('#ai-status-indicator')) {
-                console.log('🔥 DEBUG: Refreshing AI view to show unlocked features');
-                
-                // Clear any existing AI content and reload
-                const aiContainers = ['predictions-content', 'coping-content', 'crisis-content', 'coaching-content'];
-                aiContainers.forEach(id => {
-                    const container = document.getElementById(id);
-                    if (container) {
-                        container.innerHTML = '<div class="text-center py-4 text-green-600"><i class="fas fa-unlock mr-2"></i>Premium features now unlocked!</div>';
-                    }
-                });
-            }
-            
-            // Test if AI functions work now
-            console.log('🔥 DEBUG: Testing AI access - isPremium:', this.isPremium);
-            console.log('🔥 DEBUG: localStorage check - premium_status:', localStorage.getItem('premium_status'));
-        }, 100);
+        this.showSuccessMessage('All AI features are now completely free! No trial needed.');
     }
 
     watchSupportAd() {
@@ -1916,19 +1756,11 @@ class ChroniCompanion {
     }
 
     updateUIForPremium() {
-        // Add premium indicator to UI
-        const premiumBtn = document.getElementById('premium-btn');
-        if (this.isPremium) {
-            premiumBtn.innerHTML = '<i class="fas fa-crown mr-2"></i>Premium';
-            premiumBtn.classList.add('ring-2', 'ring-yellow-300');
-        }
-        
-        // Update AI button states
-        this.updateAIButtonStates();
+        // SIMPLIFIED: No longer needed - all features are free
     }
     
     updateAIButtonStates() {
-        // Update premium-required AI buttons
+        // SIMPLIFIED: Remove lock icons - all AI features are now free
         const aiButtons = [
             { id: 'get-predictions-btn', text: 'Get Insights' },
             { id: 'get-coping-btn', text: 'Get Help' },
@@ -1938,67 +1770,38 @@ class ChroniCompanion {
         aiButtons.forEach(buttonInfo => {
             const button = document.getElementById(buttonInfo.id);
             if (button) {
-                if (this.isPremium) {
-                    // Remove lock, make it look available
-                    button.innerHTML = `<i class="fas fa-check mr-1 text-xs"></i>${buttonInfo.text}`;
-                    button.title = 'AI feature available with your premium subscription';
-                } else {
-                    // Show lock and make it clear it's premium
-                    button.innerHTML = `<i class="fas fa-lock mr-1 text-xs"></i>${buttonInfo.text} (Premium)`;
-                    button.title = 'Unlock with 7-day free trial';
-                }
+                button.innerHTML = `<i class="fas fa-brain mr-2"></i>${buttonInfo.text}`;
+                button.disabled = false;
+                button.classList.remove('opacity-60');
+                button.title = 'AI feature - always free!';
             }
         });
         
-        // Crisis check is always free
+        // Crisis check button
         const crisisBtn = document.getElementById('crisis-check-btn');
         if (crisisBtn) {
-            crisisBtn.innerHTML = '<i class="fas fa-heart mr-1 text-xs"></i>Check In (Free)';
+            crisisBtn.innerHTML = '<i class="fas fa-heart mr-2"></i>Check In (Free)';
             crisisBtn.title = 'Always free - your safety matters';
         }
-        
-        // Update AI status indicator
-        this.updateAIStatusIndicator();
     }
     
     updateAIStatusIndicator() {
         const indicator = document.getElementById('ai-status-indicator');
         if (!indicator) return;
         
-        let statusHTML;
-        
-        if (this.isPremium) {
-            // Premium active - AI available
-            statusHTML = `
-                <div class="flex items-center justify-between text-sm">
-                    <div class="flex items-center text-green-600">
-                        <div class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                        <span class="font-medium">AI Health Companion Active</span>
-                    </div>
-                    <div class="text-purple-500">
-                        <i class="fas fa-robot mr-1"></i>
-                        Premium unlocked
-                    </div>
+        // SIMPLIFIED: AI is always free and active
+        const statusHTML = `
+            <div class="flex items-center justify-between text-sm">
+                <div class="flex items-center text-green-600">
+                    <div class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                    <span class="font-medium">AI Health Companion Active</span>
                 </div>
-            `;
-        } else {
-            // Free user - show upgrade path
-            statusHTML = `
-                <div class="flex items-center justify-between text-sm">
-                    <div class="flex items-center text-orange-600">
-                        <div class="w-2 h-2 bg-orange-400 rounded-full mr-2"></div>
-                        <span>AI Companion Locked</span>
-                    </div>
-                    <button onclick="app.showPremiumModal()" class="text-purple-600 hover:text-purple-800 font-medium flex items-center">
-                        <i class="fas fa-unlock mr-1"></i>
-                        Get 7-Day Free Trial
-                    </button>
+                <div class="text-blue-500">
+                    <i class="fas fa-robot mr-1"></i>
+                    Always Free
                 </div>
-                <div class="mt-2 text-xs text-gray-600">
-                    Unlock AI predictions, coping strategies, and personalized coaching
-                </div>
-            `;
-        }
+            </div>
+        `;
         
         indicator.innerHTML = statusHTML;
     }
@@ -2030,53 +1833,7 @@ class ChroniCompanion {
     }
 
     checkPremiumStatus() {
-        const trialStart = localStorage.getItem('premium_trial_start');
-        const premiumStatus = localStorage.getItem('premium_status');
-        
-        console.log('🔍 DEBUG: Premium Status Check called');
-        console.log('🔍 DEBUG: Trial Start:', trialStart);
-        console.log('🔍 DEBUG: Premium Status:', premiumStatus);
-        console.log('🔍 DEBUG: Current isPremium before check:', this.isPremium);
-        
-        // If premium is already true and status is trial, don't override it
-        if (this.isPremium && premiumStatus === 'trial') {
-            console.log('🔍 DEBUG: Premium already active from trial, skipping override');
-            this.updateAIButtonStates();
-            this.updateAIStatusIndicator();
-            return;
-        }
-
-        if (trialStart && premiumStatus === 'trial') {
-            const trialStartDate = new Date(trialStart);
-            const now = new Date();
-            const daysSinceStart = (now - trialStartDate) / (1000 * 60 * 60 * 24);
-            
-            console.log('🔍 DEBUG: Days since trial start:', daysSinceStart);
-
-            if (daysSinceStart < 7) {
-                this.isPremium = true;
-                this.updateUIForPremium();
-                console.log('✅ DEBUG: Trial active - Premium enabled');
-            } else {
-                // Trial expired
-                localStorage.setItem('premium_status', 'expired');
-                this.isPremium = false;
-                console.log('⚠️ DEBUG: Trial expired - Premium disabled');
-            }
-        } else if (premiumStatus === 'active') {
-            this.isPremium = true;
-            this.updateUIForPremium();
-            console.log('✅ DEBUG: Premium subscription active');
-        } else {
-            this.isPremium = false;
-            console.log('❌ DEBUG: No premium status - Free user');
-        }
-        
-        console.log('🔍 DEBUG: Final isPremium status:', this.isPremium);
-        console.log('🔍 DEBUG: localStorage premium_trial_start:', localStorage.getItem('premium_trial_start'));
-        console.log('🔍 DEBUG: localStorage premium_status:', localStorage.getItem('premium_status'));
-        
-        // Update UI elements when premium status changes
+        // SIMPLIFIED: All features are now free - no premium checks needed
         this.updateAIButtonStates();
         this.updateAIStatusIndicator();
     }
