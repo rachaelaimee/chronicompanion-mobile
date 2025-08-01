@@ -23,7 +23,10 @@ class ChroniCompanion {
 
     async init() {
         await this.initIndexedDB();
-        await this.initializeAuthentication(); // Initialize Firebase Authentication
+        
+        // TEMPORARILY DISABLED: Initialize Firebase Authentication after proper setup
+        // await this.initializeAuthentication(); // Initialize Firebase Authentication
+        
         this.setupEventListeners();
         this.setupMobileOptimizations();
         this.updateCurrentDate();
