@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "241042747133",
+    "project_id": "chronicompanion",
+    "storage_bucket": "chronicompanion.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:241042747133:android:1a1afeac2ae29d952e1894",
+        "android_client_info": {
+          "package_name": "io.github.rachaelaimee.chronicompanion"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "241042747133-u2t16pq6hngc9uv33rpk4f8fqc3240iv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "io.github.rachaelaimee.chronicompanion",
+            "certificate_hash": "bab3399a2a0b3267eb1a13d4d90eeea038023a2d"
+          }
+        },
+        {
+          "client_id": "241042747133-es89go0emmj93buuprv1jg8i441arlk8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqvF8W2OHBn3wb5sXlWRBlEgODpn4sUfk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "241042747133-es89go0emmj93buuprv1jg8i441arlk8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -24,8 +24,8 @@ class ChroniCompanion {
     async init() {
         await this.initIndexedDB();
         
-        // TEMPORARILY DISABLED: Initialize Firebase Authentication after proper setup
-        // await this.initializeAuthentication(); // Initialize Firebase Authentication
+        // Initialize Firebase Authentication
+        await this.initializeAuthentication(); // Initialize Firebase Authentication
         
         this.setupEventListeners();
         this.setupMobileOptimizations();
@@ -37,6 +37,10 @@ class ChroniCompanion {
         this.checkBackendConnection(); // Check if backend is available
         // SIMPLIFIED: Removed all premium/paywall complexity
         this.initializeAds(); // Initialize AdSense ads
+        
+        // Update AI status and button states
+        this.updateAIButtonStates();
+        this.updateAIStatusIndicator();
         
         // Initialize Quick Insights with any existing entries
         setTimeout(() => {
@@ -479,54 +483,43 @@ class ChroniCompanion {
         entryData.id = Date.now().toString();
         entryData.synced = false;
 
-        if (this.isOnline) {
-            try {
-                const response = await fetch(`${this.apiBase}/api/entries`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(entryData)
-                });
+        // Always try to sync first, regardless of this.isOnline status
+        try {
+            const response = await fetch(`${this.apiBase}/api/entries`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(entryData)
+            });
 
-                if (response.ok) {
-                    entryData.synced = true;
-                    try {
-                        await this.saveToIndexedDB(entryData);
-                    } catch (indexedDBError) {
-                        console.error('IndexedDB save failed, using localStorage fallback:', indexedDBError);
-                    }
-                    
-                    // ALWAYS save to localStorage as backup
-                    this.saveToLocalStorage(entryData);
-                    this.showSuccessMessage('Entry saved successfully!');
-                    this.resetForm();
-                    
-                    // Check if AI cache should be refreshed (8+ hours old)
-                    this.checkAICacheRefresh();
-                    return;
-                } else {
-                    throw new Error('Failed to save entry');
-                }
-            } catch (error) {
-                console.log('Failed to sync with server, saving locally');
+            if (response.ok) {
+                // Successfully synced to server
+                entryData.synced = true;
+                this.isOnline = true; // Update online status
+                
                 try {
                     await this.saveToIndexedDB(entryData);
-                    await this.addToPendingSync(entryData);
                 } catch (indexedDBError) {
                     console.error('IndexedDB save failed, using localStorage fallback:', indexedDBError);
                 }
                 
                 // ALWAYS save to localStorage as backup
                 this.saveToLocalStorage(entryData);
-                this.showSuccessMessage('Entry saved offline - will sync when connected');
+                this.showSuccessMessage('Entry saved successfully!');
                 this.resetForm();
                 
                 // Check if AI cache should be refreshed (8+ hours old)
                 this.checkAICacheRefresh();
+                return;
+            } else {
+                throw new Error('Server returned error status');
             }
-        } else {
-            // Offline - save to IndexedDB and localStorage as backup
+        } catch (error) {
+            // Failed to sync - save locally
+            console.log('Failed to sync with server, saving locally:', error.message);
+            this.isOnline = false; // Update online status
+            
             try {
                 await this.saveToIndexedDB(entryData);
                 await this.addToPendingSync(entryData);
@@ -536,7 +529,14 @@ class ChroniCompanion {
             
             // ALWAYS save to localStorage as backup
             this.saveToLocalStorage(entryData);
-            this.showSuccessMessage('Entry saved offline - will sync when connected');
+            
+            // Show appropriate message based on network connectivity
+            if (navigator.onLine) {
+                this.showSuccessMessage('Entry saved locally - server will sync later');
+            } else {
+                this.showSuccessMessage('Entry saved offline - will sync when connected');
+            }
+            
             this.resetForm();
             
             // Check if AI cache should be refreshed (8+ hours old)
@@ -1142,6 +1142,25 @@ class ChroniCompanion {
                 const result = await response.json();
                 const insights = result.insights || {};
                 const prediction = insights.prediction || result.message || 'Unable to generate insights at this time.';
+                
+                // If backend returns generic error, show offline insights instead
+                if (prediction.includes('Unable to generate insights') || prediction.includes('error')) {
+                    console.log('⚠️ Backend AI unavailable, using offline insights');
+                    const offlineInsights = this.generateAdvancedOfflineInsights(entries);
+                    const offlineContent = `
+                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                            <h4 class="font-medium text-purple-800 mb-2 flex items-center">
+                                <i class="fas fa-brain mr-2"></i>Smart Health Predictions
+                            </h4>
+                            ${offlineInsights}
+                            <div class="text-xs text-purple-500 mt-3 flex items-center">
+                                <i class="fas fa-home mr-1"></i>
+                                <span>Offline AI • Based on your ${entries.length} health entries</span>
+                            </div>
+                        </div>`;
+                    container.innerHTML = offlineContent;
+                    return;
+                }
                 
                 const onlineContent = `
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -3108,15 +3127,38 @@ class ChroniCompanion {
             console.log('🔐 Starting Google sign-in...');
             this.showMessage('Signing in with Google...', 'info');
 
+            // Check if Firebase Auth is initialized
+            if (!this.FirebaseAuth) {
+                console.error('❌ Firebase Auth not initialized');
+                this.showMessage('Authentication not ready. Please try again.', 'error');
+                return;
+            }
+
+            console.log('🔐 Firebase Auth available, attempting sign-in...');
             const result = await this.FirebaseAuth.signInWithGoogle();
             console.log('✅ Google sign-in successful:', result);
             
-            this.showMessage(`Welcome, ${result.user.displayName}!`, 'success');
+            if (result && result.user) {
+                this.showMessage(`Welcome, ${result.user.displayName || 'User'}!`, 'success');
+                this.currentUser = result.user;
+                this.updateAuthUI();
+            }
+            
             return result;
 
         } catch (error) {
             console.error('❌ Google sign-in failed:', error);
-            this.showMessage('Sign-in failed. Please try again.', 'error');
+            console.error('Error details:', error.message, error.code);
+            
+            // More specific error messages
+            if (error.code === 'auth/popup-blocked') {
+                this.showMessage('Pop-up blocked. Please allow pop-ups and try again.', 'error');
+            } else if (error.code === 'auth/cancelled-popup-request') {
+                this.showMessage('Sign-in cancelled.', 'warning');
+            } else {
+                this.showMessage(`Sign-in failed: ${error.message}`, 'error');
+            }
+            
             throw error;
         }
     }
