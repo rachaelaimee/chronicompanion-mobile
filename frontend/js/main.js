@@ -11,7 +11,7 @@ class ChroniCompanion {
 
     detectMobile() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-               window.innerWidth <= 768;
+            window.innerWidth <= 768;
     }
 
     async init() {
@@ -24,13 +24,15 @@ class ChroniCompanion {
         this.restoreViewState(); // Restore the last viewed page
         this.setupOfflineHandling();
         this.checkBackendConnection(); // Check if backend is available
+        this.checkPremiumStatus(); // Check premium subscription status
+        this.initializeAds(); // Initialize AdSense ads
     }
 
     async checkBackendConnection() {
         try {
-            const response = await fetch(`${this.apiBase}/health`, { 
+            const response = await fetch(`${this.apiBase}/health`, {
                 method: 'GET',
-                timeout: 2000 
+                timeout: 2000
             });
             if (response.ok) {
                 this.isOnline = true; // Set online when API responds
@@ -47,23 +49,23 @@ class ChroniCompanion {
     async initIndexedDB() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open('ChroniCompanionDB', 2);
-            
+
             request.onerror = () => reject(request.error);
             request.onsuccess = () => {
                 this.db = request.result;
                 resolve();
             };
-            
+
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
-                
+
                 // Create entries store
                 if (!db.objectStoreNames.contains('entries')) {
                     const entriesStore = db.createObjectStore('entries', { keyPath: 'id', autoIncrement: true });
                     entriesStore.createIndex('date', 'date', { unique: false });
                     entriesStore.createIndex('synced', 'synced', { unique: false });
                 }
-                
+
                 // Create pending sync store
                 if (!db.objectStoreNames.contains('pending_sync')) {
                     db.createObjectStore('pending_sync', { keyPath: 'id', autoIncrement: true });
@@ -76,17 +78,17 @@ class ChroniCompanion {
         if (this.isMobile) {
             // Add mobile-specific CSS classes
             document.body.classList.add('mobile-optimized');
-            
+
             // Enhanced touch feedback for buttons
             this.addTouchFeedback();
-            
+
             // Prevent zoom on input focus (iOS)
             const metaViewport = document.querySelector('meta[name="viewport"]');
             if (metaViewport) {
-                metaViewport.setAttribute('content', 
+                metaViewport.setAttribute('content',
                     'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
             }
-            
+
             // Add haptic feedback support
             this.setupHapticFeedback();
         }
@@ -102,7 +104,7 @@ class ChroniCompanion {
                     navigator.vibrate(10);
                 }
             });
-            
+
             element.addEventListener('touchend', (e) => {
                 setTimeout(() => {
                     element.classList.remove('touch-active');
@@ -129,7 +131,7 @@ class ChroniCompanion {
             this.showNetworkStatus('Connected', 'success');
             this.syncPendingEntries();
         });
-        
+
         window.addEventListener('offline', () => {
             this.isOnline = false;
             this.showNetworkStatus('Offline - Entries will sync when connected', 'warning');
@@ -139,8 +141,8 @@ class ChroniCompanion {
     showNetworkStatus(message, type) {
         const statusEl = document.createElement('div');
         let bgColor, textColor;
-        
-        switch(type) {
+
+        switch (type) {
             case 'success':
                 bgColor = 'bg-green-100';
                 textColor = 'text-green-800';
@@ -157,12 +159,12 @@ class ChroniCompanion {
                 bgColor = 'bg-gray-100';
                 textColor = 'text-gray-800';
         }
-        
+
         statusEl.className = `fixed top-4 left-4 right-4 p-3 rounded-lg text-sm font-medium z-50 ${bgColor} ${textColor}`;
         statusEl.textContent = message;
-        
+
         document.body.appendChild(statusEl);
-        
+
         setTimeout(() => {
             statusEl.remove();
         }, 4000);
@@ -171,7 +173,7 @@ class ChroniCompanion {
     restoreViewState() {
         // Get the last viewed page from localStorage
         const savedView = localStorage.getItem('currentView');
-        
+
         // If there's a saved view, show it; otherwise default to entry-form
         if (savedView && ['entry-form', 'entries-list', 'dashboard'].includes(savedView)) {
             this.showView(savedView);
@@ -190,12 +192,42 @@ class ChroniCompanion {
             this.showView('entries-list');
         });
 
-        document.getElementById('export-btn').addEventListener('click', () => {
-            this.exportEntries();
-        });
+        const exportBtn = document.getElementById('export-btn');
+        console.log('🔍 Found export button:', exportBtn);
+
+        if (exportBtn) {
+            console.log('✅ Adding click listener to export button...');
+
+            exportBtn.addEventListener('click', () => {
+                console.log('🔥 EXPORT BUTTON CLICKED!');
+                console.log('🔥 Current view:', this.currentView);
+
+                if (this.currentView === 'dashboard') {
+                    console.log('🔥 Calling exportDashboard...');
+                    this.exportDashboard();
+                } else {
+                    console.log('🔥 Calling exportEntries...');
+                    this.exportEntries();
+                }
+            });
+
+            console.log('✅ Export button click listener added successfully');
+        } else {
+            console.error('❌ Export button not found!');
+            alert('❌ Export button not found! Check if element exists.');
+        }
 
         document.getElementById('dashboard-btn').addEventListener('click', () => {
             this.showView('dashboard');
+        });
+
+        // Premium and support buttons
+        document.getElementById('premium-btn').addEventListener('click', () => {
+            this.showPremiumModal();
+        });
+
+        document.getElementById('support-btn').addEventListener('click', () => {
+            this.showSupportModal();
         });
 
         // Entry type radio buttons
@@ -213,19 +245,19 @@ class ChroniCompanion {
             slider.addEventListener('input', (e) => {
                 this.updateSliderValue(e.target);
             });
-            
+
             // Mobile-optimized touch events
             if (this.isMobile) {
                 slider.addEventListener('touchstart', (e) => {
                     slider.classList.add('slider-active');
                 });
-                
+
                 slider.addEventListener('touchend', (e) => {
                     slider.classList.remove('slider-active');
                     // Trigger change event for haptic feedback
                     slider.dispatchEvent(new Event('change'));
                 });
-                
+
                 slider.addEventListener('touchmove', (e) => {
                     // Update value in real-time during touch
                     this.updateSliderValue(slider);
@@ -272,11 +304,11 @@ class ChroniCompanion {
 
     updateCurrentDate() {
         const now = new Date();
-        const options = { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+        const options = {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         };
         document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', options);
     }
@@ -285,7 +317,7 @@ class ChroniCompanion {
         const sliders = document.querySelectorAll('.slider');
         sliders.forEach(slider => {
             this.updateSliderValue(slider);
-            
+
             // Enhanced mobile slider styling
             if (this.isMobile) {
                 slider.style.height = '3rem'; // Larger touch target
@@ -298,7 +330,7 @@ class ChroniCompanion {
         const valueDisplay = document.getElementById(slider.name + '_value');
         if (valueDisplay) {
             valueDisplay.textContent = slider.value;
-            
+
             // Add visual feedback for mobile
             if (this.isMobile) {
                 valueDisplay.classList.add('value-updated');
@@ -339,12 +371,18 @@ class ChroniCompanion {
         // Update active nav button
         this.updateActiveNavButton(viewId);
 
+        // Show/hide export button based on view
+        this.updateExportButtonVisibility(viewId);
+
         // Load data specific to this view
         if (viewId === 'dashboard') {
             this.loadDashboard();
         } else if (viewId === 'entries-list') {
             this.loadEntries();
         }
+
+        // Refresh ads for the new view
+        setTimeout(() => this.refreshAds(), 500);
     }
 
     updateActiveNavButton(viewId) {
@@ -364,10 +402,22 @@ class ChroniCompanion {
         }
     }
 
+    updateExportButtonVisibility(viewId) {
+        const exportBtn = document.getElementById('export-btn');
+        if (viewId === 'entries-list') {
+            // Show export button ONLY on entries page
+            exportBtn.style.display = 'flex';
+            exportBtn.innerHTML = '<i class="fas fa-download mr-2"></i>Export Data';
+        } else {
+            // Hide export button on all other pages (dashboard, entry form, etc.)
+            exportBtn.style.display = 'none';
+        }
+    }
+
     async submitEntry() {
         const form = document.getElementById('daily-entry-form');
         const formData = new FormData(form);
-        
+
         // Convert FormData to regular object
         const entryData = {};
         for (let [key, value] of formData.entries()) {
@@ -379,7 +429,7 @@ class ChroniCompanion {
             // Check which radio button is selected
             const morningRadio = document.querySelector('input[name="entry_type"][value="morning"]');
             const eveningRadio = document.querySelector('input[name="entry_type"][value="evening"]');
-            
+
             if (morningRadio && morningRadio.checked) {
                 entryData.entry_type = 'morning';
             } else if (eveningRadio && eveningRadio.checked) {
@@ -436,7 +486,7 @@ class ChroniCompanion {
             const transaction = this.db.transaction(['entries'], 'readwrite');
             const store = transaction.objectStore('entries');
             const request = store.put(entryData);
-            
+
             request.onsuccess = () => resolve();
             request.onerror = () => reject(request.error);
         });
@@ -450,7 +500,7 @@ class ChroniCompanion {
                 data: entryData,
                 timestamp: new Date().toISOString()
             });
-            
+
             request.onsuccess = () => resolve();
             request.onerror = () => reject(request.error);
         });
@@ -466,7 +516,7 @@ class ChroniCompanion {
 
             request.onsuccess = async () => {
                 const pendingEntries = request.result;
-                
+
                 for (const pendingEntry of pendingEntries) {
                     try {
                         const response = await fetch(`${this.apiBase}/api/entries`, {
@@ -501,11 +551,11 @@ class ChroniCompanion {
     saveToLocalStorage(entryData) {
         // Get existing entries or initialize empty array
         let entries = JSON.parse(localStorage.getItem('chroni_entries') || '[]');
-        
+
         // Add new entry with unique ID
         entryData.id = Date.now().toString();
         entries.unshift(entryData); // Add to beginning of array
-        
+
         // Save back to localStorage
         localStorage.setItem('chroni_entries', JSON.stringify(entries));
     }
@@ -544,7 +594,7 @@ class ChroniCompanion {
             const request = store.getAll();
 
             request.onsuccess = () => {
-                const entries = request.result.sort((a, b) => 
+                const entries = request.result.sort((a, b) =>
                     new Date(b.timestamp) - new Date(a.timestamp)
                 );
                 resolve(entries);
@@ -568,7 +618,7 @@ class ChroniCompanion {
 
     displayEntries(entries) {
         const container = document.getElementById('entries-container');
-        
+
         if (entries.length === 0) {
             container.innerHTML = `
                 <div class="text-center py-8 text-sage-500">
@@ -595,8 +645,8 @@ class ChroniCompanion {
             minute: '2-digit'
         });
 
-        const entryTypeIcon = entry.entry_type === 'morning' ? 
-            '<i class="fas fa-sun text-yellow-500"></i>' : 
+        const entryTypeIcon = entry.entry_type === 'morning' ?
+            '<i class="fas fa-sun text-yellow-500"></i>' :
             '<i class="fas fa-moon text-indigo-500"></i>';
 
         const entryTypeClass = entry.entry_type === 'morning' ? 'border-l-yellow-400' : 'border-l-indigo-400';
@@ -681,13 +731,13 @@ class ChroniCompanion {
         try {
             // Find the entry in our local data first
             let entry = null;
-            
+
             // Try to get from IndexedDB first
             if (this.db) {
                 const transaction = this.db.transaction(['entries'], 'readonly');
                 const store = transaction.objectStore('entries');
                 const request = store.get(entryId);
-                
+
                 request.onsuccess = (event) => {
                     entry = event.target.result;
                     if (entry) {
@@ -695,7 +745,7 @@ class ChroniCompanion {
                     }
                 };
             }
-            
+
             // If online, also try to get from API for most up-to-date data
             if (this.isOnline) {
                 try {
@@ -711,7 +761,7 @@ class ChroniCompanion {
                     console.log('Could not fetch from API, using local data');
                 }
             }
-            
+
         } catch (error) {
             console.error('Error viewing entry details:', error);
             this.showErrorMessage('Could not load entry details');
@@ -722,22 +772,22 @@ class ChroniCompanion {
         const modal = document.getElementById('entry-details-modal');
         const title = document.getElementById('modal-title');
         const content = document.getElementById('modal-content');
-        
+
         // Format date and time
         const date = new Date(entry.timestamp || entry.date);
-        const formattedDate = date.toLocaleDateString('en-US', { 
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+        const formattedDate = date.toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         });
-        const formattedTime = date.toLocaleTimeString('en-US', { 
-            hour: '2-digit', minute: '2-digit' 
+        const formattedTime = date.toLocaleTimeString('en-US', {
+            hour: '2-digit', minute: '2-digit'
         });
-        
+
         // Set modal title
-        const entryTypeIcon = entry.entry_type === 'morning' ? 
-            '<i class="fas fa-sun text-yellow-500"></i>' : 
+        const entryTypeIcon = entry.entry_type === 'morning' ?
+            '<i class="fas fa-sun text-yellow-500"></i>' :
             '<i class="fas fa-moon text-indigo-500"></i>';
         title.innerHTML = `${entryTypeIcon} ${entry.entry_type ? entry.entry_type.charAt(0).toUpperCase() + entry.entry_type.slice(1) : 'Unknown'} Entry`;
-        
+
         // Build detailed content
         let html = `
             <div class="mb-6">
@@ -745,7 +795,7 @@ class ChroniCompanion {
                 <div class="text-sage-500 text-sm">${formattedTime}</div>
             </div>
         `;
-        
+
         // Show relevant questions based on entry type
         if (entry.entry_type === 'morning') {
             if (entry.morning_feeling) {
@@ -798,7 +848,7 @@ class ChroniCompanion {
                 `;
             }
         }
-        
+
         // Wellness metrics
         html += `
             <div class="mb-6">
@@ -835,7 +885,7 @@ class ChroniCompanion {
                 </div>
             </div>
         `;
-        
+
         // Additional notes
         if (entry.additional_notes) {
             html += `
@@ -845,7 +895,7 @@ class ChroniCompanion {
                 </div>
             `;
         }
-        
+
         // AI insights if available
         if (entry.ai_summary || entry.ai_insights) {
             html += `<div class="border-t border-sage-200 pt-6 mt-6">`;
@@ -871,7 +921,7 @@ class ChroniCompanion {
             }
             html += `</div>`;
         }
-        
+
         content.innerHTML = html;
         modal.classList.remove('hidden');
         document.body.style.overflow = 'hidden'; // Prevent background scroll
@@ -883,864 +933,871 @@ class ChroniCompanion {
         document.body.style.overflow = 'auto'; // Restore background scroll
     }
 
-    async exportEntries() {
+    // AI Insights Functions
+    async loadPredictiveInsights() {
+        if (!this.isPremium) {
+            this.showPremiumModal();
+            return;
+        }
+
+        const container = document.getElementById('predictions-container');
+        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Analyzing your patterns...</div>';
+
         try {
-            // Show loading message
-            this.showInfoMessage('Generating your health report...');
-            
-            const response = await fetch(`${this.apiBase}/api/export`, {
+            const response = await fetch(`${this.apiBase}/api/ai/predictive-insights?days=7`, {
                 method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
             });
 
             if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const filename = `ChroniCompanion_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-                
-                // Direct download for all devices - no sharing, just download
-                console.log('Starting PDF download for:', filename);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-                
-                // Show success message with file location info
-                if (this.isMobile) {
-                    this.showSuccessMessage('Report downloaded! Check your Downloads folder or Files app.');
-                } else {
-                    this.showSuccessMessage('Report exported successfully!');
-                }
+                const result = await response.json();
+                container.innerHTML = `
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="font-medium text-blue-800 mb-2 flex items-center">
+                            <i class="fas fa-crystal-ball mr-2"></i>Health Predictions
+                        </h4>
+                        <p class="text-blue-700 text-sm">${result.insights?.prediction || result.message}</p>
+                        ${result.based_on_entries ? `<div class="text-blue-600 text-xs mt-2">Based on ${result.based_on_entries} recent entries</div>` : ''}
+                    </div>
+                `;
             } else {
-                throw new Error('Failed to export entries');
+                throw new Error('AI service unavailable');
             }
         } catch (error) {
-            console.log('Backend not available, showing export placeholder');
-            if (this.isOnline) {
-                this.showErrorMessage('Export failed. Please check your internet connection and try again.');
-            } else {
-                this.showInfoMessage('Export requires internet connection. Please connect and try again.');
-            }
-        }
-    }
-
-    resetForm() {
-        const form = document.getElementById('daily-entry-form');
-        form.reset();
-        
-        // Reset sliders to default values
-        this.initializeSliders();
-        
-        // Hide all question sections
-        document.getElementById('morning-questions').classList.add('hidden');
-        document.getElementById('evening-questions').classList.add('hidden');
-    }
-
-    showSuccessMessage(message) {
-        const successMessage = document.getElementById('success-message');
-        // Update the entire innerHTML to preserve the icon and update the message
-        successMessage.innerHTML = `<i class="fas fa-check mr-2"></i>${message}`;
-        
-        // Show the message
-        successMessage.classList.remove('translate-x-full');
-        
-        // Hide after 3 seconds
-        setTimeout(() => {
-            successMessage.classList.add('translate-x-full');
-        }, 3000);
-    }
-
-    showErrorMessage(message) {
-        // Create error message element if it doesn't exist
-        let errorMessage = document.getElementById('error-message');
-        if (!errorMessage) {
-            errorMessage = document.createElement('div');
-            errorMessage.id = 'error-message';
-            errorMessage.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50';
-            document.body.appendChild(errorMessage);
-        }
-        
-        errorMessage.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i>${message}`;
-        errorMessage.classList.remove('translate-x-full');
-        
-        setTimeout(() => {
-            errorMessage.classList.add('translate-x-full');
-        }, 4000);
-    }
-
-    showInfoMessage(message) {
-        // Create info message element if it doesn't exist
-        let infoMessage = document.getElementById('info-message');
-        if (!infoMessage) {
-            infoMessage = document.createElement('div');
-            infoMessage.id = 'info-message';
-            infoMessage.className = 'fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50';
-            document.body.appendChild(infoMessage);
-        }
-        
-        infoMessage.innerHTML = `<i class="fas fa-info-circle mr-2"></i>${message}`;
-        infoMessage.classList.remove('translate-x-full');
-        
-        setTimeout(() => {
-            infoMessage.classList.add('translate-x-full');
-        }, 3000);
-    }
-
-    // Dashboard Methods
-    async loadDashboard() {
-        const loadingEl = document.getElementById('chart-loading');
-        const period = document.getElementById('chart-period').value;
-        const metric = document.getElementById('chart-metric').value;
-        
-        try {
-            loadingEl.classList.remove('hidden');
-            
-            // Load chart data
-            const response = await fetch(`${this.apiBase}/api/analytics/chart-data?days=${period}&metric=${metric}`);
-            
-            if (response.ok) {
-                const chartData = await response.json();
-                this.renderChart(chartData);
-                this.updateStatistics(chartData);
-                this.generateInsights(chartData);
-                // Load any saved AI insights
-                this.loadAllSavedInsights();
-            } else {
-                console.log('Backend not available, loading sample data');
-                this.loadSampleDashboard();
-            }
-        } catch (error) {
-            console.log('Backend not available, loading sample data');
-            this.loadSampleDashboard();
-        } finally {
-            loadingEl.classList.add('hidden');
-        }
-    }
-
-    loadSampleDashboard() {
-        // Create sample data for demonstration
-        const sampleData = {
-            labels: this.generateSampleDates(7),
-            datasets: [
-                {
-                    label: 'Mood',
-                    data: [6, 7, 5, 8, 6, 7, 8],
-                    borderColor: '#5a6e5a',
-                    backgroundColor: 'rgba(90, 110, 90, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'Energy',
-                    data: [5, 6, 4, 7, 5, 6, 7],
-                    borderColor: '#a593c2',
-                    backgroundColor: 'rgba(165, 147, 194, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'Pain',
-                    data: [3, 4, 6, 2, 4, 3, 2],
-                    borderColor: '#dc2626',
-                    backgroundColor: 'rgba(220, 38, 38, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }
-            ]
-        };
-        
-        this.renderChart(sampleData);
-        this.updateSampleStatistics();
-        this.generateSampleInsights();
-        // Load any saved AI insights
-        this.loadAllSavedInsights();
-    }
-
-    generateSampleDates(days) {
-        const dates = [];
-        for (let i = days - 1; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            dates.push(date.toISOString().split('T')[0]);
-        }
-        return dates;
-    }
-
-    renderChart(chartData) {
-        const ctx = document.getElementById('trendsChart').getContext('2d');
-        
-        // Destroy existing chart if it exists
-        if (this.trendsChart) {
-            this.trendsChart.destroy();
-        }
-        
-        this.trendsChart = new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 20,
-                            font: {
-                                size: 12
-                            }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleColor: 'white',
-                        bodyColor: 'white',
-                        borderColor: '#5a6e5a',
-                        borderWidth: 1,
-                        cornerRadius: 8,
-                        displayColors: true,
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.dataset.label || '';
-                                const value = context.parsed.y;
-                                if (value === null) return null;
-                                
-                                if (label === 'Pain' || label === 'Fatigue') {
-                                    return `${label}: ${value}/10`;
-                                } else {
-                                    return `${label}: ${value}/10`;
-                                }
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        title: {
-                            display: true,
-                            text: 'Date',
-                            font: {
-                                size: 14,
-                                weight: 'bold'
-                            },
-                            color: '#374151'
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        }
-                    },
-                    y: {
-                        display: true,
-                        title: {
-                            display: true,
-                            text: 'Rating (0-10)',
-                            font: {
-                                size: 14,
-                                weight: 'bold'
-                            },
-                            color: '#374151'
-                        },
-                        min: 0,
-                        max: 10,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.1)'
-                        },
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
-                },
-                elements: {
-                    point: {
-                        radius: 4,
-                        hoverRadius: 6,
-                        borderWidth: 2
-                    },
-                    line: {
-                        borderWidth: 3
-                    }
-                }
-            }
-        });
-    }
-
-    updateStatistics(chartData) {
-        if (!chartData.datasets || chartData.datasets.length === 0) {
-            this.updateSampleStatistics();
-            return;
-        }
-        
-        // Calculate averages for each metric
-        const stats = {};
-        chartData.datasets.forEach(dataset => {
-            const label = dataset.label.toLowerCase();
-            const validData = dataset.data.filter(val => val !== null && val !== undefined);
-            if (validData.length > 0) {
-                stats[label] = (validData.reduce((a, b) => a + b, 0) / validData.length).toFixed(1);
-            }
-        });
-        
-        // Update DOM elements
-        document.getElementById('avg-mood').textContent = stats.mood || '--';
-        document.getElementById('avg-energy').textContent = stats.energy || '--';
-        document.getElementById('avg-pain').textContent = stats.pain || '--';
-        document.getElementById('total-entries').textContent = chartData.total_entries || '--';
-    }
-
-    updateSampleStatistics() {
-        document.getElementById('avg-mood').textContent = '6.7';
-        document.getElementById('avg-energy').textContent = '5.9';
-        document.getElementById('avg-pain').textContent = '3.4';
-        document.getElementById('total-entries').textContent = '12';
-    }
-
-    generateInsights(chartData) {
-        const container = document.getElementById('insights-container');
-        const insights = [];
-        
-        if (!chartData.datasets || chartData.datasets.length === 0) {
-            this.generateSampleInsights();
-            return;
-        }
-        
-        // Analyze trends for insights
-        chartData.datasets.forEach(dataset => {
-            const label = dataset.label;
-            const validData = dataset.data.filter(val => val !== null && val !== undefined);
-            
-            if (validData.length >= 3) {
-                const recent = validData.slice(-3);
-                const earlier = validData.slice(0, -3);
-                
-                if (recent.length > 0 && earlier.length > 0) {
-                    const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
-                    const earlierAvg = earlier.reduce((a, b) => a + b, 0) / earlier.length;
-                    const diff = recentAvg - earlierAvg;
-                    
-                    if (Math.abs(diff) > 0.5) {
-                        if (label === 'Pain' || label === 'Fatigue' || label === 'Anxiety') {
-                            if (diff > 0) {
-                                insights.push(`Your ${label.toLowerCase()} has increased recently. Consider discussing this with your healthcare provider.`);
-                            } else {
-                                insights.push(`Great news! Your ${label.toLowerCase()} levels have been improving recently.`);
-                            }
-                        } else {
-                            if (diff > 0) {
-                                insights.push(`Your ${label.toLowerCase()} has been improving lately - keep up the good work!`);
-                            } else {
-                                insights.push(`Your ${label.toLowerCase()} has been lower recently. Remember to be gentle with yourself.`);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        
-        if (insights.length === 0) {
-            insights.push('Your health patterns are stable. Keep tracking to identify trends over time.');
-        }
-        
-        // Update insights container
-        container.innerHTML = insights.map(insight => 
-            `<div class="text-sage-600 flex items-start">
-                <i class="fas fa-lightbulb mr-2 text-yellow-500 mt-1 flex-shrink-0"></i>
-                <span>${insight}</span>
-            </div>`
-        ).join('');
-    }
-
-    generateSampleInsights() {
-        const container = document.getElementById('insights-container');
-        const sampleInsights = [
-            'Your mood has been relatively stable this week - that\'s wonderful!',
-            'Your energy levels show a slight upward trend. Great progress!',
-            'Your pain levels have been manageable. Keep up your current self-care routine.'
-        ];
-        
-        container.innerHTML = sampleInsights.map(insight => 
-            `<div class="text-sage-600 flex items-start">
-                <i class="fas fa-lightbulb mr-2 text-yellow-500 mt-1 flex-shrink-0"></i>
-                <span>${insight}</span>
-            </div>`
-        ).join('');
-    }
-
-    // AI Persistence Methods
-    saveAIInsight(type, data) {
-        const timestamp = new Date().toISOString();
-        const insight = { ...data, timestamp, type };
-        localStorage.setItem(`ai_${type}`, JSON.stringify(insight));
-    }
-
-    loadSavedAIInsight(type) {
-        try {
-            const saved = localStorage.getItem(`ai_${type}`);
-            return saved ? JSON.parse(saved) : null;
-        } catch (error) {
-            console.log('Error loading saved AI insight:', error);
-            return null;
-        }
-    }
-
-    loadAllSavedInsights() {
-        // Load predictions
-        const savedPredictions = this.loadSavedAIInsight('predictions');
-        if (savedPredictions) {
-            this.displayPredictiveInsights(savedPredictions, savedPredictions.timestamp);
-            document.getElementById('get-predictions-btn').textContent = 'Refresh';
-        }
-
-        // Load coping strategies
-        const savedCoping = this.loadSavedAIInsight('coping');
-        if (savedCoping) {
-            this.displayCopingStrategies(savedCoping, savedCoping.timestamp);
-            document.getElementById('get-coping-btn').textContent = 'Refresh';
-        }
-
-        // Load crisis check
-        const savedCrisis = this.loadSavedAIInsight('crisis');
-        if (savedCrisis) {
-            this.displayCrisisSupport(savedCrisis, savedCrisis.timestamp);
-            document.getElementById('crisis-check-btn').textContent = 'Refresh';
-        }
-
-        // Load coaching
-        const savedCoaching = this.loadSavedAIInsight('coaching');
-        if (savedCoaching) {
-            this.displayWeeklyCoaching(savedCoaching, savedCoaching.timestamp);
-            document.getElementById('get-coaching-btn').textContent = 'Refresh';
-        }
-    }
-
-    // Advanced AI Methods
-    async loadPredictiveInsights() {
-        const btn = document.getElementById('get-predictions-btn');
-        const content = document.getElementById('predictions-content');
-        
-        try {
-            btn.textContent = 'Loading...';
-            btn.disabled = true;
-            
-            const response = await fetch(`${this.apiBase}/api/ai/predictive-insights?days=7`);
-            
-            if (response.ok) {
-                const data = await response.json();
-                this.saveAIInsight('predictions', data.insights);
-                this.displayPredictiveInsights(data.insights);
-            } else {
-                this.displayAISampleContent('predictions');
-            }
-        } catch (error) {
-            console.log('Backend not available, showing sample predictions');
-            this.displayAISampleContent('predictions');
-        } finally {
-            btn.textContent = 'Refresh';
-            btn.disabled = false;
+            container.innerHTML = `
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-yellow-700 text-sm">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        AI predictions temporarily unavailable. Please try again later.
+                    </p>
+                </div>
+            `;
         }
     }
 
     async loadCopingStrategies() {
-        const btn = document.getElementById('get-coping-btn');
-        const content = document.getElementById('coping-content');
-        
+        if (!this.isPremium) {
+            this.showPremiumModal();
+            return;
+        }
+
+        const container = document.getElementById('coping-container');
+        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Finding personalized strategies...</div>';
+
         try {
-            btn.textContent = 'Loading...';
-            btn.disabled = true;
+            // Get recent entries to assess current symptoms
+            const recentEntries = await this.loadEntriesFromIndexedDB();
+            const latestEntry = recentEntries[0] || {};
             
-            // Get current symptoms from latest entry or use defaults
             const currentSymptoms = {
-                mood: 5,
-                energy: 4,
-                pain: 6,
-                anxiety: 7,
-                fatigue: 6
+                mood: latestEntry.mood_overall || 5,
+                energy: latestEntry.energy_level || 5,
+                pain: latestEntry.pain_level || 0,
+                anxiety: latestEntry.anxiety_level || 0,
+                fatigue: latestEntry.fatigue_level || 0
             };
-            
+
             const response = await fetch(`${this.apiBase}/api/ai/coping-strategies`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(currentSymptoms)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ current_symptoms: currentSymptoms })
             });
-            
+
             if (response.ok) {
-                const data = await response.json();
-                this.saveAIInsight('coping', data.strategies);
-                this.displayCopingStrategies(data.strategies);
+                const result = await response.json();
+                const strategies = result.strategies;
+                let strategyHtml = '';
+                
+                if (strategies.immediate_strategies) {
+                    strategyHtml += `<div class="mb-3"><strong>Immediate strategies:</strong><br>• ${strategies.immediate_strategies.join('<br>• ')}</div>`;
+                }
+                if (strategies.self_care) {
+                    strategyHtml += `<div class="mb-3"><strong>Self-care:</strong><br>• ${strategies.self_care.join('<br>• ')}</div>`;
+                }
+                
+                container.innerHTML = `
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h4 class="font-medium text-green-800 mb-2 flex items-center">
+                            <i class="fas fa-heart mr-2"></i>Personalized Coping Strategies
+                        </h4>
+                        <div class="text-green-700 text-sm">${strategyHtml || 'Take gentle breaths and be kind to yourself.'}</div>
+                    </div>
+                `;
             } else {
-                this.displayAISampleContent('coping');
+                throw new Error('AI service unavailable');
             }
         } catch (error) {
-            console.log('Backend not available, showing sample coping strategies');
-            this.displayAISampleContent('coping');
-        } finally {
-            btn.textContent = 'Refresh';
-            btn.disabled = false;
+            container.innerHTML = `
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-yellow-700 text-sm">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Coping strategies temporarily unavailable. Please try again later.
+                    </p>
+                </div>
+            `;
         }
     }
 
     async performCrisisCheck() {
-        const btn = document.getElementById('crisis-check-btn');
-        const content = document.getElementById('crisis-content');
-        
+        const container = document.getElementById('crisis-container');
+        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Performing wellness check...</div>';
+
+        // This is always free - crisis intervention should never be paywalled
         try {
-            btn.textContent = 'Checking...';
-            btn.disabled = true;
-            
-            const response = await fetch(`${this.apiBase}/api/ai/crisis-check`);
-            
+            const response = await fetch(`${this.apiBase}/api/ai/crisis-check`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
             if (response.ok) {
-                const data = await response.json();
-                this.saveAIInsight('crisis', data.analysis);
-                this.displayCrisisSupport(data.analysis);
+                const result = await response.json();
+                const alertLevel = result.risk_level || 'low';
+                const colorClass = alertLevel === 'high' ? 'red' : alertLevel === 'medium' ? 'yellow' : 'green';
+                
+                container.innerHTML = `
+                    <div class="bg-${colorClass}-50 border border-${colorClass}-200 rounded-lg p-4">
+                        <h4 class="font-medium text-${colorClass}-800 mb-2 flex items-center">
+                            <i class="fas fa-shield-heart mr-2"></i>Wellness Check
+                        </h4>
+                        <p class="text-${colorClass}-700 text-sm">${result.message}</p>
+                        ${result.resources ? `<div class="mt-2 text-${colorClass}-600 text-xs">${result.resources}</div>` : ''}
+                    </div>
+                `;
             } else {
-                this.displayAISampleContent('crisis');
+                throw new Error('Crisis check unavailable');
             }
         } catch (error) {
-            console.log('Backend not available, showing sample crisis support');
-            this.displayAISampleContent('crisis');
-        } finally {
-            btn.textContent = 'Refresh';
-            btn.disabled = false;
+            container.innerHTML = `
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-medium text-blue-800 mb-2 flex items-center">
+                        <i class="fas fa-shield-heart mr-2"></i>Wellness Resources
+                    </h4>
+                    <p class="text-blue-700 text-sm">
+                        If you're in crisis, please reach out:<br>
+                        • National Suicide Prevention Lifeline: 988<br>
+                        • Crisis Text Line: Text HOME to 741741<br>
+                        • Emergency Services: 911
+                    </p>
+                </div>
+            `;
         }
     }
 
     async loadWeeklyCoaching() {
-        const btn = document.getElementById('get-coaching-btn');
-        const content = document.getElementById('coaching-content');
-        
+        if (!this.isPremium) {
+            this.showPremiumModal();
+            return;
+        }
+
+        const container = document.getElementById('coaching-container');
+        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Preparing your weekly reflection...</div>';
+
         try {
-            btn.textContent = 'Loading...';
-            btn.disabled = true;
-            
-            const response = await fetch(`${this.apiBase}/api/ai/weekly-coaching`);
-            
+            const response = await fetch(`${this.apiBase}/api/ai/weekly-reflection`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
             if (response.ok) {
-                const data = await response.json();
-                this.saveAIInsight('coaching', data.coaching);
-                this.displayWeeklyCoaching(data.coaching);
+                const result = await response.json();
+                container.innerHTML = `
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h4 class="font-medium text-purple-800 mb-2 flex items-center">
+                            <i class="fas fa-graduation-cap mr-2"></i>Weekly Reflection
+                        </h4>
+                        <p class="text-purple-700 text-sm">${result.reflection || result.message}</p>
+                        ${result.based_on_entries ? `<div class="text-purple-600 text-xs mt-2">Based on ${result.based_on_entries} entries</div>` : ''}
+                    </div>
+                `;
             } else {
-                this.displayAISampleContent('coaching');
+                throw new Error('Reflection service unavailable');
             }
         } catch (error) {
-            console.log('Backend not available, showing sample coaching');
-            this.displayAISampleContent('coaching');
-        } finally {
-            btn.textContent = 'Refresh';
-            btn.disabled = false;
-        }
-    }
-
-    getTimeAgo(timestamp) {
-        const now = new Date();
-        const then = new Date(timestamp);
-        const diffMs = now - then;
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
-
-        if (diffMins < 1) return 'just now';
-        if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-        return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    }
-
-    displayPredictiveInsights(insights, timestamp = null) {
-        const content = document.getElementById('predictions-content');
-        
-        if (!insights || !insights.prediction) {
-            content.innerHTML = '<p class="text-gray-500">No predictions available at this time.</p>';
-            return;
-        }
-        
-        let html = `
-            <div class="space-y-3">
-                <div class="p-3 bg-blue-50 rounded-lg">
-                    <p class="font-medium text-blue-800">${insights.prediction}</p>
-                    <p class="text-xs text-blue-600 mt-1">Confidence: ${insights.confidence}</p>
-                </div>
-        `;
-        
-        if (insights.suggestions && insights.suggestions.length > 0) {
-            html += `
-                <div>
-                    <p class="font-medium text-gray-700 mb-2">💡 Suggestions:</p>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        ${insights.suggestions.map(s => `<li>• ${s}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        if (insights.positive_trends && insights.positive_trends.length > 0) {
-            html += `
-                <div>
-                    <p class="font-medium text-green-700 mb-2">✨ Positive Trends:</p>
-                    <ul class="text-sm text-green-600 space-y-1">
-                        ${insights.positive_trends.map(t => `<li>• ${t}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        // Add timestamp if provided
-        if (timestamp) {
-            const timeAgo = this.getTimeAgo(timestamp);
-            html += `
-                <div class="pt-2 mt-3 border-t border-blue-200">
-                    <p class="text-xs text-blue-500">
-                        <i class="fas fa-clock mr-1"></i>
-                        Last updated ${timeAgo}
+            container.innerHTML = `
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-yellow-700 text-sm">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Weekly reflection temporarily unavailable. Please try again later.
                     </p>
                 </div>
             `;
         }
-        
-        html += '</div>';
-        content.innerHTML = html;
     }
 
-    displayCopingStrategies(strategies, timestamp = null) {
-        const content = document.getElementById('coping-content');
-        
-        if (!strategies) {
-            content.innerHTML = '<p class="text-gray-500">No coping strategies available at this time.</p>';
-            return;
-        }
-        
-        let html = '<div class="space-y-3">';
-        
-        if (strategies.immediate_strategies && strategies.immediate_strategies.length > 0) {
-            html += `
-                <div>
-                    <p class="font-medium text-green-700 mb-2">🚨 Right Now:</p>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        ${strategies.immediate_strategies.map(s => `<li>• ${s}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        if (strategies.self_care && strategies.self_care.length > 0) {
-            html += `
-                <div>
-                    <p class="font-medium text-purple-700 mb-2">💜 Self-Care:</p>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        ${strategies.self_care.map(s => `<li>• ${s}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        if (strategies.when_to_seek_help) {
-            html += `
-                <div class="p-3 bg-yellow-50 rounded-lg">
-                    <p class="text-sm text-yellow-800">${strategies.when_to_seek_help}</p>
-                </div>
-            `;
-        }
-        
-        // Add timestamp if provided
-        if (timestamp) {
-            const timeAgo = this.getTimeAgo(timestamp);
-            html += `
-                <div class="pt-2 mt-3 border-t border-green-200">
-                    <p class="text-xs text-green-500">
-                        <i class="fas fa-clock mr-1"></i>
-                        Last updated ${timeAgo}
-                    </p>
-                </div>
-            `;
-        }
-        
-        html += '</div>';
-        content.innerHTML = html;
-    }
-
-    displayCrisisSupport(analysis, timestamp = null) {
-        const content = document.getElementById('crisis-content');
-        
-        if (!analysis) {
-            content.innerHTML = '<p class="text-gray-500">Unable to perform wellness check at this time.</p>';
-            return;
-        }
-        
-        const riskColors = {
-            none: 'green',
-            low: 'yellow',
-            medium: 'orange',
-            high: 'red'
-        };
-        
-        const color = riskColors[analysis.risk_level] || 'green';
-        
-        let html = `
-            <div class="space-y-3">
-                <div class="p-3 bg-${color}-50 rounded-lg border border-${color}-200">
-                    <p class="font-medium text-${color}-800">${analysis.supportive_message}</p>
-                </div>
-        `;
-        
-        if (analysis.gentle_suggestions && analysis.gentle_suggestions.length > 0) {
-            html += `
-                <div>
-                    <p class="font-medium text-gray-700 mb-2">💝 Gentle Suggestions:</p>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        ${analysis.gentle_suggestions.map(s => `<li>• ${s}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        if (analysis.resources && analysis.resources.length > 0) {
-            html += `
-                <div>
-                    <p class="font-medium text-blue-700 mb-2">🔗 Resources:</p>
-                    <ul class="text-sm text-blue-600 space-y-1">
-                        ${analysis.resources.map(r => `<li>• ${r}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        // Add timestamp if provided
-        if (timestamp) {
-            const timeAgo = this.getTimeAgo(timestamp);
-            html += `
-                <div class="pt-2 mt-3 border-t border-red-200">
-                    <p class="text-xs text-red-500">
-                        <i class="fas fa-clock mr-1"></i>
-                        Last updated ${timeAgo}
-                    </p>
-                </div>
-            `;
-        }
-        
-        html += '</div>';
-        content.innerHTML = html;
-    }
-
-    displayWeeklyCoaching(coaching, timestamp = null) {
-        const content = document.getElementById('coaching-content');
-        
-        if (!coaching) {
-            content.innerHTML = '<p class="text-gray-500">No coaching available at this time.</p>';
-            return;
-        }
-        
-        let html = `
-            <div class="space-y-3">
-                <div class="p-3 bg-yellow-50 rounded-lg">
-                    <p class="font-medium text-yellow-800">${coaching.weekly_summary}</p>
-                </div>
-        `;
-        
-        if (coaching.achievements && coaching.achievements.length > 0) {
-            html += `
-                <div>
-                    <p class="font-medium text-green-700 mb-2">🏆 This Week's Wins:</p>
-                    <ul class="text-sm text-green-600 space-y-1">
-                        ${coaching.achievements.map(a => `<li>• ${a}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        if (coaching.specific_goals && coaching.specific_goals.length > 0) {
-            html += `
-                <div>
-                    <p class="font-medium text-blue-700 mb-2">🎯 Next Week's Focus:</p>
-                    <ul class="text-sm text-blue-600 space-y-1">
-                        ${coaching.specific_goals.map(g => `<li>• ${g}</li>`).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-        
-        if (coaching.motivational_message) {
-            html += `
-                <div class="p-3 bg-purple-50 rounded-lg">
-                    <p class="text-sm text-purple-800 italic">"${coaching.motivational_message}"</p>
-                </div>
-            `;
-        }
-        
-        // Add timestamp if provided
-        if (timestamp) {
-            const timeAgo = this.getTimeAgo(timestamp);
-            html += `
-                <div class="pt-2 mt-3 border-t border-yellow-200">
-                    <p class="text-xs text-yellow-600">
-                        <i class="fas fa-clock mr-1"></i>
-                        Last updated ${timeAgo}
-                    </p>
-                </div>
-            `;
-        }
-        
-        html += '</div>';
-        content.innerHTML = html;
-    }
-
-    displayAISampleContent(type) {
-        const sampleContent = {
-            predictions: {
-                prediction: "Based on your recent patterns, you might experience some fatigue tomorrow, but your mood has been improving steadily.",
-                confidence: "medium",
-                suggestions: ["Plan lighter activities for tomorrow", "Prioritize rest and hydration", "Continue your current self-care routine"],
-                positive_trends: ["Your mood has improved by 20% this week", "Energy levels are more stable"]
-            },
-            coping: {
-                immediate_strategies: ["Take 5 deep breaths", "Find a comfortable position to rest", "Reach out to a trusted friend"],
-                self_care: ["Gentle stretching", "Listen to calming music", "Take a warm bath"],
-                when_to_seek_help: "If symptoms persist or worsen, consider reaching out to your healthcare provider."
-            },
-            crisis: {
-                risk_level: "low",
-                supportive_message: "You're showing incredible strength by tracking your health and seeking support.",
-                gentle_suggestions: ["Practice your favorite grounding technique", "Connect with someone who cares about you"],
-                resources: ["Crisis Text Line: Text HOME to 741741", "Your local support network"]
-            },
-            coaching: {
-                weekly_summary: "This week you've shown remarkable resilience despite some challenging days.",
-                achievements: ["Continued daily tracking", "Reached out for support when needed", "Maintained your self-care routine"],
-                specific_goals: ["Focus on gentle movement", "Practice gratitude daily", "Maintain consistent sleep schedule"],
-                motivational_message: "You are stronger than you know, and every small step forward matters."
+    // AdSense Integration
+    initializeAds() {
+        try {
+            // Initialize AdSense ads after page load
+            if (typeof window.adsbygoogle !== 'undefined') {
+                // Push ads to queue for loading
+                const ads = document.querySelectorAll('.adsbygoogle');
+                ads.forEach(ad => {
+                    if (!ad.dataset.adsbygoogleStatus) {
+                        (window.adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                });
+            } else {
+                // AdSense script not loaded yet, try again in 1 second
+                setTimeout(() => this.initializeAds(), 1000);
             }
-        };
-        
-        const sample = sampleContent[type];
-        if (!sample) return;
-        
-        switch (type) {
-            case 'predictions':
-                this.displayPredictiveInsights(sample);
-                break;
-            case 'coping':
-                this.displayCopingStrategies(sample);
-                break;
-            case 'crisis':
-                this.displayCrisisSupport(sample);
-                break;
-            case 'coaching':
-                this.displayWeeklyCoaching(sample);
-                break;
+        } catch (error) {
+            console.log('AdSense initialization failed:', error);
         }
+    }
+
+    refreshAds() {
+        // Refresh ads when switching views
+        try {
+            if (typeof window.adsbygoogle !== 'undefined') {
+                const ads = document.querySelectorAll('.adsbygoogle');
+                ads.forEach(ad => {
+                    // Only refresh ads that haven't been loaded yet
+                    if (!ad.dataset.adsbygoogleStatus) {
+                        (window.adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                });
+            }
+        } catch (error) {
+            console.log('Ad refresh failed:', error);
+        }
+    }
+
+    // Premium & Monetization Functions
+    showPremiumModal() {
+        const modal = document.getElementById('premium-modal');
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    closePremiumModal() {
+        const modal = document.getElementById('premium-modal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    showSupportModal() {
+        const modal = document.getElementById('support-modal');
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeSupportModal() {
+        const modal = document.getElementById('support-modal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    startPremiumTrial() {
+        // Store trial start date
+        localStorage.setItem('premium_trial_start', new Date().toISOString());
+        localStorage.setItem('premium_status', 'trial');
+
+        this.showSuccessMessage('7-day premium trial started! Enjoy AI-powered insights!');
+        this.closePremiumModal();
+
+        // Enable premium features
+        this.isPremium = true;
+        this.updateUIForPremium();
+    }
+
+    watchSupportAd() {
+        // Placeholder for ad integration (Google AdMob, etc.)
+        this.showInfoMessage('Thank you for supporting ChroniCompanion! 💙');
+
+        // In real implementation, integrate with ad networks:
+        // - Google AdMob for mobile
+        // - Google AdSense for web
+        // - Unity Ads, etc.
+
+        // For now, simulate ad completion
+        setTimeout(() => {
+            this.showSuccessMessage('Thank you for watching! Your support helps keep this app free.');
+            this.closeSupportModal();
+        }, 2000);
+    }
+
+    donate(amount) {
+        // Placeholder for donation integration
+        this.showInfoMessage(`Redirecting to donation page ($${amount})...`);
+
+        // In real implementation, integrate with:
+        // - Stripe for payments
+        // - PayPal
+        // - Buy Me a Coffee
+        // - Ko-fi
+
+        // For now, just show success
+        setTimeout(() => {
+            this.showSuccessMessage(`Thank you for your $${amount} donation! ❤️`);
+            this.closeSupportModal();
+        }, 1500);
+    }
+
+    updateUIForPremium() {
+        // Add premium indicator to UI
+        const premiumBtn = document.getElementById('premium-btn');
+        if (this.isPremium) {
+            premiumBtn.innerHTML = '<i class="fas fa-crown mr-2"></i>Premium';
+            premiumBtn.classList.add('ring-2', 'ring-yellow-300');
+        }
+    }
+
+    checkPremiumStatus() {
+        const trialStart = localStorage.getItem('premium_trial_start');
+        const premiumStatus = localStorage.getItem('premium_status');
+
+        if (trialStart && premiumStatus === 'trial') {
+            const trialStartDate = new Date(trialStart);
+            const now = new Date();
+            const daysSinceStart = (now - trialStartDate) / (1000 * 60 * 60 * 24);
+
+            if (daysSinceStart < 7) {
+                this.isPremium = true;
+                this.updateUIForPremium();
+            } else {
+                // Trial expired
+                localStorage.setItem('premium_status', 'expired');
+                this.isPremium = false;
+            }
+        } else if (premiumStatus === 'active') {
+            this.isPremium = true;
+            this.updateUIForPremium();
+        }
+    }
+
+    showMobileDownloadModal(url, filename, blob) {
+        // Create mobile download modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.id = 'pdf-download-modal';
+
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                <div class="text-center mb-6">
+                    <i class="fas fa-file-pdf text-red-500 text-4xl mb-3"></i>
+                    <h3 class="text-xl font-bold text-gray-800">Your Health Report is Ready!</h3>
+                    <p class="text-gray-600 text-sm mt-2">PDF format • ${filename}</p>
+                </div>
+                
+                <div class="space-y-3">
+                    <button id="mobile-download-btn" 
+                       class="w-full bg-green-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center justify-center">
+                        <i class="fas fa-download mr-2"></i>Download PDF
+                    </button>
+                    
+                    <button id="share-pdf-btn" 
+                       class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center">
+                        <i class="fas fa-share mr-2"></i>Share PDF
+                    </button>
+                    
+                    <button onclick="app.closePdfModal()" 
+                            class="w-full text-gray-600 py-2 hover:text-gray-800">
+                        Close
+                    </button>
+                </div>
+                
+                <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p class="text-xs text-blue-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Try "Share PDF" if download doesn't work. This will let you save to Files, email, or other apps.
+                    </p>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+
+        // Add event listeners for the buttons
+        const downloadBtn = modal.querySelector('#mobile-download-btn');
+        const shareBtn = modal.querySelector('#share-pdf-btn');
+
+        downloadBtn.addEventListener('click', () => {
+            this.tryMobileDownload(url, filename, blob);
+        });
+
+        shareBtn.addEventListener('click', () => {
+            this.tryMobileShare(filename, blob);
+        });
+
+        // Auto-remove after 30 seconds
+        setTimeout(() => {
+            if (modal.parentElement) {
+                this.closePdfModal();
+            }
+        }, 30000);
+    }
+
+    async tryMobileDownload(url, filename, blob) {
+        try {
+            // Method 1: Try direct blob download with user interaction
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.style.display = 'none';
+            a.target = '_blank';
+
+            // Add to DOM, click, and remove
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // Give user feedback
+            this.showSuccessMessage('Download started! Check your Downloads folder or notification bar.');
+            this.closePdfModal();
+
+        } catch (error) {
+            console.error('Direct download failed:', error);
+            this.showErrorMessage('Download failed. Please try the Share option instead.');
+        }
+    }
+
+    async tryMobileShare(filename, blob) {
+        try {
+            // Method 2: Use Web Share API if available
+            if (navigator.share && navigator.canShare) {
+                const file = new File([blob], filename, { type: 'application/pdf' });
+
+                if (navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: 'ChroniCompanion Health Report',
+                        text: 'Your personal health tracking report',
+                        files: [file]
+                    });
+
+                    this.showSuccessMessage('PDF shared successfully!');
+                    this.closePdfModal();
+                    return;
+                }
+            }
+
+            // Fallback: Open in new tab (user can then save)
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            this.showInfoMessage('PDF opened in new tab. Use your browser menu to download or share it.');
+            this.closePdfModal();
+
+        } catch (error) {
+            console.error('Share failed:', error);
+            this.showErrorMessage('Share failed. PDF opened in new tab instead.');
+            // Still try to open in new tab as fallback
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            this.closePdfModal();
+        }
+    }
+
+    closePdfModal() {
+        const modal = document.getElementById('pdf-download-modal');
+        if (modal) {
+            modal.remove();
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    exportDashboard() {
+        // Dashboard export is not implemented yet
+        this.showInfoMessage('Dashboard export feature coming soon! Use "Export Data" from the entries page for your health report.');
+    }
+
+    // 📱 SIMPLE ANDROID-COMPATIBLE PDF EXPORT
+    async exportEntries() {
+        console.log('🚀 Starting simple PDF export...');
+
+        try {
+            // Show loading message (this was the function that was missing!)
+            this.showInfoMessage('Generating your health report PDF...');
+
+            console.log('🌐 Making API request to:', `${this.apiBase}/api/export`);
+            const response = await fetch(`${this.apiBase}/api/export`, {
+                method: 'GET',
+            });
+
+            console.log('📡 API Response status:', response.status, response.statusText);
+
+            if (response.ok) {
+                console.log('✅ API Success - Getting blob...');
+                const blob = await response.blob();
+                console.log('📦 Blob created, size:', blob.size, 'type:', blob.type);
+
+                const filename = `ChroniCompanion_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                console.log('📁 Filename:', filename);
+
+                // 🎯 SIMPLE APPROACH: Direct blob download
+                this.simpleDownloadPDF(blob, filename);
+
+            } else {
+                throw new Error(`API Error: ${response.status} ${response.statusText}`);
+            }
+        } catch (error) {
+            console.error('❌ EXPORT FAILED:', error);
+
+            if (this.isOnline) {
+                this.showErrorMessage(`Export failed: ${error.message}. Please try again.`);
+            } else {
+                this.showInfoMessage('Export requires internet connection. Please connect and try again.');
+            }
+        }
+        console.log('🏁 EXPORT FUNCTION COMPLETED');
+    }
+
+    // 📢 MESSAGE UTILITY FUNCTIONS (THESE WERE MISSING!)
+    showInfoMessage(message) {
+        console.log('ℹ️ INFO:', message);
+        alert(`ℹ️ ${message}`);
+
+        // You can also add a toast notification here in the future
+        // For now, we'll just use alerts to ensure it works
+    }
+
+    showSuccessMessage(message) {
+        console.log('✅ SUCCESS:', message);
+        alert(`✅ ${message}`);
+    }
+
+    showErrorMessage(message) {
+        console.error('❌ ERROR:', message);
+        alert(`❌ ${message}`);
+    }
+
+    // 🧪 SIMPLE TEST FUNCTION - CALL FROM BROWSER CONSOLE
+    async testBackendAPI() {
+        console.log('🧪 TESTING BACKEND API...');
+        console.log('🌐 API Base:', this.apiBase);
+
+        try {
+            const response = await fetch(`${this.apiBase}/api/export`);
+            console.log('📡 Response status:', response.status);
+            console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
+            if (response.ok) {
+                const blob = await response.blob();
+                console.log('📦 Blob size:', blob.size, 'type:', blob.type);
+                alert(`✅ API works! Got ${blob.size} bytes of ${blob.type}`);
+            } else {
+                console.error('❌ API failed:', response.status, response.statusText);
+                alert(`❌ API failed: ${response.status} ${response.statusText}`);
+            }
+        } catch (error) {
+            console.error('❌ Network error:', error);
+            alert(`❌ Network error: ${error.message}`);
+        }
+    }
+
+    // 📱 ANDROID-COMPATIBLE PDF DOWNLOAD USING CAPACITOR FILESYSTEM
+    async simpleDownloadPDF(blob, filename) {
+        console.log('📱 Starting Android-compatible PDF download...');
+        console.log('📦 Blob size:', blob.size, 'type:', blob.type);
+
+        // Check if we're in a Capacitor environment
+        if (this.isMobile && window.Capacitor) {
+            console.log('📱 Using Capacitor Filesystem for Android...');
+            await this.saveWithCapacitorFilesystem(blob, filename);
+        } else {
+            console.log('💻 Using standard download for web/desktop...');
+            this.standardWebDownload(blob, filename);
+        }
+    }
+
+    // 🚀 DEAD SIMPLE: SAVE FILE + OPEN IN NATIVE PDF APP
+    async saveWithCapacitorFilesystem(blob, filename) {
+        try {
+            console.log('🚀 DEAD SIMPLE approach: Save file + open in native PDF app');
+
+            // Debug: Check what's available
+            console.log('🔍 Capacitor object:', window.Capacitor);
+            console.log('🔍 Capacitor.Plugins:', window.Capacitor?.Plugins);
+            console.log('🔍 Available plugins:', Object.keys(window.Capacitor?.Plugins || {}));
+
+            // Convert blob to base64 for Capacitor
+            const base64Data = await this.blobToBase64(blob);
+
+            console.log('💾 Saving PDF file...');
+
+            // Save to app's cache directory (no permissions needed)
+            const savedFile = await window.Capacitor.Plugins.Filesystem.writeFile({
+                path: filename,
+                data: base64Data,
+                directory: 'CACHE'
+            });
+
+            console.log('✅ PDF saved to:', savedFile.uri);
+
+            // Open the file in native PDF app using file-opener plugin
+            console.log('📱 Opening PDF in native app...');
+
+            // Use the file opener plugin
+            await window.Capacitor.Plugins.FileOpener.open({
+                filePath: savedFile.uri,
+                contentType: 'application/pdf'
+            });
+
+            console.log('🎉 PDF opened in native app successfully!');
+            this.showSuccessMessage('📄 PDF opened! Your device chose the best app to view it.');
+
+        } catch (error) {
+            console.error('❌ Failed to open PDF:', error);
+
+            // If file opener fails, fall back to Web Share API
+            console.log('🔄 File opener failed, trying Web Share API fallback...');
+
+            if (navigator.share) {
+                try {
+                    const file = new File([blob], filename, { type: 'application/pdf' });
+
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            title: 'ChroniCompanion Health Report',
+                            text: 'Choose an app to open your PDF',
+                            files: [file]
+                        });
+
+                        console.log('✅ Fallback share successful');
+                        this.showSuccessMessage('📤 Choose an app to open your PDF!');
+                        return;
+                    }
+                } catch (shareError) {
+                    console.warn('❌ Share fallback also failed:', shareError);
+                }
+            }
+
+            // Final fallback: show error
+            this.showErrorMessage(`Unable to open PDF: ${error.message}`);
+        }
+    }
+
+    // 💻 STANDARD WEB DOWNLOAD (DESKTOP/BROWSER)
+    standardWebDownload(blob, filename) {
+        try {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.style.display = 'none';
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+            this.showSuccessMessage('PDF download started! Check your Downloads folder.');
+
+        } catch (error) {
+            console.error('❌ Standard download failed:', error);
+            this.showErrorMessage('Download failed. Please try again.');
+        }
+    }
+
+    // 🎉 PDF SUCCESS MODAL WITH SHARE OPTION
+    showPDFSuccessModal(filename, fileUri, directoryDesc = 'storage') {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.id = 'pdf-success-modal';
+
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                <div class="text-center mb-6">
+                    <i class="fas fa-check-circle text-green-500 text-4xl mb-3"></i>
+                    <h3 class="text-xl font-bold text-gray-800">🎉 PDF Saved!</h3>
+                    <p class="text-gray-600 text-sm mt-2">Your health report is ready</p>
+                    <p class="text-gray-500 text-xs mt-1 font-mono break-all">${filename}</p>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="app.sharePDF('${fileUri}', '${filename}')" 
+                            class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-share mr-2"></i>Share PDF
+                    </button>
+                    <button onclick="app.closePDFModal()" 
+                            class="w-full bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-check mr-2"></i>Done
+                    </button>
+                </div>
+                
+                <div class="mt-4 p-3 bg-green-50 rounded-lg">
+                    <p class="text-xs text-green-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        PDF saved to ${directoryDesc.toLowerCase()}. Use "Share PDF" to send it to other apps.
+                    </p>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    }
+
+    // 📤 SHARE PDF USING CAPACITOR SHARE
+    async sharePDF(fileUri, filename) {
+        try {
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share) {
+                await window.Capacitor.Plugins.Share.share({
+                    title: 'ChroniCompanion Health Report',
+                    text: 'My health tracking report from ChroniCompanion',
+                    url: fileUri,
+                    dialogTitle: 'Share your health report'
+                });
+                console.log('✅ PDF shared successfully');
+            } else {
+                throw new Error('Share plugin not available');
+            }
+        } catch (error) {
+            console.error('❌ Share failed:', error);
+            this.showErrorMessage(`Share failed: ${error.message}`);
+        }
+    }
+
+    // 📋 PDF DOWNLOAD INSTRUCTIONS MODAL
+    showPDFInstructionsModal(filename) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.id = 'pdf-instructions-modal';
+
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                <div class="text-center mb-6">
+                    <i class="fas fa-download text-green-500 text-4xl mb-3"></i>
+                    <h3 class="text-xl font-bold text-gray-800">📱 PDF Download Started!</h3>
+                    <p class="text-gray-600 text-sm mt-2">Your health report is being downloaded</p>
+                    <p class="text-gray-500 text-xs mt-1 font-mono break-all">${filename}</p>
+                </div>
+                
+                <div class="space-y-4 mb-6">
+                    <div class="p-4 bg-blue-50 rounded-lg">
+                        <h4 class="font-semibold text-blue-800 mb-2">📂 Where to find your PDF:</h4>
+                        <ul class="text-sm text-blue-700 space-y-1">
+                            <li>• Check your <strong>Downloads</strong> folder</li>
+                            <li>• Look in your <strong>notification bar</strong></li>
+                            <li>• Try your <strong>Files</strong> app</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="p-4 bg-green-50 rounded-lg">
+                        <h4 class="font-semibold text-green-800 mb-2">💡 Pro tip:</h4>
+                        <p class="text-sm text-green-700">
+                            If you can't find it, try the share button next time - it lets you choose exactly where to save!
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="app.closePDFInstructionsModal()" 
+                            class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-check mr-2"></i>Got it!
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    }
+
+    // 🚪 CLOSE PDF INSTRUCTIONS MODAL
+    closePDFInstructionsModal() {
+        const modal = document.getElementById('pdf-instructions-modal');
+        if (modal) {
+            document.body.removeChild(modal);
+            document.body.style.overflow = '';
+        }
+    }
+
+    // 👁️ PDF VIEWER MODAL (NEW APPROACH)
+    showPDFViewerModal(filename, blobUrl) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.id = 'pdf-viewer-modal';
+
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                <div class="text-center mb-6">
+                    <i class="fas fa-file-pdf text-red-500 text-4xl mb-3"></i>
+                    <h3 class="text-xl font-bold text-gray-800">📄 PDF Ready to View!</h3>
+                    <p class="text-gray-600 text-sm mt-2">Your health report is now accessible</p>
+                    <p class="text-gray-500 text-xs mt-1 font-mono break-all">${filename}</p>
+                </div>
+                
+                <div class="space-y-4 mb-6">
+                    <div class="p-4 bg-blue-50 rounded-lg">
+                        <h4 class="font-semibold text-blue-800 mb-2">📱 What happens next:</h4>
+                        <ul class="text-sm text-blue-700 space-y-1">
+                            <li>• PDF opens in Android's built-in viewer</li>
+                            <li>• Tap the <strong>download/save icon</strong> in the PDF viewer</li>
+                            <li>• Choose where to save (Downloads, Drive, etc.)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="p-4 bg-green-50 rounded-lg">
+                        <h4 class="font-semibold text-green-800 mb-2">💡 Pro tip:</h4>
+                        <p class="text-sm text-green-700">
+                            Android's PDF viewer has a share/download button at the top. Use that to save your report!
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="app.retryPDFOpen('${blobUrl}')" 
+                            class="w-full bg-red-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-600 transition-colors">
+                        <i class="fas fa-external-link-alt mr-2"></i>Open PDF Again
+                    </button>
+                    <button onclick="app.closePDFViewerModal()" 
+                            class="w-full bg-gray-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-check mr-2"></i>Got it!
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    }
+
+    // 🚪 CLOSE PDF VIEWER MODAL
+    closePDFViewerModal() {
+        const modal = document.getElementById('pdf-viewer-modal');
+        if (modal) {
+            document.body.removeChild(modal);
+            document.body.style.overflow = '';
+        }
+    }
+
+    // 🗑️ REMOVED ALL MODALS - KEEPING IT DEAD SIMPLE!
+
+    // ❌ CLOSE PDF MODAL
+    closePDFModal() {
+        const modal = document.getElementById('pdf-success-modal');
+        if (modal) {
+            document.body.removeChild(modal);
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    // 🔧 CONVERT BLOB TO BASE64
+    async blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const base64String = reader.result.split(',')[1]; // Remove data:type;base64, prefix
+                resolve(base64String);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
     }
 }
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.app = new ChroniCompanion();
+    console.log('🚀 DOM LOADED - Creating app...');
+
+    try {
+        window.app = new ChroniCompanion();
+        console.log('✅ App created successfully');
+    } catch (error) {
+        console.error('❌ Failed to create app:', error);
+        alert(`❌ Failed to create app: ${error.message}`);
+    }
 });
 
 // Add some custom CSS for slider styling
