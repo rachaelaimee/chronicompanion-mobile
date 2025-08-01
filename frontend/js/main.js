@@ -462,6 +462,9 @@ class ChroniCompanion {
                     await this.saveToIndexedDB(entryData);
                     this.showSuccessMessage('Entry saved successfully!');
                     this.resetForm();
+                    
+                    // Check if AI cache should be refreshed (8+ hours old)
+                    this.checkAICacheRefresh();
                     return;
                 } else {
                     throw new Error('Failed to save entry');
@@ -472,6 +475,9 @@ class ChroniCompanion {
                 await this.addToPendingSync(entryData);
                 this.showSuccessMessage('Entry saved offline - will sync when connected');
                 this.resetForm();
+                
+                // Check if AI cache should be refreshed (8+ hours old)
+                this.checkAICacheRefresh();
             }
         } else {
             // Offline - save to IndexedDB and queue for sync
@@ -479,6 +485,9 @@ class ChroniCompanion {
             await this.addToPendingSync(entryData);
             this.showSuccessMessage('Entry saved offline - will sync when connected');
             this.resetForm();
+            
+            // Check if AI cache should be refreshed (8+ hours old)
+            this.checkAICacheRefresh();
         }
     }
 
@@ -936,12 +945,26 @@ class ChroniCompanion {
 
     // AI Insights Functions
     async loadPredictiveInsights() {
+        console.log('🤖 DEBUG: loadPredictiveInsights called');
+        console.log('🤖 DEBUG: Current isPremium status:', this.isPremium);
+        
         if (!this.isPremium) {
+            console.log('❌ DEBUG: Blocking AI - Premium required');
             this.showPremiumModal();
             return;
         }
+        
+        console.log('✅ DEBUG: Premium active - Loading AI insights');
 
         const container = document.getElementById('predictions-container');
+        
+        // Check for cached response first
+        const cachedResponse = this.getAICache('predictive-insights');
+        if (cachedResponse) {
+            container.innerHTML = cachedResponse;
+            return;
+        }
+        
         container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Analyzing your patterns...</div>';
 
         try {
@@ -952,15 +975,21 @@ class ChroniCompanion {
 
             if (response.ok) {
                 const result = await response.json();
-                container.innerHTML = `
+                const htmlContent = `
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h4 class="font-medium text-blue-800 mb-2 flex items-center">
                             <i class="fas fa-crystal-ball mr-2"></i>Health Predictions
                         </h4>
                         <p class="text-blue-700 text-sm">${result.insights?.prediction || result.message}</p>
                         ${result.based_on_entries ? `<div class="text-blue-600 text-xs mt-2">Based on ${result.based_on_entries} recent entries</div>` : ''}
+                        <div class="text-blue-500 text-xs mt-2">💾 Cached until next refresh (8hr intervals)</div>
                     </div>
                 `;
+                
+                container.innerHTML = htmlContent;
+                
+                // Cache the response
+                this.setAICache('predictive-insights', htmlContent);
             } else {
                 throw new Error('AI service unavailable');
             }
@@ -983,6 +1012,14 @@ class ChroniCompanion {
         }
 
         const container = document.getElementById('coping-container');
+        
+        // Check for cached response first
+        const cachedResponse = this.getAICache('coping-strategies');
+        if (cachedResponse) {
+            container.innerHTML = cachedResponse;
+            return;
+        }
+        
         container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Finding personalized strategies...</div>';
 
         try {
@@ -1016,14 +1053,20 @@ class ChroniCompanion {
                     strategyHtml += `<div class="mb-3"><strong>Self-care:</strong><br>• ${strategies.self_care.join('<br>• ')}</div>`;
                 }
                 
-                container.innerHTML = `
+                const htmlContent = `
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                         <h4 class="font-medium text-green-800 mb-2 flex items-center">
                             <i class="fas fa-heart mr-2"></i>Personalized Coping Strategies
                         </h4>
                         <div class="text-green-700 text-sm">${strategyHtml || 'Take gentle breaths and be kind to yourself.'}</div>
+                        <div class="text-green-500 text-xs mt-2">💾 Cached until next refresh (8hr intervals)</div>
                     </div>
                 `;
+                
+                container.innerHTML = htmlContent;
+                
+                // Cache the response
+                this.setAICache('coping-strategies', htmlContent);
             } else {
                 throw new Error('AI service unavailable');
             }
@@ -1270,24 +1313,38 @@ class ChroniCompanion {
     checkPremiumStatus() {
         const trialStart = localStorage.getItem('premium_trial_start');
         const premiumStatus = localStorage.getItem('premium_status');
+        
+        console.log('🔍 DEBUG: Premium Status Check');
+        console.log('🔍 DEBUG: Trial Start:', trialStart);
+        console.log('🔍 DEBUG: Premium Status:', premiumStatus);
 
         if (trialStart && premiumStatus === 'trial') {
             const trialStartDate = new Date(trialStart);
             const now = new Date();
             const daysSinceStart = (now - trialStartDate) / (1000 * 60 * 60 * 24);
+            
+            console.log('🔍 DEBUG: Days since trial start:', daysSinceStart);
 
             if (daysSinceStart < 7) {
                 this.isPremium = true;
                 this.updateUIForPremium();
+                console.log('✅ DEBUG: Trial active - Premium enabled');
             } else {
                 // Trial expired
                 localStorage.setItem('premium_status', 'expired');
                 this.isPremium = false;
+                console.log('⚠️ DEBUG: Trial expired - Premium disabled');
             }
         } else if (premiumStatus === 'active') {
             this.isPremium = true;
             this.updateUIForPremium();
+            console.log('✅ DEBUG: Premium subscription active');
+        } else {
+            this.isPremium = false;
+            console.log('❌ DEBUG: No premium status - Free user');
         }
+        
+        console.log('🔍 DEBUG: Final isPremium status:', this.isPremium);
     }
 
     showMobileDownloadModal(url, filename, blob) {
@@ -1480,6 +1537,9 @@ class ChroniCompanion {
             // Calculate and display averages
             console.log('📊 DEBUG: About to calculate averages for', filteredEntries.length, 'filtered entries');
             this.updateDashboardAverages(filteredEntries);
+            
+            // Update total entries count
+            this.updateTotalEntriesCount(filteredEntries.length);
             
             // Manual test - force update one average to confirm DOM targeting works
             setTimeout(() => {
@@ -1710,6 +1770,86 @@ class ChroniCompanion {
                 element.textContent = '--';
             }
         });
+    }
+    
+    updateTotalEntriesCount(count) {
+        const totalEntriesElement = document.getElementById('total-entries');
+        if (totalEntriesElement) {
+            totalEntriesElement.textContent = count.toString();
+            console.log(`✅ Updated total entries count: ${count}`);
+        } else {
+            console.log('⚠️ Could not find total-entries element');
+        }
+    }
+    
+    // AI Caching System - Prevents different advice on same day
+    getAICacheKey(functionName) {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        return `ai_cache_${functionName}_${today}`;
+    }
+    
+    getAICache(functionName) {
+        const cacheKey = this.getAICacheKey(functionName);
+        const cached = localStorage.getItem(cacheKey);
+        
+        if (cached) {
+            const cacheData = JSON.parse(cached);
+            const now = new Date().getTime();
+            const cacheTime = new Date(cacheData.timestamp).getTime();
+            const hoursSinceCached = (now - cacheTime) / (1000 * 60 * 60);
+            
+            console.log(`🔄 DEBUG: AI Cache for ${functionName} - Hours since cached: ${hoursSinceCached.toFixed(1)}`);
+            
+            // Return cached data if less than 8 hours old
+            if (hoursSinceCached < 8) {
+                console.log(`✅ DEBUG: Using cached AI response for ${functionName}`);
+                return cacheData.response;
+            } else {
+                console.log(`⏰ DEBUG: AI cache expired for ${functionName}, will fetch new`);
+                localStorage.removeItem(cacheKey);
+            }
+        }
+        
+        return null;
+    }
+    
+    setAICache(functionName, response) {
+        const cacheKey = this.getAICacheKey(functionName);
+        const cacheData = {
+            response: response,
+            timestamp: new Date().toISOString()
+        };
+        
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+        console.log(`💾 DEBUG: Cached AI response for ${functionName}`);
+    }
+    
+    checkAICacheRefresh() {
+        // Check if any AI cache is older than 8 hours and should be refreshed
+        const aiFunctions = ['predictive-insights', 'coping-strategies'];
+        let shouldRefresh = false;
+        
+        aiFunctions.forEach(functionName => {
+            const cacheKey = this.getAICacheKey(functionName);
+            const cached = localStorage.getItem(cacheKey);
+            
+            if (cached) {
+                const cacheData = JSON.parse(cached);
+                const now = new Date().getTime();
+                const cacheTime = new Date(cacheData.timestamp).getTime();
+                const hoursSinceCached = (now - cacheTime) / (1000 * 60 * 60);
+                
+                if (hoursSinceCached >= 8) {
+                    console.log(`🔄 DEBUG: AI cache for ${functionName} is ${hoursSinceCached.toFixed(1)} hours old - ready for refresh`);
+                    localStorage.removeItem(cacheKey);
+                    shouldRefresh = true;
+                }
+            }
+        });
+        
+        if (shouldRefresh) {
+            console.log('🔄 DEBUG: New entry submitted - AI advice ready for fresh insights based on latest data');
+        }
     }
 
     exportDashboard() {
