@@ -1179,6 +1179,9 @@ class ChroniCompanion {
         const modal = document.getElementById('support-modal');
         modal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+        
+        // Refresh ads when support modal opens
+        setTimeout(() => this.refreshAds(), 300);
     }
 
     closeSupportModal() {
