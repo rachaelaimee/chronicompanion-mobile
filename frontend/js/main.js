@@ -478,7 +478,14 @@ class ChroniCompanion {
 
                 if (response.ok) {
                     entryData.synced = true;
-                    await this.saveToIndexedDB(entryData);
+                    try {
+                        await this.saveToIndexedDB(entryData);
+                    } catch (indexedDBError) {
+                        console.error('IndexedDB save failed, using localStorage fallback:', indexedDBError);
+                    }
+                    
+                    // ALWAYS save to localStorage as backup
+                    this.saveToLocalStorage(entryData);
                     this.showSuccessMessage('Entry saved successfully!');
                     this.resetForm();
                     
@@ -490,8 +497,15 @@ class ChroniCompanion {
                 }
             } catch (error) {
                 console.log('Failed to sync with server, saving locally');
-                await this.saveToIndexedDB(entryData);
-                await this.addToPendingSync(entryData);
+                try {
+                    await this.saveToIndexedDB(entryData);
+                    await this.addToPendingSync(entryData);
+                } catch (indexedDBError) {
+                    console.error('IndexedDB save failed, using localStorage fallback:', indexedDBError);
+                }
+                
+                // ALWAYS save to localStorage as backup
+                this.saveToLocalStorage(entryData);
                 this.showSuccessMessage('Entry saved offline - will sync when connected');
                 this.resetForm();
                 
@@ -499,9 +513,16 @@ class ChroniCompanion {
                 this.checkAICacheRefresh();
             }
         } else {
-            // Offline - save to IndexedDB and queue for sync
-            await this.saveToIndexedDB(entryData);
-            await this.addToPendingSync(entryData);
+            // Offline - save to IndexedDB and localStorage as backup
+            try {
+                await this.saveToIndexedDB(entryData);
+                await this.addToPendingSync(entryData);
+            } catch (indexedDBError) {
+                console.error('IndexedDB save failed, using localStorage fallback:', indexedDBError);
+            }
+            
+            // ALWAYS save to localStorage as backup
+            this.saveToLocalStorage(entryData);
             this.showSuccessMessage('Entry saved offline - will sync when connected');
             this.resetForm();
             
@@ -590,7 +611,14 @@ class ChroniCompanion {
     }
 
     loadEntriesFromLocalStorage() {
-        return JSON.parse(localStorage.getItem('chroni_entries') || '[]');
+        try {
+            const entries = JSON.parse(localStorage.getItem('chroni_entries') || '[]');
+            console.log('📦 DEBUG: Loaded', entries.length, 'entries from localStorage');
+            return entries;
+        } catch (error) {
+            console.error('Error loading from localStorage:', error);
+            return [];
+        }
     }
 
     async loadEntries() {
@@ -983,11 +1011,12 @@ class ChroniCompanion {
         console.log('🤖 DEBUG: loadPredictiveInsights called');
         console.log('🤖 DEBUG: Current isPremium status:', this.isPremium);
         
-        if (!this.isPremium) {
-            console.log('❌ DEBUG: Blocking AI - Premium required');
-            this.showPremiumModal();
-            return;
-        }
+        // TEMPORARILY DISABLED: Remove paywall until Play Store integration is complete
+        // if (!this.isPremium) {
+        //     console.log('❌ DEBUG: Blocking AI - Premium required');
+        //     this.showPremiumModal();
+        //     return;
+        // }
         
         console.log('✅ DEBUG: Premium active - Loading AI insights');
 
@@ -1041,10 +1070,11 @@ class ChroniCompanion {
     }
 
     async loadCopingStrategies() {
-        if (!this.isPremium) {
-            this.showPremiumModal();
-            return;
-        }
+        // TEMPORARILY DISABLED: Remove paywall until Play Store integration is complete
+        // if (!this.isPremium) {
+        //     this.showPremiumModal();
+        //     return;
+        // }
 
         const container = document.getElementById('coping-container');
         
@@ -1163,10 +1193,11 @@ class ChroniCompanion {
     }
 
     async loadWeeklyCoaching() {
-        if (!this.isPremium) {
-            this.showPremiumModal();
-            return;
-        }
+        // TEMPORARILY DISABLED: Remove paywall until Play Store integration is complete
+        // if (!this.isPremium) {
+        //     this.showPremiumModal();
+        //     return;
+        // }
 
         const container = document.getElementById('coaching-container');
         container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Preparing your weekly reflection...</div>';
