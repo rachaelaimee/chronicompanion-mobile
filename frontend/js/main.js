@@ -1050,12 +1050,22 @@ class ChroniCompanion {
 
             if (response.ok) {
                 const result = await response.json();
+                console.log('🔍 DEBUG: Predictive insights response:', result);
+                
+                const insights = result.insights || {};
+                const prediction = insights.prediction || result.message || 'Unable to generate insights at this time.';
+                
                 const htmlContent = `
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h4 class="font-medium text-blue-800 mb-2 flex items-center">
                             <i class="fas fa-crystal-ball mr-2"></i>Health Predictions
                         </h4>
-                        <p class="text-blue-700 text-sm">${result.insights?.prediction || result.message}</p>
+                        <p class="text-blue-700 text-sm">${prediction}</p>
+                        ${insights.suggestions && insights.suggestions.length > 0 ? `
+                            <div class="mt-2 text-blue-600 text-xs">
+                                <strong>Suggestions:</strong> ${insights.suggestions.join(', ')}
+                            </div>
+                        ` : ''}
                         ${result.based_on_entries ? `<div class="text-blue-600 text-xs mt-2">Based on ${result.based_on_entries} recent entries</div>` : ''}
                         <div class="text-blue-500 text-xs mt-2">💾 Cached until next refresh (8hr intervals)</div>
                     </div>
@@ -1126,14 +1136,22 @@ class ChroniCompanion {
 
             if (response.ok) {
                 const result = await response.json();
-                const strategies = result.strategies;
+                console.log('🔍 DEBUG: Coping strategies response:', result);
+                
+                const strategies = result.strategies || {};
                 let strategyHtml = '';
                 
-                if (strategies.immediate_strategies) {
+                if (strategies.immediate_strategies && strategies.immediate_strategies.length > 0) {
                     strategyHtml += `<div class="mb-3"><strong>Immediate strategies:</strong><br>• ${strategies.immediate_strategies.join('<br>• ')}</div>`;
                 }
-                if (strategies.self_care) {
+                if (strategies.energy_management && strategies.energy_management.length > 0) {
+                    strategyHtml += `<div class="mb-3"><strong>Energy management:</strong><br>• ${strategies.energy_management.join('<br>• ')}</div>`;
+                }
+                if (strategies.self_care && strategies.self_care.length > 0) {
                     strategyHtml += `<div class="mb-3"><strong>Self-care:</strong><br>• ${strategies.self_care.join('<br>• ')}</div>`;
+                }
+                if (strategies.mood_support && strategies.mood_support.length > 0) {
+                    strategyHtml += `<div class="mb-3"><strong>Mood support:</strong><br>• ${strategies.mood_support.join('<br>• ')}</div>`;
                 }
                 
                 const htmlContent = `
@@ -1185,7 +1203,12 @@ class ChroniCompanion {
 
             if (response.ok) {
                 const result = await response.json();
-                const alertLevel = result.risk_level || 'low';
+                console.log('🔍 DEBUG: Crisis check response:', result);
+                
+                // Handle nested response structure
+                const analysis = result.analysis || result;
+                const alertLevel = analysis.risk_level || result.risk_level || 'low';
+                const message = analysis.supportive_message || analysis.message || result.message || 'You\'re taking good care of yourself by tracking your health.';
                 const colorClass = alertLevel === 'high' ? 'red' : alertLevel === 'medium' ? 'yellow' : 'green';
                 
                 container.innerHTML = `
@@ -1193,8 +1216,8 @@ class ChroniCompanion {
                         <h4 class="font-medium text-${colorClass}-800 mb-2 flex items-center">
                             <i class="fas fa-shield-heart mr-2"></i>Wellness Check
                         </h4>
-                        <p class="text-${colorClass}-700 text-sm">${result.message}</p>
-                        ${result.resources ? `<div class="mt-2 text-${colorClass}-600 text-xs">${result.resources}</div>` : ''}
+                        <p class="text-${colorClass}-700 text-sm">${message}</p>
+                        ${result.analyzed_entries ? `<div class="mt-2 text-${colorClass}-600 text-xs">Based on ${result.analyzed_entries} recent entries</div>` : ''}
                     </div>
                 `;
             } else {
@@ -1242,13 +1265,17 @@ class ChroniCompanion {
 
             if (response.ok) {
                 const result = await response.json();
+                console.log('🔍 DEBUG: Weekly coaching response:', result);
+                
+                const reflection = result.reflection || result.message || 'Great work tracking your health this week!';
+                
                 container.innerHTML = `
                     <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
                         <h4 class="font-medium text-purple-800 mb-2 flex items-center">
                             <i class="fas fa-graduation-cap mr-2"></i>Weekly Reflection
                         </h4>
-                        <p class="text-purple-700 text-sm">${result.reflection || result.message}</p>
-                        ${result.based_on_entries ? `<div class="text-purple-600 text-xs mt-2">Based on ${result.based_on_entries} entries</div>` : ''}
+                        <p class="text-purple-700 text-sm">${reflection}</p>
+                        ${result.entries_count ? `<div class="text-purple-600 text-xs mt-2">Based on ${result.entries_count} entries</div>` : ''}
                     </div>
                 `;
             } else {
