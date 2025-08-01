@@ -293,18 +293,22 @@ class ChroniCompanion {
 
         // AI Insights event listeners
         document.getElementById('get-predictions-btn').addEventListener('click', () => {
+            console.log('🎯 DEBUG: Get Predictions button clicked');
             this.loadPredictiveInsights();
         });
 
         document.getElementById('get-coping-btn').addEventListener('click', () => {
+            console.log('🎯 DEBUG: Get Coping button clicked');
             this.loadCopingStrategies();
         });
 
         document.getElementById('crisis-check-btn').addEventListener('click', () => {
+            console.log('🎯 DEBUG: Crisis Check button clicked');
             this.performCrisisCheck();
         });
 
         document.getElementById('get-coaching-btn').addEventListener('click', () => {
+            console.log('🎯 DEBUG: Get Coaching button clicked');
             this.loadWeeklyCoaching();
         });
         
@@ -1020,11 +1024,18 @@ class ChroniCompanion {
         
         console.log('✅ DEBUG: Premium active - Loading AI insights');
 
-        const container = document.getElementById('predictions-container');
+        const container = document.getElementById('predictions-content');
+        console.log('🔍 DEBUG: predictions-content container found:', !!container);
+        
+        if (!container) {
+            console.error('❌ predictions-content container not found!');
+            return;
+        }
         
         // Check for cached response first
         const cachedResponse = this.getAICache('predictive-insights');
         if (cachedResponse) {
+            console.log('✅ Using cached AI predictions');
             container.innerHTML = cachedResponse;
             return;
         }
@@ -1076,11 +1087,18 @@ class ChroniCompanion {
         //     return;
         // }
 
-        const container = document.getElementById('coping-container');
+        const container = document.getElementById('coping-content');
+        console.log('🔍 DEBUG: coping-content container found:', !!container);
+        
+        if (!container) {
+            console.error('❌ coping-content container not found!');
+            return;
+        }
         
         // Check for cached response first
         const cachedResponse = this.getAICache('coping-strategies');
         if (cachedResponse) {
+            console.log('✅ Using cached coping strategies');
             container.innerHTML = cachedResponse;
             return;
         }
@@ -1148,7 +1166,14 @@ class ChroniCompanion {
     }
 
     async performCrisisCheck() {
-        const container = document.getElementById('crisis-container');
+        const container = document.getElementById('crisis-content');
+        console.log('🔍 DEBUG: crisis-content container found:', !!container);
+        
+        if (!container) {
+            console.error('❌ crisis-content container not found!');
+            return;
+        }
+        
         container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Performing wellness check...</div>';
 
         // This is always free - crisis intervention should never be paywalled
@@ -1199,7 +1224,14 @@ class ChroniCompanion {
         //     return;
         // }
 
-        const container = document.getElementById('coaching-container');
+        const container = document.getElementById('coaching-content');
+        console.log('🔍 DEBUG: coaching-content container found:', !!container);
+        
+        if (!container) {
+            console.error('❌ coaching-content container not found!');
+            return;
+        }
+        
         container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Preparing your weekly reflection...</div>';
 
         try {
