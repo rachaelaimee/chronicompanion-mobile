@@ -1220,20 +1220,29 @@ class ChroniCompanion {
     }
 
     donate(amount) {
-        // Placeholder for donation integration
-        this.showInfoMessage(`Redirecting to donation page ($${amount})...`);
+        // Real Ko-fi integration
+        this.showInfoMessage(`Redirecting to Ko-fi for $${amount} donation...`);
 
-        // In real implementation, integrate with:
-        // - Stripe for payments
-        // - PayPal
-        // - Buy Me a Coffee
-        // - Ko-fi
-
-        // For now, just show success
+        // Redirect to Ko-fi with specific amount
+        const kofiUrl = `https://ko-fi.com/chronicompanion?amount=${amount}`;
+        
+        // Open Ko-fi in new tab/window
         setTimeout(() => {
-            this.showSuccessMessage(`Thank you for your $${amount} donation! ❤️`);
+            window.open(kofiUrl, '_blank');
             this.closeSupportModal();
-        }, 1500);
+            this.showSuccessMessage('Thank you for supporting ChroniCompanion! ❤️');
+        }, 1000);
+    }
+
+    openKofi() {
+        // Open Ko-fi page for custom donations
+        this.showInfoMessage('Opening Ko-fi page for custom donations...');
+        
+        setTimeout(() => {
+            window.open('https://ko-fi.com/chronicompanion', '_blank');
+            this.closeSupportModal();
+            this.showSuccessMessage('Thank you for considering supporting ChroniCompanion! ❤️');
+        }, 1000);
     }
 
     updateUIForPremium() {
