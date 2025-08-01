@@ -1188,6 +1188,12 @@ class ChroniCompanion {
         const modal = document.getElementById('support-modal');
         modal.classList.add('hidden');
         document.body.style.overflow = 'auto';
+        
+        // Hide ads when modal closes (reset for next time)
+        const ad1 = document.getElementById('support-ad-1');
+        const ad2 = document.getElementById('support-ad-2');
+        if (ad1) ad1.classList.add('hidden');
+        if (ad2) ad2.classList.add('hidden');
     }
 
     startPremiumTrial() {
@@ -1204,19 +1210,25 @@ class ChroniCompanion {
     }
 
     watchSupportAd() {
-        // Placeholder for ad integration (Google AdMob, etc.)
-        this.showInfoMessage('Thank you for supporting ChroniCompanion! 💙');
+        // Show the ads when user clicks "Watch a Short Ad"
+        this.showInfoMessage('Loading ads... Thank you for supporting ChroniCompanion! 💙');
 
-        // In real implementation, integrate with ad networks:
-        // - Google AdMob for mobile
-        // - Google AdSense for web
-        // - Unity Ads, etc.
+        // Show both ad containers
+        const ad1 = document.getElementById('support-ad-1');
+        const ad2 = document.getElementById('support-ad-2');
+        
+        if (ad1) ad1.classList.remove('hidden');
+        if (ad2) ad2.classList.remove('hidden');
 
-        // For now, simulate ad completion
+        // Refresh/load the ads
+        setTimeout(() => {
+            this.refreshAds();
+        }, 500);
+
+        // Simulate ad completion
         setTimeout(() => {
             this.showSuccessMessage('Thank you for watching! Your support helps keep this app free.');
-            this.closeSupportModal();
-        }, 2000);
+        }, 3000);
     }
 
     donate(amount) {

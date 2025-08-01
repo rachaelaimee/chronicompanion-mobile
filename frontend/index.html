@@ -251,7 +251,14 @@
         <!-- Header -->
         <header class="text-center mb-8">
             <div class="flex items-center justify-center mb-4">
-                <i class="fas fa-heart text-sage-500 text-3xl mr-3"></i>
+                <div class="bg-sage-500 rounded-2xl p-3 mr-3 shadow-lg">
+                    <div class="relative">
+                        <i class="fas fa-heart text-white text-2xl"></i>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <i class="fas fa-heartbeat text-white text-lg opacity-80"></i>
+                        </div>
+                    </div>
+                </div>
                 <h1 class="text-4xl font-bold text-sage-700">ChroniCompanion</h1>
             </div>
             <p class="text-sage-600 text-lg">Your gentle space for daily reflection and wellness tracking</p>
@@ -355,8 +362,8 @@
                 <div class="p-6">
                     <p class="text-gray-600 mb-6 text-center">Your support helps us maintain servers, add features, and keep the core app free for everyone!</p>
                     
-                    <!-- Support Page Ad 1 -->
-                    <div class="ad-container mb-4">
+                    <!-- Support Page Ad 1 - Hidden by default -->
+                    <div id="support-ad-1" class="ad-container mb-4 hidden">
                         <div class="ad-label">Advertisement</div>
                         <ins class="adsbygoogle"
                              style="display:block"
@@ -393,8 +400,8 @@
                         </div>
                     </div>
                     
-                    <!-- Support Page Ad 2 -->
-                    <div class="ad-container mb-4">
+                    <!-- Support Page Ad 2 - Hidden by default -->
+                    <div id="support-ad-2" class="ad-container mb-4 hidden">
                         <div class="ad-label">Advertisement</div>
                         <ins class="adsbygoogle"
                              style="display:block"
