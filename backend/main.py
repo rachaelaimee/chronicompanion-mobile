@@ -6,11 +6,11 @@ from typing import List
 import os
 from datetime import datetime, timedelta
 
-from backend.database import get_db, init_db
-from backend.api.routes import router as entries_router
-from backend.models import JournalEntry, AIFeedbackRequest, AIFeedbackResponse
-from backend.services.openai_service import OpenAIService
-from backend.services.export_service import ExportService
+from database import get_db, init_db
+from api.routes import router as entries_router
+from models import JournalEntry, AIFeedbackRequest, AIFeedbackResponse
+from services.openai_service import OpenAIService
+from services.export_service import ExportService
 
 # Initialize FastAPI app
 app = FastAPI(

@@ -1010,39 +1010,186 @@ class ChroniCompanion {
         document.body.style.overflow = 'auto'; // Restore background scroll
     }
 
-    // AI Insights Functions
+    // ✨ 2025 AI INSIGHTS - OFFLINE-FIRST with FREEMIUM MODEL (Netflix/Spotify Style)
     async loadPredictiveInsights() {
-        console.log('🤖 DEBUG: loadPredictiveInsights called');
-        console.log('🤖 DEBUG: Current isPremium status:', this.isPremium);
+        console.log('🎯 2025 AI: Loading predictive insights with offline-first approach');
         
-        // TEMPORARILY DISABLED: Remove paywall until Play Store integration is complete
-        // if (!this.isPremium) {
-        //     console.log('❌ DEBUG: Blocking AI - Premium required');
-        //     this.showPremiumModal();
-        //     return;
-        // }
-        
-        console.log('✅ DEBUG: Premium active - Loading AI insights');
-
         const container = document.getElementById('predictions-content');
-        console.log('🔍 DEBUG: predictions-content container found:', !!container);
-        
         if (!container) {
             console.error('❌ predictions-content container not found!');
             return;
         }
         
-        // Check for cached response first
-        const cachedResponse = this.getAICache('predictive-insights');
-        if (cachedResponse) {
-            console.log('✅ Using cached AI predictions');
-            container.innerHTML = cachedResponse;
+        // Get user's entries for analysis
+        const entries = await this.loadEntriesFromIndexedDB() || this.loadEntriesFromLocalStorage();
+        
+        if (entries.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-chart-line text-4xl mb-4"></i>
+                    <h4 class="font-medium mb-2">Start Your Health Journey</h4>
+                    <p class="text-sm">Add some health entries to unlock personalized AI insights!</p>
+                    <button onclick="app.showView('entry-form')" class="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                        Add First Entry
+                    </button>
+                </div>`;
             return;
         }
         
-        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Analyzing your patterns...</div>';
-
+        // 🎯 FREEMIUM LOGIC: Progressive value unlock based on usage
+        const userTier = this.getUserTier(entries.length);
+        console.log('🎯 User tier determined:', userTier);
+        
+        if (userTier === 'free') {
+            this.showFreeTierAIPreview(container, 'predictions', entries);
+            return;
+        }
+        
+        // ⚡ Check offline cache first (8-hour intervals)
+        const cacheKey = this.getAICacheKey('predictions', entries);
+        const cachedInsights = this.getAICache(cacheKey);
+        
+        if (cachedInsights) {
+            console.log('✅ Using cached offline insights');
+            container.innerHTML = cachedInsights;
+            return;
+        }
+        
+        // 🤖 Generate insights (online or offline)
+        await this.generateSmartInsights(container, 'predictions', entries);
+    }
+    
+    // 🎯 2025 USER TIER SYSTEM (Netflix Model)
+    getUserTier(entryCount) {
+        if (!this.isPremium && entryCount < 7) return 'free';
+        if (!this.isPremium && entryCount < 14) return 'trial_eligible';
+        return this.isPremium ? 'premium' : 'freemium';
+    }
+    
+    // 🎁 FREE TIER PREVIEW (Spotify Model - Show Value First)
+    showFreeTierAIPreview(container, type, entries) {
+        const basicInsights = this.generateBasicOfflineInsights(entries);
+        
+        container.innerHTML = `
+            <div class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-medium text-blue-800 flex items-center">
+                        <i class="fas fa-brain mr-2"></i>AI Health Insights
+                    </h4>
+                    <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">FREE PREVIEW</span>
+                </div>
+                
+                <div class="space-y-3">
+                    ${basicInsights}
+                    
+                    <div class="border-t border-blue-200 pt-3 mt-3">
+                        <div class="bg-white/50 backdrop-blur-sm rounded-lg p-3 border border-dashed border-blue-300">
+                            <div class="flex items-center text-blue-600 mb-2">
+                                <i class="fas fa-lock mr-2"></i>
+                                <span class="font-medium text-sm">Premium AI Features</span>
+                            </div>
+                            <ul class="text-xs text-blue-700 space-y-1 ml-4">
+                                <li>• Detailed pattern analysis</li>
+                                <li>• Predictive health trends</li>
+                                <li>• Personalized recommendations</li>
+                                <li>• Weekly coaching insights</li>
+                            </ul>
+                            <button onclick="app.showSoftPaywall('insights')" class="mt-3 w-full bg-blue-500 text-white py-2 px-4 rounded-lg text-sm hover:bg-blue-600 transition-colors">
+                                ✨ Unlock Full AI Analysis - 7 Days Free
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-xs text-blue-600 mt-3 flex items-center">
+                    <i class="fas fa-offline mr-1"></i>
+                    <span>Works offline • Based on ${entries.length} entries</span>
+                </div>
+            </div>`;
+    }
+    
+    // 🧠 OFFLINE AI - SMART LOCAL INSIGHTS
+    generateBasicOfflineInsights(entries) {
+        const recentEntries = entries.slice(0, 7);
+        const patterns = this.analyzeBasicPatterns(recentEntries);
+        
+        return `
+            <div class="space-y-2 text-sm">
+                <div class="flex items-center text-green-600">
+                    <i class="fas fa-chart-up mr-2"></i>
+                    <span><strong>Trend:</strong> ${patterns.trend}</span>
+                </div>
+                <div class="flex items-center text-blue-600">
+                    <i class="fas fa-bullseye mr-2"></i>
+                    <span><strong>Focus Area:</strong> ${patterns.focus}</span>
+                </div>
+                <div class="flex items-center text-purple-600">
+                    <i class="fas fa-lightbulb mr-2"></i>
+                    <span><strong>Quick Tip:</strong> ${patterns.tip}</span>
+                </div>
+            </div>`;
+    }
+    
+    // 📊 SMART PATTERN ANALYSIS (Works Offline)
+    analyzeBasicPatterns(entries) {
+        if (entries.length === 0) return { trend: 'No data', focus: 'Start tracking', tip: 'Add your first entry' };
+        
+        const avgMood = this.calculateAverage(entries, 'mood_overall');
+        const avgEnergy = this.calculateAverage(entries, 'energy_level');
+        const avgPain = this.calculateAverage(entries, 'pain_level');
+        
+        let trend = avgMood >= 7 ? 'Positive mood patterns' : avgMood >= 5 ? 'Stable mood trends' : 'Focus on mood support needed';
+        let focus = avgEnergy < 5 ? 'Energy management' : avgPain > 6 ? 'Pain management' : 'Overall wellness';
+        let tip = avgEnergy < 5 ? 'Try gentle morning stretches' : avgMood < 5 ? 'Consider mindfulness breaks' : 'Keep up the great work!';
+        
+        return { trend, focus, tip };
+    }
+    
+    // 🎯 2025 SOFT PAYWALL (Tinder/Duolingo Style)
+    showSoftPaywall(feature) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.innerHTML = `
+            <div class="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                        <i class="fas fa-brain text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">Unlock Your Full Health Potential</h3>
+                    <p class="text-gray-600 mb-6">Get comprehensive AI insights, predictive analysis, and personalized recommendations.</p>
+                    
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                        <div class="font-medium text-green-800 mb-2">✨ 7-Day Free Trial</div>
+                        <div class="text-sm text-green-700">Full access to all AI features • Cancel anytime</div>
+                    </div>
+                    
+                    <button onclick="app.startPremiumTrial(); app.closeSoftPaywall()" class="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 px-6 rounded-lg font-medium hover:shadow-lg transition-all">
+                        Start Free Trial
+                    </button>
+                    
+                    <button onclick="app.closeSoftPaywall()" class="w-full mt-3 text-gray-500 py-2 text-sm hover:text-gray-700">
+                        Maybe Later
+                    </button>
+                </div>
+            </div>`;
+        
+        document.body.appendChild(modal);
+        modal.paywall = true;
+    }
+    
+    closeSoftPaywall() {
+        const modal = document.querySelector('[class*="fixed inset-0"]');
+        if (modal && modal.paywall) {
+            modal.remove();
+        }
+    }
+    
+    // 🤖 SMART INSIGHTS GENERATOR (Online + Offline Hybrid)
+    async generateSmartInsights(container, type, entries) {
+        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-brain fa-spin mr-2 text-blue-500"></i>Analyzing your patterns...</div>';
+        
         try {
+            // Try online AI first
             const response = await fetch(`${this.apiBase}/api/ai/predictive-insights?days=7`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
@@ -1050,19 +1197,143 @@ class ChroniCompanion {
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('🔍 DEBUG: Predictive insights response:', result);
-                
                 const insights = result.insights || {};
                 const prediction = insights.prediction || result.message || 'Unable to generate insights at this time.';
                 
-                const htmlContent = `
+                const onlineContent = `
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h4 class="font-medium text-blue-800 mb-2 flex items-center">
-                            <i class="fas fa-crystal-ball mr-2"></i>Health Predictions
+                            <i class="fas fa-crystal-ball mr-2"></i>AI Health Predictions
                         </h4>
                         <p class="text-blue-700 text-sm">${prediction}</p>
                         ${insights.suggestions && insights.suggestions.length > 0 ? `
                             <div class="mt-2 text-blue-600 text-xs">
+                                <strong>Suggestions:</strong> ${insights.suggestions.join(', ')}
+                            </div>
+                        ` : ''}
+                        <div class="text-xs text-blue-500 mt-3 flex items-center">
+                            <i class="fas fa-cloud mr-1"></i>
+                            <span>Powered by AI • Cached until next refresh (8hr intervals)</span>
+                        </div>
+                    </div>`;
+                
+                // Cache the successful response
+                this.setAICache(this.getAICacheKey('predictions', entries), onlineContent);
+                container.innerHTML = onlineContent;
+                return;
+            } else {
+                throw new Error(`Server returned ${response.status}`);
+            }
+        } catch (error) {
+            console.log('🔄 Online AI failed, using offline insights:', error.message);
+            
+            // Fallback to offline intelligent analysis
+            const offlineInsights = this.generateAdvancedOfflineInsights(entries);
+            const offlineContent = `
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h4 class="font-medium text-purple-800 mb-2 flex items-center">
+                        <i class="fas fa-brain mr-2"></i>Smart Health Analysis
+                    </h4>
+                    ${offlineInsights}
+                    <div class="text-xs text-purple-500 mt-3 flex items-center">
+                        <i class="fas fa-offline mr-1"></i>
+                        <span>Offline AI • Based on your ${entries.length} health entries</span>
+                    </div>
+                </div>`;
+            
+            container.innerHTML = offlineContent;
+        }
+    }
+    
+    // 🧠 ADVANCED OFFLINE AI (When Backend is Down)
+    generateAdvancedOfflineInsights(entries) {
+        const analysis = this.performDeepPatternAnalysis(entries);
+        
+        return `
+            <div class="space-y-3 text-sm">
+                <div class="bg-white/70 rounded-lg p-3">
+                    <div class="font-medium text-purple-700 mb-2 flex items-center">
+                        <i class="fas fa-chart-trending-up mr-2"></i>Pattern Analysis
+                    </div>
+                    <p class="text-purple-600">${analysis.patterns}</p>
+                </div>
+                
+                <div class="bg-white/70 rounded-lg p-3">
+                    <div class="font-medium text-purple-700 mb-2 flex items-center">
+                        <i class="fas fa-target mr-2"></i>Recommendations
+                    </div>
+                    <ul class="text-purple-600 space-y-1">
+                        ${analysis.recommendations.map(rec => `<li>• ${rec}</li>`).join('')}
+                    </ul>
+                </div>
+                
+                <div class="bg-white/70 rounded-lg p-3">
+                    <div class="font-medium text-purple-700 mb-2 flex items-center">
+                        <i class="fas fa-crystal-ball mr-2"></i>Prediction
+                    </div>
+                    <p class="text-purple-600">${analysis.prediction}</p>
+                </div>
+            </div>`;
+    }
+    
+    // 🔬 DEEP PATTERN ANALYSIS (Advanced Offline AI)
+    performDeepPatternAnalysis(entries) {
+        const recent = entries.slice(0, 14); // Last 2 weeks
+        const older = entries.slice(14, 28); // Previous 2 weeks
+        
+        const recentAvgs = {
+            mood: this.calculateAverage(recent, 'mood_overall'),
+            energy: this.calculateAverage(recent, 'energy_level'),
+            pain: this.calculateAverage(recent, 'pain_level'),
+            anxiety: this.calculateAverage(recent, 'anxiety_level'),
+            fatigue: this.calculateAverage(recent, 'fatigue_level')
+        };
+        
+        const olderAvgs = older.length > 0 ? {
+            mood: this.calculateAverage(older, 'mood_overall'),
+            energy: this.calculateAverage(older, 'energy_level'),
+            pain: this.calculateAverage(older, 'pain_level'),
+            anxiety: this.calculateAverage(older, 'anxiety_level'),
+            fatigue: this.calculateAverage(older, 'fatigue_level')
+        } : recentAvgs;
+        
+        // Trend analysis
+        const moodTrend = recentAvgs.mood > olderAvgs.mood ? 'improving' : recentAvgs.mood < olderAvgs.mood ? 'declining' : 'stable';
+        const energyTrend = recentAvgs.energy > olderAvgs.energy ? 'increasing' : recentAvgs.energy < olderAvgs.energy ? 'decreasing' : 'stable';
+        
+        // Generate insights
+        let patterns = `Your mood is ${moodTrend} (${recentAvgs.mood.toFixed(1)}/10) and energy levels are ${energyTrend} (${recentAvgs.energy.toFixed(1)}/10).`;
+        
+        if (recentAvgs.pain > 6) {
+            patterns += ` Pain levels are elevated (${recentAvgs.pain.toFixed(1)}/10), which may be impacting other areas.`;
+        }
+        
+        // Recommendations based on patterns
+        const recommendations = [];
+        if (recentAvgs.mood < 6) recommendations.push('Focus on mood-boosting activities like gentle exercise or social connection');
+        if (recentAvgs.energy < 5) recommendations.push('Consider sleep optimization and energy management techniques');
+        if (recentAvgs.pain > 6) recommendations.push('Explore pain management strategies and discuss with healthcare provider');
+        if (recentAvgs.anxiety > 6) recommendations.push('Practice stress reduction techniques like deep breathing or meditation');
+        if (recommendations.length === 0) recommendations.push('Continue your current wellness practices - you\'re doing great!');
+        
+        // Prediction
+        let prediction = '';
+        if (moodTrend === 'improving' && energyTrend === 'increasing') {
+            prediction = 'Based on current trends, you may continue to see improvements in overall wellbeing.';
+        } else if (moodTrend === 'declining' || energyTrend === 'decreasing') {
+            prediction = 'Consider focusing on the recommended areas to help reverse current trends.';
+        } else {
+            prediction = 'Your health patterns show stability. Small consistent changes can lead to improvements.';
+        }
+        
+        return { patterns, recommendations: recommendations.slice(0, 3), prediction };
+    }
+    
+    // 📊 UTILITY: Calculate averages safely
+    calculateAverage(entries, field) {
+        if (!entries || entries.length === 0) return 0;
+        const values = entries.map(entry => parseFloat(entry[field])).filter(val => !isNaN(val));
+        return values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : 0;
                                 <strong>Suggestions:</strong> ${insights.suggestions.join(', ')}
                             </div>
                         ` : ''}
