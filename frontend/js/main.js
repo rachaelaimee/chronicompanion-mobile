@@ -1071,9 +1071,27 @@ class ChroniCompanion {
     
     // 🎯 2025 USER TIER SYSTEM (Netflix Model)
     getUserTier(entryCount) {
-        if (!this.isPremium && entryCount < 7) return 'free';
-        if (!this.isPremium && entryCount < 14) return 'trial_eligible';
-        return this.isPremium ? 'premium' : 'freemium';
+        // ALWAYS check premium status first (including trials)
+        if (this.isPremium) return 'premium';
+        
+        // Check if user is eligible for trial
+        const premiumStatus = localStorage.getItem('premium_status');
+        if (premiumStatus === 'trial' || this.checkTrialEligibility()) {
+            return 'trial_eligible';
+        }
+        
+        // Free tier progression
+        if (entryCount < 7) return 'free';
+        return 'freemium';
+    }
+    
+    // Check if user is eligible for a trial
+    checkTrialEligibility() {
+        const trialStart = localStorage.getItem('premium_trial_start');
+        const premiumStatus = localStorage.getItem('premium_status');
+        
+        // If never had a trial and not currently premium
+        return !trialStart && premiumStatus !== 'active' && premiumStatus !== 'expired';
     }
     
     // 🎁 FREE TIER PREVIEW (Spotify Model - Show Value First)
@@ -1471,7 +1489,10 @@ class ChroniCompanion {
             return;
         }
         
-        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Performing wellness check...</div>';
+        // Get user's entries for analysis
+        const entries = await this.loadEntriesFromIndexedDB() || this.loadEntriesFromLocalStorage();
+        
+        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-heart fa-spin mr-2 text-red-500"></i>Performing wellness check...</div>';
 
         // This is always free - crisis intervention should never be paywalled
         try {
@@ -1495,37 +1516,74 @@ class ChroniCompanion {
                         <h4 class="font-medium text-${colorClass}-800 mb-2 flex items-center">
                             <i class="fas fa-shield-heart mr-2"></i>Wellness Check
                         </h4>
-                        <p class="text-${colorClass}-700 text-sm">${message}</p>
+                        <p class="text-${colorClass}-700 text-sm mb-3">${message}</p>
                         ${result.analyzed_entries ? `<div class="mt-2 text-${colorClass}-600 text-xs">Based on ${result.analyzed_entries} recent entries</div>` : ''}
+                        <div class="mt-3 pt-3 border-t border-${colorClass}-200">
+                            <div class="text-xs text-${colorClass}-600 flex items-center">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                <span>Always free • Crisis support never behind paywall</span>
+                            </div>
+                        </div>
                     </div>
                 `;
             } else {
                 throw new Error('Crisis check unavailable');
             }
         } catch (error) {
+            console.log('🔄 Online crisis check failed, using offline wellness check:', error.message);
+            
+            // Generate offline wellness check
+            const offlineWellnessCheck = this.generateOfflineWellnessCheck(entries);
+            
             container.innerHTML = `
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 class="font-medium text-blue-800 mb-2 flex items-center">
-                        <i class="fas fa-shield-heart mr-2"></i>Wellness Resources
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="font-medium text-green-800 mb-2 flex items-center">
+                        <i class="fas fa-shield-heart mr-2"></i>Wellness Check
                     </h4>
-                    <p class="text-blue-700 text-sm">
-                        If you're in crisis, please reach out:<br>
-                        • National Suicide Prevention Lifeline: 988<br>
-                        • Crisis Text Line: Text HOME to 741741<br>
-                        • Emergency Services: 911
-                    </p>
+                    <div class="text-green-700 text-sm mb-3">${offlineWellnessCheck}</div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                        <p class="text-blue-700 text-xs mb-2">
+                            <strong>Crisis Resources (Always Available):</strong>
+                        </p>
+                        <p class="text-blue-700 text-xs">
+                            • National Suicide Prevention Lifeline: <strong>988</strong><br>
+                            • Crisis Text Line: Text <strong>HOME</strong> to <strong>741741</strong><br>
+                            • Emergency Services: <strong>911</strong>
+                        </p>
+                    </div>
+                    <div class="text-xs text-green-600 mt-3 flex items-center">
+                        <i class="fas fa-offline mr-1"></i>
+                        <span>Offline check • Based on your ${entries.length} health entries</span>
+                    </div>
                 </div>
             `;
         }
     }
 
-    async loadWeeklyCoaching() {
-        // TEMPORARILY DISABLED: Remove paywall until Play Store integration is complete
-        // if (!this.isPremium) {
-        //     this.showPremiumModal();
-        //     return;
-        // }
+    // Generate offline wellness check
+    generateOfflineWellnessCheck(entries) {
+        if (entries.length === 0) {
+            return "You're taking a positive step by starting to track your health. Remember, small steps lead to big changes.";
+        }
+        
+        const recentEntries = entries.slice(-7); // Last 7 entries
+        const avgMood = this.calculateAverage(recentEntries, 'mood');
+        const avgEnergy = this.calculateAverage(recentEntries, 'energy');
+        
+        let message = "You're doing well by tracking your health. ";
+        
+        if (avgMood >= 7 && avgEnergy >= 6) {
+            message += "Your recent entries show good overall wellbeing. Keep up the positive momentum!";
+        } else if (avgMood >= 5 && avgEnergy >= 4) {
+            message += "Your tracking shows you're managing well. Consider focusing on small self-care activities.";
+        } else {
+            message += "Thank you for continuing to track your health during challenging times. Be gentle with yourself and consider reaching out for support when needed.";
+        }
+        
+        return message;
+    }
 
+    async loadWeeklyCoaching() {
         const container = document.getElementById('coaching-content');
         console.log('🔍 DEBUG: coaching-content container found:', !!container);
         
@@ -1534,7 +1592,23 @@ class ChroniCompanion {
             return;
         }
         
-        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Preparing your weekly reflection...</div>';
+        // Get user's entries for analysis
+        const entries = await this.loadEntriesFromIndexedDB() || this.loadEntriesFromLocalStorage();
+        
+        if (entries.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-graduation-cap text-4xl mb-4"></i>
+                    <h4 class="font-medium mb-2">Start Your Weekly Coaching Journey</h4>
+                    <p class="text-sm">Add some health entries to get personalized weekly reflections!</p>
+                    <button onclick="app.showView('entry-form')" class="mt-3 bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600">
+                        Add First Entry
+                    </button>
+                </div>`;
+            return;
+        }
+        
+        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-graduation-cap fa-spin mr-2 text-purple-500"></i>Preparing your weekly reflection...</div>';
 
         try {
             const response = await fetch(`${this.apiBase}/api/ai/weekly-reflection`, {
@@ -1553,23 +1627,108 @@ class ChroniCompanion {
                         <h4 class="font-medium text-purple-800 mb-2 flex items-center">
                             <i class="fas fa-graduation-cap mr-2"></i>Weekly Reflection
                         </h4>
-                        <p class="text-purple-700 text-sm">${reflection}</p>
-                        ${result.entries_count ? `<div class="text-purple-600 text-xs mt-2">Based on ${result.entries_count} entries</div>` : ''}
+                        <p class="text-purple-700 text-sm mb-3">${reflection}</p>
+                        ${result.entries_count ? `<div class="mt-2 text-purple-600 text-xs">Based on ${result.entries_count} entries</div>` : ''}
+                        <div class="mt-3 pt-3 border-t border-purple-200">
+                            <div class="text-xs text-purple-600 flex items-center">
+                                <i class="fas fa-cloud mr-1"></i>
+                                <span>AI-powered insights • Refreshed weekly</span>
+                            </div>
+                        </div>
                     </div>
                 `;
             } else {
                 throw new Error('Reflection service unavailable');
             }
         } catch (error) {
+            console.log('🔄 Online coaching failed, using offline reflection:', error.message);
+            
+            // Generate offline weekly reflection
+            const offlineReflection = this.generateOfflineWeeklyReflection(entries);
+            
             container.innerHTML = `
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p class="text-yellow-700 text-sm">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        Weekly reflection temporarily unavailable. Please try again later.
-                    </p>
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h4 class="font-medium text-purple-800 mb-2 flex items-center">
+                        <i class="fas fa-graduation-cap mr-2"></i>Weekly Reflection
+                    </h4>
+                    <div class="text-purple-700 text-sm mb-3">${offlineReflection.message}</div>
+                    
+                    ${offlineReflection.achievements.length > 0 ? `
+                        <div class="bg-white/50 rounded-lg p-3 mb-3">
+                            <h5 class="font-medium text-purple-800 text-xs mb-2">🎉 This Week's Achievements:</h5>
+                            <ul class="text-purple-700 text-xs space-y-1">
+                                ${offlineReflection.achievements.map(achievement => `<li>• ${achievement}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    
+                    ${offlineReflection.suggestions.length > 0 ? `
+                        <div class="bg-white/50 rounded-lg p-3 mb-3">
+                            <h5 class="font-medium text-purple-800 text-xs mb-2">💡 Focus Areas for Next Week:</h5>
+                            <ul class="text-purple-700 text-xs space-y-1">
+                                ${offlineReflection.suggestions.map(suggestion => `<li>• ${suggestion}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="text-xs text-purple-600 mt-3 flex items-center">
+                        <i class="fas fa-offline mr-1"></i>
+                        <span>Offline reflection • Based on your ${entries.length} health entries</span>
+                    </div>
                 </div>
             `;
         }
+    }
+
+    // Generate offline weekly reflection
+    generateOfflineWeeklyReflection(entries) {
+        const recentEntries = entries.slice(-7); // Last 7 entries
+        const entryCount = recentEntries.length;
+        
+        const avgMood = this.calculateAverage(recentEntries, 'mood');
+        const avgEnergy = this.calculateAverage(recentEntries, 'energy');
+        const avgPain = this.calculateAverage(recentEntries, 'pain');
+        
+        let message = '';
+        let achievements = [];
+        let suggestions = [];
+        
+        // Generate personalized message
+        if (entryCount >= 5) {
+            message = `Excellent consistency this week! You've logged ${entryCount} entries, showing real commitment to your health journey.`;
+            achievements.push('Maintained consistent health tracking');
+        } else if (entryCount >= 3) {
+            message = `Good progress this week with ${entryCount} entries. You're building a valuable habit!`;
+            achievements.push('Building positive tracking habits');
+        } else {
+            message = `Thanks for tracking your health this week. Every entry matters on your wellness journey.`;
+        }
+        
+        // Analyze trends
+        if (avgMood >= 7) {
+            achievements.push('Maintained positive mood levels');
+        } else if (avgMood < 5) {
+            suggestions.push('Consider mood-supporting activities like journaling or gentle exercise');
+        }
+        
+        if (avgEnergy >= 6) {
+            achievements.push('Good energy management this week');
+        } else if (avgEnergy < 4) {
+            suggestions.push('Focus on sleep quality and gentle movement to boost energy');
+        }
+        
+        if (avgPain > 6) {
+            suggestions.push('Consider pain management strategies like heat therapy or gentle stretches');
+        } else if (avgPain <= 3) {
+            achievements.push('Successfully managing pain levels');
+        }
+        
+        // Always add a general suggestion
+        if (suggestions.length === 0) {
+            suggestions.push('Continue your excellent self-care routine');
+        }
+        
+        return { message, achievements, suggestions };
     }
 
     // AdSense Integration
@@ -1661,16 +1820,29 @@ class ChroniCompanion {
         
         console.log('🔥 DEBUG: Set isPremium to:', this.isPremium);
 
-        this.showSuccessMessage('7-day premium trial started! Enjoy AI-powered insights!');
-        this.closePremiumModal();
+        this.showSuccessMessage('🎉 7-day premium trial activated! All AI features now unlocked!');
         
-        // Force UI updates immediately without checking premium status again
+        // Force UI updates immediately
         setTimeout(() => {
             console.log('🔥 DEBUG: Post-trial UI update...');
             
             // Force update the AI button states immediately
             this.updateAIButtonStates();
             this.updateAIStatusIndicator();
+            
+            // If user is viewing AI Health Companion, refresh the view to show unlocked features
+            if (this.currentView === 'dashboard' || document.querySelector('#ai-status-indicator')) {
+                console.log('🔥 DEBUG: Refreshing AI view to show unlocked features');
+                
+                // Clear any existing AI content and reload
+                const aiContainers = ['predictions-content', 'coping-content', 'crisis-content', 'coaching-content'];
+                aiContainers.forEach(id => {
+                    const container = document.getElementById(id);
+                    if (container) {
+                        container.innerHTML = '<div class="text-center py-4 text-green-600"><i class="fas fa-unlock mr-2"></i>Premium features now unlocked!</div>';
+                    }
+                });
+            }
             
             // Test if AI functions work now
             console.log('🔥 DEBUG: Testing AI access - isPremium:', this.isPremium);
