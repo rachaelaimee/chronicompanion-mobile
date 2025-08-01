@@ -6,6 +6,7 @@ class ChroniCompanion {
         this.db = null; // IndexedDB instance
         this.isOnline = navigator.onLine;
         this.isMobile = this.detectMobile();
+        this.currentChart = null; // Chart.js instance for dashboard
         this.init();
     }
 
@@ -1417,6 +1418,179 @@ class ChroniCompanion {
             modal.remove();
             document.body.style.overflow = 'auto';
         }
+    }
+
+    async loadDashboard() {
+        console.log('🔄 Loading dashboard...');
+        
+        // Show loading state
+        const chartContainer = document.getElementById('trendsChart').parentElement;
+        const loadingDiv = document.getElementById('chart-loading');
+        
+        if (loadingDiv) loadingDiv.classList.remove('hidden');
+        
+        try {
+            // Get entries data
+            const entries = await this.loadEntriesFromIndexedDB();
+            
+            if (entries.length === 0) {
+                this.showEmptyDashboard();
+                return;
+            }
+            
+            // Get filter settings
+            const period = parseInt(document.getElementById('chart-period').value) || 30;
+            const metric = document.getElementById('chart-metric').value || 'all';
+            
+            // Filter entries by period
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - period);
+            
+            const filteredEntries = entries.filter(entry => {
+                const entryDate = new Date(entry.timestamp || entry.date);
+                return entryDate >= cutoffDate;
+            }).sort((a, b) => new Date(a.timestamp || a.date) - new Date(b.timestamp || b.date));
+            
+            // Create chart
+            this.createHealthTrendsChart(filteredEntries, metric);
+            
+        } catch (error) {
+            console.error('Dashboard loading error:', error);
+            this.showDashboardError();
+        } finally {
+            if (loadingDiv) loadingDiv.classList.add('hidden');
+        }
+    }
+    
+    showEmptyDashboard() {
+        const canvas = document.getElementById('trendsChart');
+        const container = canvas.parentElement;
+        
+        container.innerHTML = `
+            <div class="text-center py-12 text-sage-500">
+                <i class="fas fa-chart-line text-4xl mb-4 opacity-50"></i>
+                <h3 class="text-lg font-medium mb-2">No Health Data Yet</h3>
+                <p class="text-sm">Start tracking your daily wellness to see trends over time!</p>
+                <button onclick="app.showView('entry-form')" class="mt-4 bg-sage-500 text-white px-4 py-2 rounded-lg hover:bg-sage-600 transition-colors">
+                    Add First Entry
+                </button>
+            </div>
+        `;
+    }
+    
+    showDashboardError() {
+        const canvas = document.getElementById('trendsChart');
+        const container = canvas.parentElement;
+        
+        container.innerHTML = `
+            <div class="text-center py-12 text-red-500">
+                <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                <h3 class="text-lg font-medium mb-2">Dashboard Error</h3>
+                <p class="text-sm">Unable to load health trends. Please try again.</p>
+                <button onclick="app.loadDashboard()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">
+                    Retry
+                </button>
+            </div>
+        `;
+    }
+    
+    createHealthTrendsChart(entries, metric) {
+        const canvas = document.getElementById('trendsChart');
+        
+        // Destroy existing chart if it exists
+        if (this.currentChart) {
+            this.currentChart.destroy();
+        }
+        
+        // Prepare data
+        const labels = entries.map(entry => {
+            const date = new Date(entry.timestamp || entry.date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        
+        const datasets = [];
+        
+        // Add datasets based on metric filter
+        if (metric === 'all' || metric === 'mood') {
+            datasets.push({
+                label: 'Mood',
+                data: entries.map(entry => entry.mood_overall || 0),
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.4
+            });
+        }
+        
+        if (metric === 'all' || metric === 'energy') {
+            datasets.push({
+                label: 'Energy',
+                data: entries.map(entry => entry.energy_level || 0),
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4
+            });
+        }
+        
+        if (metric === 'all' || metric === 'pain') {
+            datasets.push({
+                label: 'Pain Level',
+                data: entries.map(entry => entry.pain_level || 0),
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4
+            });
+        }
+        
+        if (metric === 'all' || metric === 'sleep') {
+            datasets.push({
+                label: 'Sleep Quality',
+                data: entries.map(entry => entry.sleep_quality || 0),
+                borderColor: 'rgb(147, 51, 234)',
+                backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                tension: 0.4
+            });
+        }
+        
+        // Create chart
+        this.currentChart = new Chart(canvas, {
+            type: 'line',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Health Trends Over Time'
+                    },
+                    legend: {
+                        display: datasets.length > 1
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10,
+                        title: {
+                            display: true,
+                            text: 'Rating (0-10)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+        
+        console.log('✅ Dashboard chart created successfully');
     }
 
     exportDashboard() {
