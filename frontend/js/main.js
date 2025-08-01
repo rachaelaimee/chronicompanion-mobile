@@ -1431,11 +1431,28 @@ class ChroniCompanion {
         
         try {
             // Get entries data
-            const entries = await this.loadEntriesFromIndexedDB();
+            let entries = await this.loadEntriesFromIndexedDB();
+            console.log('📊 DEBUG: Loaded entries from IndexedDB:', entries.length, 'entries');
+            if (entries.length > 0) {
+                console.log('📊 DEBUG: Sample entry structure:', Object.keys(entries[0]));
+                console.log('📊 DEBUG: Sample entry data:', entries[0]);
+            }
             
             if (entries.length === 0) {
-                this.showEmptyDashboard();
-                return;
+                console.log('⚠️ DEBUG: No entries found in IndexedDB, checking localStorage...');
+                
+                // Fallback to localStorage if IndexedDB is empty
+                const localStorageEntries = this.loadEntriesFromLocalStorage();
+                console.log('📊 DEBUG: Found', localStorageEntries.length, 'entries in localStorage');
+                
+                if (localStorageEntries.length > 0) {
+                    console.log('📊 DEBUG: Using localStorage entries for dashboard');
+                    entries = localStorageEntries;
+                } else {
+                    console.log('⚠️ DEBUG: No entries found anywhere, showing empty dashboard');
+                    this.showEmptyDashboard();
+                    return;
+                }
             }
             
             // Get filter settings
@@ -1604,14 +1621,30 @@ class ChroniCompanion {
             return;
         }
         
+        // DEBUG: Check first entry structure
+        if (entries.length > 0) {
+            const firstEntry = entries[0];
+            console.log('🔍 DEBUG: First entry for averages:', firstEntry);
+            console.log('🔍 DEBUG: Field values - mood:', firstEntry.mood_overall, 'energy:', firstEntry.energy_level, 'pain:', firstEntry.pain_level);
+        }
+        
         // Calculate averages
         const totals = entries.reduce((acc, entry) => {
-            acc.mood += parseFloat(entry.mood_overall) || 0;
-            acc.energy += parseFloat(entry.energy_level) || 0;
-            acc.pain += parseFloat(entry.pain_level) || 0;
-            acc.sleep += parseFloat(entry.sleep_quality) || 0;
-            acc.anxiety += parseFloat(entry.anxiety_level) || 0;
-            acc.fatigue += parseFloat(entry.fatigue_level) || 0;
+            const moodVal = parseFloat(entry.mood_overall) || 0;
+            const energyVal = parseFloat(entry.energy_level) || 0;
+            const painVal = parseFloat(entry.pain_level) || 0;
+            const sleepVal = parseFloat(entry.sleep_quality) || 0;
+            const anxietyVal = parseFloat(entry.anxiety_level) || 0;
+            const fatigueVal = parseFloat(entry.fatigue_level) || 0;
+            
+            console.log('🔍 DEBUG: Entry values - mood:', moodVal, 'energy:', energyVal, 'pain:', painVal);
+            
+            acc.mood += moodVal;
+            acc.energy += energyVal;
+            acc.pain += painVal;
+            acc.sleep += sleepVal;
+            acc.anxiety += anxietyVal;
+            acc.fatigue += fatigueVal;
             return acc;
         }, { mood: 0, energy: 0, pain: 0, sleep: 0, anxiety: 0, fatigue: 0 });
         
