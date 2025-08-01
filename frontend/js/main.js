@@ -26,6 +26,7 @@ class ChroniCompanion {
         this.setupOfflineHandling();
         this.checkBackendConnection(); // Check if backend is available
         this.checkPremiumStatus(); // Check premium subscription status
+        this.updateAIButtonStates(); // Update AI button states based on premium status
         this.initializeAds(); // Initialize AdSense ads
     }
 
@@ -1334,6 +1335,40 @@ class ChroniCompanion {
             premiumBtn.innerHTML = '<i class="fas fa-crown mr-2"></i>Premium';
             premiumBtn.classList.add('ring-2', 'ring-yellow-300');
         }
+        
+        // Update AI button states
+        this.updateAIButtonStates();
+    }
+    
+    updateAIButtonStates() {
+        // Update premium-required AI buttons
+        const aiButtons = [
+            { id: 'get-predictions-btn', text: 'Get Insights' },
+            { id: 'get-coping-btn', text: 'Get Help' },
+            { id: 'get-coaching-btn', text: 'Get Coached' }
+        ];
+        
+        aiButtons.forEach(buttonInfo => {
+            const button = document.getElementById(buttonInfo.id);
+            if (button) {
+                if (this.isPremium) {
+                    // Remove lock, make it look available
+                    button.innerHTML = `<i class="fas fa-check mr-1 text-xs"></i>${buttonInfo.text}`;
+                    button.title = 'AI feature available with your premium subscription';
+                } else {
+                    // Show lock and make it clear it's premium
+                    button.innerHTML = `<i class="fas fa-lock mr-1 text-xs"></i>${buttonInfo.text} (Premium)`;
+                    button.title = 'Unlock with 7-day free trial';
+                }
+            }
+        });
+        
+        // Crisis check is always free
+        const crisisBtn = document.getElementById('crisis-check-btn');
+        if (crisisBtn) {
+            crisisBtn.innerHTML = '<i class="fas fa-heart mr-1 text-xs"></i>Check In (Free)';
+            crisisBtn.title = 'Always free - your safety matters';
+        }
     }
 
     checkPremiumStatus() {
@@ -1591,6 +1626,9 @@ class ChroniCompanion {
             
             // Update total entries count
             this.updateTotalEntriesCount(filteredEntries.length);
+            
+            // Update Quick Insights (FREE feature)
+            this.updateQuickInsights(filteredEntries);
             
             // Manual test - force update one average to confirm DOM targeting works
             setTimeout(() => {
@@ -1901,6 +1939,103 @@ class ChroniCompanion {
         if (shouldRefresh) {
             console.log('🔄 DEBUG: New entry submitted - AI advice ready for fresh insights based on latest data');
         }
+    }
+    
+    updateQuickInsights(entries) {
+        const container = document.getElementById('insights-container');
+        
+        if (entries.length === 0) {
+            container.innerHTML = `
+                <div class="text-sage-600">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Add your first health entry to see personalized insights about your patterns.
+                </div>
+            `;
+            return;
+        }
+        
+        const insights = this.generateBasicInsights(entries);
+        
+        container.innerHTML = insights.map(insight => `
+            <div class="flex items-start p-3 bg-gradient-to-r from-sage-50 to-emerald-50 rounded-lg border-l-4 border-sage-400">
+                <i class="${insight.icon} text-sage-600 mr-3 mt-1"></i>
+                <div>
+                    <p class="text-sage-800 font-medium">${insight.title}</p>
+                    <p class="text-sage-600 text-sm">${insight.description}</p>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    generateBasicInsights(entries) {
+        const insights = [];
+        
+        // Calculate basic stats
+        const avgMood = entries.reduce((sum, entry) => sum + (parseFloat(entry.mood_overall) || 0), 0) / entries.length;
+        const avgEnergy = entries.reduce((sum, entry) => sum + (parseFloat(entry.energy_level) || 0), 0) / entries.length;
+        const avgPain = entries.reduce((sum, entry) => sum + (parseFloat(entry.pain_level) || 0), 0) / entries.length;
+        
+        // Recent vs older comparison (if enough entries)
+        if (entries.length >= 7) {
+            const recentEntries = entries.slice(0, Math.ceil(entries.length / 3));
+            const recentMood = recentEntries.reduce((sum, entry) => sum + (parseFloat(entry.mood_overall) || 0), 0) / recentEntries.length;
+            
+            if (recentMood > avgMood + 0.5) {
+                insights.push({
+                    icon: 'fas fa-trending-up',
+                    title: 'Mood Improving',
+                    description: `Your recent mood scores are trending upward compared to your overall average.`
+                });
+            } else if (recentMood < avgMood - 0.5) {
+                insights.push({
+                    icon: 'fas fa-heart',
+                    title: 'Self-Care Reminder',
+                    description: `Your mood has been lower recently. Remember to be gentle with yourself.`
+                });
+            }
+        }
+        
+        // Entry consistency
+        if (entries.length >= 5) {
+            const daysSinceFirst = Math.ceil((new Date() - new Date(entries[entries.length - 1].timestamp || entries[entries.length - 1].date)) / (1000 * 60 * 60 * 24));
+            const entriesPerDay = entries.length / daysSinceFirst;
+            
+            if (entriesPerDay > 0.7) {
+                insights.push({
+                    icon: 'fas fa-calendar-check',
+                    title: 'Great Tracking Habit',
+                    description: `You've been consistently tracking your health - keep up the excellent work!`
+                });
+            }
+        }
+        
+        // Basic health patterns
+        if (avgPain > 6) {
+            insights.push({
+                icon: 'fas fa-thermometer-half',
+                title: 'Pain Management Focus',
+                description: `Your pain levels have been elevated. Consider discussing pain management strategies with your healthcare provider.`
+            });
+        }
+        
+        if (avgEnergy < 4) {
+            insights.push({
+                icon: 'fas fa-battery-quarter',
+                title: 'Energy Levels',
+                description: `Your energy has been lower than average. Focus on rest, nutrition, and gentle activity.`
+            });
+        }
+        
+        // Default insight if no specific patterns
+        if (insights.length === 0) {
+            insights.push({
+                icon: 'fas fa-chart-line',
+                title: 'Building Your Health Story',
+                description: `You've logged ${entries.length} entries. Keep tracking to discover more patterns in your health journey.`
+            });
+        }
+        
+        return insights.slice(0, 3); // Show max 3 insights
     }
 
     exportDashboard() {
