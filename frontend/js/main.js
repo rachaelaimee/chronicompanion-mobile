@@ -1478,7 +1478,20 @@ class ChroniCompanion {
             this.createHealthTrendsChart(filteredEntries, metric);
             
             // Calculate and display averages
+            console.log('📊 DEBUG: About to calculate averages for', filteredEntries.length, 'filtered entries');
             this.updateDashboardAverages(filteredEntries);
+            
+            // Manual test - force update one average to confirm DOM targeting works
+            setTimeout(() => {
+                console.log('🧪 TEST: Manual average update test');
+                document.getElementById('avg-mood').textContent = '7.5';
+                document.getElementById('avg-energy').textContent = '6.2';
+                document.getElementById('avg-pain').textContent = '4.8';
+                setTimeout(() => {
+                    console.log('🧪 TEST: Reverting to calculated values...');
+                    this.updateDashboardAverages(filteredEntries);
+                }, 2000);
+            }, 1000);
             
         } catch (error) {
             console.error('Dashboard loading error:', error);
@@ -1665,57 +1678,37 @@ class ChroniCompanion {
         
         console.log('📊 Calculated averages:', averages);
         
-        // Update DOM elements - look for average containers
-        this.updateAverageDisplay('mood', averages.mood, '😊');
-        this.updateAverageDisplay('energy', averages.energy, '🔋');
-        this.updateAverageDisplay('pain', averages.pain, '🌡️');
-        this.updateAverageDisplay('sleep', averages.sleep, '😴');
-        this.updateAverageDisplay('anxiety', averages.anxiety, '😰');
-        this.updateAverageDisplay('fatigue', averages.fatigue, '😴');
+        // Update DOM elements using correct IDs
+        this.updateAverageDisplay('mood', averages.mood);
+        this.updateAverageDisplay('energy', averages.energy);
+        this.updateAverageDisplay('pain', averages.pain);
     }
     
-    updateAverageDisplay(metric, value, emoji) {
-        // Try to find average display elements by various possible IDs/classes
-        const possibleSelectors = [
-            `#average-${metric}`,
-            `#${metric}-average`,
-            `.average-${metric}`,
-            `[data-metric="${metric}"]`
-        ];
+    updateAverageDisplay(metric, value) {
+        // Use the exact IDs from the HTML
+        const elementId = `avg-${metric}`;
+        const element = document.getElementById(elementId);
         
-        let element = null;
-        for (const selector of possibleSelectors) {
-            element = document.querySelector(selector);
-            if (element) break;
-        }
-        
-        // If no specific element found, try to find by text content
-        if (!element) {
-            const averageElements = document.querySelectorAll('.dashboard-average, .metric-average');
-            for (const el of averageElements) {
-                if (el.textContent.toLowerCase().includes(metric.toLowerCase())) {
-                    element = el;
-                    break;
-                }
-            }
-        }
+        console.log(`🔍 DEBUG: Looking for element with ID: ${elementId}`);
+        console.log(`🔍 DEBUG: Element found:`, element);
+        console.log(`🔍 DEBUG: Updating ${metric} with value: ${value}`);
         
         if (element) {
-            // Update the value
-            const valueElement = element.querySelector('.value, .average-value') || element;
-            if (valueElement) {
-                valueElement.textContent = `${value}/10 ${emoji}`;
-            }
+            element.textContent = `${value}`;
             console.log(`✅ Updated ${metric} average: ${value}`);
         } else {
-            console.log(`⚠️ Could not find element for ${metric} average`);
+            console.log(`⚠️ Could not find element with ID: ${elementId}`);
         }
     }
     
     clearAverages() {
-        const averageElements = document.querySelectorAll('.dashboard-average .value, .metric-average .value');
-        averageElements.forEach(el => {
-            el.textContent = '--/10';
+        // Clear the specific average elements
+        const avgElements = ['avg-mood', 'avg-energy', 'avg-pain'];
+        avgElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = '--';
+            }
         });
     }
 
