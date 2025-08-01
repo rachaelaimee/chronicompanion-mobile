@@ -25,6 +25,7 @@ class ChroniCompanion {
         this.setupOfflineHandling();
         this.checkBackendConnection(); // Check if backend is available
         this.checkPremiumStatus(); // Check premium subscription status
+        this.initializeAds(); // Initialize AdSense ads
     }
 
     async checkBackendConnection() {
@@ -379,6 +380,9 @@ class ChroniCompanion {
         } else if (viewId === 'entries-list') {
             this.loadEntries();
         }
+
+        // Refresh ads for the new view
+        setTimeout(() => this.refreshAds(), 500);
     }
 
     updateActiveNavButton(viewId) {
@@ -1117,6 +1121,44 @@ class ChroniCompanion {
                     </p>
                 </div>
             `;
+        }
+    }
+
+    // AdSense Integration
+    initializeAds() {
+        try {
+            // Initialize AdSense ads after page load
+            if (typeof window.adsbygoogle !== 'undefined') {
+                // Push ads to queue for loading
+                const ads = document.querySelectorAll('.adsbygoogle');
+                ads.forEach(ad => {
+                    if (!ad.dataset.adsbygoogleStatus) {
+                        (window.adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                });
+            } else {
+                // AdSense script not loaded yet, try again in 1 second
+                setTimeout(() => this.initializeAds(), 1000);
+            }
+        } catch (error) {
+            console.log('AdSense initialization failed:', error);
+        }
+    }
+
+    refreshAds() {
+        // Refresh ads when switching views
+        try {
+            if (typeof window.adsbygoogle !== 'undefined') {
+                const ads = document.querySelectorAll('.adsbygoogle');
+                ads.forEach(ad => {
+                    // Only refresh ads that haven't been loaded yet
+                    if (!ad.dataset.adsbygoogleStatus) {
+                        (window.adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                });
+            }
+        } catch (error) {
+            console.log('Ad refresh failed:', error);
         }
     }
 
