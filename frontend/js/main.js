@@ -1423,6 +1423,12 @@ class ChroniCompanion {
     async loadDashboard() {
         console.log('🔄 Loading dashboard...');
         
+        // Ensure database is initialized
+        if (!this.db) {
+            console.log('🔄 Database not initialized, initializing...');
+            await this.initIndexedDB();
+        }
+        
         // Show loading state
         const chartContainer = document.getElementById('trendsChart').parentElement;
         const loadingDiv = document.getElementById('chart-loading');
