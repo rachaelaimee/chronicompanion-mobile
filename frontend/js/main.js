@@ -747,6 +747,10 @@ class ChroniCompanion {
             'poor': 4,
             'very_poor': 2
         };
+        
+        // Safety check for undefined/null values
+        if (!quality) return 0;
+        
         return qualityToNumber[quality] || 0;
     }
 
@@ -1628,19 +1632,13 @@ class ChroniCompanion {
             this.updateTotalEntriesCount(filteredEntries.length);
             
             // Update Quick Insights (FREE feature)
-            this.updateQuickInsights(filteredEntries);
+            try {
+                this.updateQuickInsights(filteredEntries);
+            } catch (error) {
+                console.warn('Quick Insights update failed:', error);
+            }
             
-            // Manual test - force update one average to confirm DOM targeting works
-            setTimeout(() => {
-                console.log('🧪 TEST: Manual average update test');
-                document.getElementById('avg-mood').textContent = '7.5';
-                document.getElementById('avg-energy').textContent = '6.2';
-                document.getElementById('avg-pain').textContent = '4.8';
-                setTimeout(() => {
-                    console.log('🧪 TEST: Reverting to calculated values...');
-                    this.updateDashboardAverages(filteredEntries);
-                }, 2000);
-            }, 1000);
+            // Manual test removed - was interfering with real data display
             
         } catch (error) {
             console.error('Dashboard loading error:', error);
@@ -1944,6 +1942,12 @@ class ChroniCompanion {
     updateQuickInsights(entries) {
         const container = document.getElementById('insights-container');
         
+        // Safety check - if container doesn't exist, skip this function
+        if (!container) {
+            console.log('⚠️ insights-container not found, skipping Quick Insights update');
+            return;
+        }
+        
         if (entries.length === 0) {
             container.innerHTML = `
                 <div class="text-sage-600">
@@ -1954,9 +1958,10 @@ class ChroniCompanion {
             return;
         }
         
-        const insights = this.generateBasicInsights(entries);
-        
-        container.innerHTML = insights.map(insight => `
+        try {
+            const insights = this.generateBasicInsights(entries);
+            
+            container.innerHTML = insights.map(insight => `
             <div class="flex items-start p-3 bg-gradient-to-r from-sage-50 to-emerald-50 rounded-lg border-l-4 border-sage-400">
                 <i class="${insight.icon} text-sage-600 mr-3 mt-1"></i>
                 <div>
@@ -1965,6 +1970,15 @@ class ChroniCompanion {
                 </div>
             </div>
         `).join('');
+        } catch (error) {
+            console.error('Error generating Quick Insights:', error);
+            container.innerHTML = `
+                <div class="text-sage-600">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Health insights will appear here as you track more entries.
+                </div>
+            `;
+        }
     }
     
     generateBasicInsights(entries) {
