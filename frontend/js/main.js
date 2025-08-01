@@ -940,20 +940,20 @@ class ChroniCompanion {
         container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Analyzing your patterns...</div>';
 
         try {
-            const response = await fetch(`${this.apiBase}/api/ai/predictions`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ entries: await this.loadEntriesFromIndexedDB() })
+            const response = await fetch(`${this.apiBase}/api/ai/predictive-insights?days=7`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
             });
 
             if (response.ok) {
-                const predictions = await response.json();
+                const result = await response.json();
                 container.innerHTML = `
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h4 class="font-medium text-blue-800 mb-2 flex items-center">
                             <i class="fas fa-crystal-ball mr-2"></i>Health Predictions
                         </h4>
-                        <p class="text-blue-700 text-sm">${predictions.prediction}</p>
+                        <p class="text-blue-700 text-sm">${result.insights?.prediction || result.message}</p>
+                        ${result.based_on_entries ? `<div class="text-blue-600 text-xs mt-2">Based on ${result.based_on_entries} recent entries</div>` : ''}
                     </div>
                 `;
             } else {
@@ -981,20 +981,42 @@ class ChroniCompanion {
         container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Finding personalized strategies...</div>';
 
         try {
-            const response = await fetch(`${this.apiBase}/api/ai/coping`, {
+            // Get recent entries to assess current symptoms
+            const recentEntries = await this.loadEntriesFromIndexedDB();
+            const latestEntry = recentEntries[0] || {};
+            
+            const currentSymptoms = {
+                mood: latestEntry.mood_overall || 5,
+                energy: latestEntry.energy_level || 5,
+                pain: latestEntry.pain_level || 0,
+                anxiety: latestEntry.anxiety_level || 0,
+                fatigue: latestEntry.fatigue_level || 0
+            };
+
+            const response = await fetch(`${this.apiBase}/api/ai/coping-strategies`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ entries: await this.loadEntriesFromIndexedDB() })
+                body: JSON.stringify({ current_symptoms: currentSymptoms })
             });
 
             if (response.ok) {
-                const strategies = await response.json();
+                const result = await response.json();
+                const strategies = result.strategies;
+                let strategyHtml = '';
+                
+                if (strategies.immediate_strategies) {
+                    strategyHtml += `<div class="mb-3"><strong>Immediate strategies:</strong><br>• ${strategies.immediate_strategies.join('<br>• ')}</div>`;
+                }
+                if (strategies.self_care) {
+                    strategyHtml += `<div class="mb-3"><strong>Self-care:</strong><br>• ${strategies.self_care.join('<br>• ')}</div>`;
+                }
+                
                 container.innerHTML = `
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                         <h4 class="font-medium text-green-800 mb-2 flex items-center">
                             <i class="fas fa-heart mr-2"></i>Personalized Coping Strategies
                         </h4>
-                        <p class="text-green-700 text-sm">${strategies.strategies}</p>
+                        <div class="text-green-700 text-sm">${strategyHtml || 'Take gentle breaths and be kind to yourself.'}</div>
                     </div>
                 `;
             } else {
@@ -1018,11 +1040,9 @@ class ChroniCompanion {
 
         // This is always free - crisis intervention should never be paywalled
         try {
-            const recentEntries = (await this.loadEntriesFromIndexedDB()).slice(0, 5);
             const response = await fetch(`${this.apiBase}/api/ai/crisis-check`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ entries: recentEntries })
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
             });
 
             if (response.ok) {
@@ -1066,35 +1086,34 @@ class ChroniCompanion {
         }
 
         const container = document.getElementById('coaching-container');
-        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Preparing your weekly coaching...</div>';
+        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Preparing your weekly reflection...</div>';
 
         try {
-            const weeklyEntries = (await this.loadEntriesFromIndexedDB()).slice(0, 7);
-            const response = await fetch(`${this.apiBase}/api/ai/weekly-coaching`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ entries: weeklyEntries })
+            const response = await fetch(`${this.apiBase}/api/ai/weekly-reflection`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
             });
 
             if (response.ok) {
-                const coaching = await response.json();
+                const result = await response.json();
                 container.innerHTML = `
                     <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
                         <h4 class="font-medium text-purple-800 mb-2 flex items-center">
-                            <i class="fas fa-graduation-cap mr-2"></i>Weekly Coaching Insights
+                            <i class="fas fa-graduation-cap mr-2"></i>Weekly Reflection
                         </h4>
-                        <p class="text-purple-700 text-sm">${coaching.coaching}</p>
+                        <p class="text-purple-700 text-sm">${result.reflection || result.message}</p>
+                        ${result.based_on_entries ? `<div class="text-purple-600 text-xs mt-2">Based on ${result.based_on_entries} entries</div>` : ''}
                     </div>
                 `;
             } else {
-                throw new Error('Coaching service unavailable');
+                throw new Error('Reflection service unavailable');
             }
         } catch (error) {
             container.innerHTML = `
                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <p class="text-yellow-700 text-sm">
                         <i class="fas fa-exclamation-triangle mr-2"></i>
-                        Weekly coaching temporarily unavailable. Please try again later.
+                        Weekly reflection temporarily unavailable. Please try again later.
                     </p>
                 </div>
             `;
