@@ -1344,40 +1344,12 @@ class ChroniCompanion {
         if (!entries || entries.length === 0) return 0;
         const values = entries.map(entry => parseFloat(entry[field])).filter(val => !isNaN(val));
         return values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : 0;
-                                <strong>Suggestions:</strong> ${insights.suggestions.join(', ')}
-                            </div>
-                        ` : ''}
-                        ${result.based_on_entries ? `<div class="text-blue-600 text-xs mt-2">Based on ${result.based_on_entries} recent entries</div>` : ''}
-                        <div class="text-blue-500 text-xs mt-2">💾 Cached until next refresh (8hr intervals)</div>
-                    </div>
-                `;
-                
-                container.innerHTML = htmlContent;
-                
-                // Cache the response
-                this.setAICache('predictive-insights', htmlContent);
-            } else {
-                throw new Error('AI service unavailable');
-            }
-        } catch (error) {
-            container.innerHTML = `
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p class="text-yellow-700 text-sm">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        AI predictions temporarily unavailable. Please try again later.
-                    </p>
-                </div>
-            `;
-        }
     }
 
+    // 🎯 COPING STRATEGIES AI FUNCTION
     async loadCopingStrategies() {
-        // TEMPORARILY DISABLED: Remove paywall until Play Store integration is complete
-        // if (!this.isPremium) {
-        //     this.showPremiumModal();
-        //     return;
-        // }
-
+        console.log('🤖 DEBUG: loadCopingStrategies called');
+        
         const container = document.getElementById('coping-content');
         console.log('🔍 DEBUG: coping-content container found:', !!container);
         
@@ -1385,40 +1357,35 @@ class ChroniCompanion {
             console.error('❌ coping-content container not found!');
             return;
         }
+
+        // Get user's entries for analysis
+        const entries = await this.loadEntriesFromIndexedDB() || this.loadEntriesFromLocalStorage();
         
-        // Check for cached response first
-        const cachedResponse = this.getAICache('coping-strategies');
-        if (cachedResponse) {
-            console.log('✅ Using cached coping strategies');
-            container.innerHTML = cachedResponse;
+        if (entries.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-heart text-4xl mb-4"></i>
+                    <h4 class="font-medium mb-2">Start Your Wellness Journey</h4>
+                    <p class="text-sm">Add some health entries to get personalized coping strategies!</p>
+                    <button onclick="app.showView('entry-form')" class="mt-3 bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600">
+                        Add First Entry
+                    </button>
+                </div>`;
             return;
         }
-        
-        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Finding personalized strategies...</div>';
+
+        // Show loading
+        container.innerHTML = '<div class="text-center py-4"><i class="fas fa-heart fa-spin mr-2 text-purple-500"></i>Finding personalized strategies...</div>';
 
         try {
-            // Get recent entries to assess current symptoms
-            const recentEntries = await this.loadEntriesFromIndexedDB();
-            const latestEntry = recentEntries[0] || {};
-            
-            const currentSymptoms = {
-                mood: latestEntry.mood_overall || 5,
-                energy: latestEntry.energy_level || 5,
-                pain: latestEntry.pain_level || 0,
-                anxiety: latestEntry.anxiety_level || 0,
-                fatigue: latestEntry.fatigue_level || 0
-            };
-
+            // Try to call backend API for coping strategies
             const response = await fetch(`${this.apiBase}/api/ai/coping-strategies`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ current_symptoms: currentSymptoms })
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
             });
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('🔍 DEBUG: Coping strategies response:', result);
-                
                 const strategies = result.strategies || {};
                 let strategyHtml = '';
                 
@@ -1434,34 +1401,65 @@ class ChroniCompanion {
                 if (strategies.mood_support && strategies.mood_support.length > 0) {
                     strategyHtml += `<div class="mb-3"><strong>Mood support:</strong><br>• ${strategies.mood_support.join('<br>• ')}</div>`;
                 }
-                
-                const htmlContent = `
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <h4 class="font-medium text-green-800 mb-2 flex items-center">
+
+                container.innerHTML = `
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h4 class="font-medium text-purple-800 mb-2 flex items-center">
                             <i class="fas fa-heart mr-2"></i>Personalized Coping Strategies
                         </h4>
-                        <div class="text-green-700 text-sm">${strategyHtml || 'Take gentle breaths and be kind to yourself.'}</div>
-                        <div class="text-green-500 text-xs mt-2">💾 Cached until next refresh (8hr intervals)</div>
-                    </div>
-                `;
-                
-                container.innerHTML = htmlContent;
-                
-                // Cache the response
-                this.setAICache('coping-strategies', htmlContent);
+                        <div class="text-purple-700 text-sm">${strategyHtml || 'No specific strategies identified at this time.'}</div>
+                    </div>`;
             } else {
-                throw new Error('AI service unavailable');
+                throw new Error(`Server returned ${response.status}`);
             }
         } catch (error) {
+            console.log('🔄 Online AI failed, using offline strategies:', error.message);
+            
+            // Fallback to offline strategies
+            const offlineStrategies = this.generateOfflineCopingStrategies(entries);
             container.innerHTML = `
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p class="text-yellow-700 text-sm">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        Coping strategies temporarily unavailable. Please try again later.
-                    </p>
-                </div>
-            `;
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h4 class="font-medium text-purple-800 mb-2 flex items-center">
+                        <i class="fas fa-heart mr-2"></i>Personalized Coping Strategies
+                    </h4>
+                    <div class="text-purple-700 text-sm">${offlineStrategies}</div>
+                    <div class="text-xs text-purple-500 mt-3 flex items-center">
+                        <i class="fas fa-offline mr-1"></i>
+                        <span>Offline strategies • Based on your ${entries.length} health entries</span>
+                    </div>
+                </div>`;
         }
+    }
+
+    // Generate offline coping strategies
+    generateOfflineCopingStrategies(entries) {
+        const recentEntries = entries.slice(-7); // Last 7 entries
+        const avgMood = this.calculateAverage(recentEntries, 'mood');
+        const avgEnergy = this.calculateAverage(recentEntries, 'energy');
+        const avgPain = this.calculateAverage(recentEntries, 'pain');
+        
+        let strategies = [];
+        
+        if (avgMood < 5) {
+            strategies.push('Practice gentle mindfulness or meditation for 5-10 minutes daily');
+            strategies.push('Consider reaching out to a trusted friend or family member');
+        }
+        
+        if (avgEnergy < 5) {
+            strategies.push('Prioritize 7-9 hours of sleep and maintain a consistent sleep schedule');
+            strategies.push('Take short 10-15 minute walks when possible');
+        }
+        
+        if (avgPain > 5) {
+            strategies.push('Apply heat or cold therapy to affected areas');
+            strategies.push('Practice gentle stretches or breathing exercises');
+        }
+        
+        // Always include general wellness strategies
+        strategies.push('Stay hydrated and eat nourishing foods');
+        strategies.push('Set small, achievable goals for the day');
+        
+        return '• ' + strategies.join('<br>• ');
     }
 
     async performCrisisCheck() {
