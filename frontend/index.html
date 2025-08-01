@@ -634,6 +634,7 @@
                                 <option value="mood">Mood Only</option>
                                 <option value="energy">Energy Only</option>
                                 <option value="pain">Pain Only</option>
+                                <option value="sleep">Sleep Quality Only</option>
                                 <option value="anxiety">Anxiety Only</option>
                                 <option value="fatigue">Fatigue Only</option>
                             </select>
@@ -797,15 +798,16 @@
                     </div>
 
                     <!-- AI Status Indicator -->
-                    <div class="mt-6 pt-4 border-t border-purple-200">
+                    <div id="ai-status-indicator" class="mt-6 pt-4 border-t border-purple-200">
+                        <!-- This will be populated dynamically by JavaScript -->
                         <div class="flex items-center justify-between text-sm">
-                            <div class="flex items-center text-purple-600">
-                                <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                                <span>AI Health Companion Active</span>
+                            <div class="flex items-center text-gray-500">
+                                <div class="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+                                <span>Loading AI status...</span>
                             </div>
-                            <div class="text-purple-500">
+                            <div class="text-gray-400">
                                 <i class="fas fa-robot mr-1"></i>
-                                Powered by compassionate AI
+                                Compassionate AI
                             </div>
                         </div>
                     </div>

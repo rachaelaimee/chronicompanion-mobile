@@ -28,6 +28,11 @@ class ChroniCompanion {
         this.checkPremiumStatus(); // Check premium subscription status
         this.updateAIButtonStates(); // Update AI button states based on premium status
         this.initializeAds(); // Initialize AdSense ads
+        
+        // Initialize Quick Insights with any existing entries
+        setTimeout(() => {
+            this.initializeQuickInsights();
+        }, 1000);
     }
 
     async checkBackendConnection() {
@@ -301,6 +306,19 @@ class ChroniCompanion {
 
         document.getElementById('get-coaching-btn').addEventListener('click', () => {
             this.loadWeeklyCoaching();
+        });
+        
+        // Dashboard dropdown change handlers
+        document.getElementById('chart-period')?.addEventListener('change', () => {
+            if (this.currentView === 'dashboard') {
+                this.loadDashboard();
+            }
+        });
+        
+        document.getElementById('chart-metric')?.addEventListener('change', () => {
+            if (this.currentView === 'dashboard') {
+                this.loadDashboard();
+            }
         });
     }
 
@@ -1281,6 +1299,12 @@ class ChroniCompanion {
         setTimeout(() => {
             console.log('🔥 DEBUG: Post-trial verification check...');
             this.checkPremiumStatus();
+            
+            // Also force update the AI button states immediately
+            this.updateAIButtonStates();
+            
+            // Test if AI functions work now
+            console.log('🔥 DEBUG: Testing AI access - isPremium:', this.isPremium);
         }, 100);
     }
 
@@ -1373,6 +1397,77 @@ class ChroniCompanion {
             crisisBtn.innerHTML = '<i class="fas fa-heart mr-1 text-xs"></i>Check In (Free)';
             crisisBtn.title = 'Always free - your safety matters';
         }
+        
+        // Update AI status indicator
+        this.updateAIStatusIndicator();
+    }
+    
+    updateAIStatusIndicator() {
+        const indicator = document.getElementById('ai-status-indicator');
+        if (!indicator) return;
+        
+        let statusHTML;
+        
+        if (this.isPremium) {
+            // Premium active - AI available
+            statusHTML = `
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center text-green-600">
+                        <div class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                        <span class="font-medium">AI Health Companion Active</span>
+                    </div>
+                    <div class="text-purple-500">
+                        <i class="fas fa-robot mr-1"></i>
+                        Premium unlocked
+                    </div>
+                </div>
+            `;
+        } else {
+            // Free user - show upgrade path
+            statusHTML = `
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center text-orange-600">
+                        <div class="w-2 h-2 bg-orange-400 rounded-full mr-2"></div>
+                        <span>AI Companion Locked</span>
+                    </div>
+                    <button onclick="app.showPremiumModal()" class="text-purple-600 hover:text-purple-800 font-medium flex items-center">
+                        <i class="fas fa-unlock mr-1"></i>
+                        Get 7-Day Free Trial
+                    </button>
+                </div>
+                <div class="mt-2 text-xs text-gray-600">
+                    Unlock AI predictions, coping strategies, and personalized coaching
+                </div>
+            `;
+        }
+        
+        indicator.innerHTML = statusHTML;
+    }
+    
+    async initializeQuickInsights() {
+        console.log('🔍 Initializing Quick Insights...');
+        try {
+            // Load entries for Quick Insights
+            const entries = await this.loadEntriesFromIndexedDB();
+            console.log('🔍 Loaded', entries.length, 'entries for Quick Insights');
+            
+            if (entries.length === 0) {
+                // Try localStorage fallback
+                const localEntries = this.loadEntriesFromLocalStorage();
+                console.log('🔍 Fallback: Found', localEntries.length, 'entries in localStorage');
+                
+                if (localEntries.length > 0) {
+                    this.updateQuickInsights(localEntries);
+                } else {
+                    this.updateQuickInsights([]);
+                }
+            } else {
+                this.updateQuickInsights(entries);
+            }
+        } catch (error) {
+            console.error('Failed to initialize Quick Insights:', error);
+            this.updateQuickInsights([]);
+        }
     }
 
     checkPremiumStatus() {
@@ -1413,6 +1508,10 @@ class ChroniCompanion {
         console.log('🔍 DEBUG: Final isPremium status:', this.isPremium);
         console.log('🔍 DEBUG: localStorage premium_trial_start:', localStorage.getItem('premium_trial_start'));
         console.log('🔍 DEBUG: localStorage premium_status:', localStorage.getItem('premium_status'));
+        
+        // Update UI elements when premium status changes
+        this.updateAIButtonStates();
+        this.updateAIStatusIndicator();
     }
     
     // DEBUG: Helper function to check premium status from console
@@ -1728,9 +1827,17 @@ class ChroniCompanion {
         }
         
         if (metric === 'all' || metric === 'sleep') {
+            const sleepData = entries.map(entry => {
+                const sleepValue = this.convertSleepQualityToNumber(entry.sleep_quality);
+                console.log(`🛌 DEBUG: Sleep quality "${entry.sleep_quality}" -> ${sleepValue}`);
+                return sleepValue;
+            });
+            
+            console.log('🛌 DEBUG: Sleep data array:', sleepData);
+            
             datasets.push({
                 label: 'Sleep Quality',
-                data: entries.map(entry => this.convertSleepQualityToNumber(entry.sleep_quality)),
+                data: sleepData,
                 borderColor: 'rgb(147, 51, 234)',
                 backgroundColor: 'rgba(147, 51, 234, 0.1)',
                 tension: 0.4
