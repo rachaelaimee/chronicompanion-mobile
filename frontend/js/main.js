@@ -1454,6 +1454,9 @@ class ChroniCompanion {
             // Create chart
             this.createHealthTrendsChart(filteredEntries, metric);
             
+            // Calculate and display averages
+            this.updateDashboardAverages(filteredEntries);
+            
         } catch (error) {
             console.error('Dashboard loading error:', error);
             this.showDashboardError();
@@ -1591,6 +1594,90 @@ class ChroniCompanion {
         });
         
         console.log('✅ Dashboard chart created successfully');
+    }
+    
+    updateDashboardAverages(entries) {
+        console.log('📊 Updating dashboard averages with', entries.length, 'entries');
+        
+        if (entries.length === 0) {
+            this.clearAverages();
+            return;
+        }
+        
+        // Calculate averages
+        const totals = entries.reduce((acc, entry) => {
+            acc.mood += parseFloat(entry.mood_overall) || 0;
+            acc.energy += parseFloat(entry.energy_level) || 0;
+            acc.pain += parseFloat(entry.pain_level) || 0;
+            acc.sleep += parseFloat(entry.sleep_quality) || 0;
+            acc.anxiety += parseFloat(entry.anxiety_level) || 0;
+            acc.fatigue += parseFloat(entry.fatigue_level) || 0;
+            return acc;
+        }, { mood: 0, energy: 0, pain: 0, sleep: 0, anxiety: 0, fatigue: 0 });
+        
+        const averages = {
+            mood: (totals.mood / entries.length).toFixed(1),
+            energy: (totals.energy / entries.length).toFixed(1),
+            pain: (totals.pain / entries.length).toFixed(1),
+            sleep: (totals.sleep / entries.length).toFixed(1),
+            anxiety: (totals.anxiety / entries.length).toFixed(1),
+            fatigue: (totals.fatigue / entries.length).toFixed(1)
+        };
+        
+        console.log('📊 Calculated averages:', averages);
+        
+        // Update DOM elements - look for average containers
+        this.updateAverageDisplay('mood', averages.mood, '😊');
+        this.updateAverageDisplay('energy', averages.energy, '🔋');
+        this.updateAverageDisplay('pain', averages.pain, '🌡️');
+        this.updateAverageDisplay('sleep', averages.sleep, '😴');
+        this.updateAverageDisplay('anxiety', averages.anxiety, '😰');
+        this.updateAverageDisplay('fatigue', averages.fatigue, '😴');
+    }
+    
+    updateAverageDisplay(metric, value, emoji) {
+        // Try to find average display elements by various possible IDs/classes
+        const possibleSelectors = [
+            `#average-${metric}`,
+            `#${metric}-average`,
+            `.average-${metric}`,
+            `[data-metric="${metric}"]`
+        ];
+        
+        let element = null;
+        for (const selector of possibleSelectors) {
+            element = document.querySelector(selector);
+            if (element) break;
+        }
+        
+        // If no specific element found, try to find by text content
+        if (!element) {
+            const averageElements = document.querySelectorAll('.dashboard-average, .metric-average');
+            for (const el of averageElements) {
+                if (el.textContent.toLowerCase().includes(metric.toLowerCase())) {
+                    element = el;
+                    break;
+                }
+            }
+        }
+        
+        if (element) {
+            // Update the value
+            const valueElement = element.querySelector('.value, .average-value') || element;
+            if (valueElement) {
+                valueElement.textContent = `${value}/10 ${emoji}`;
+            }
+            console.log(`✅ Updated ${metric} average: ${value}`);
+        } else {
+            console.log(`⚠️ Could not find element for ${metric} average`);
+        }
+    }
+    
+    clearAverages() {
+        const averageElements = document.querySelectorAll('.dashboard-average .value, .metric-average .value');
+        averageElements.forEach(el => {
+            el.textContent = '--/10';
+        });
     }
 
     exportDashboard() {
