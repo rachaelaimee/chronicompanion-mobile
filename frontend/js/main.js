@@ -1203,12 +1203,26 @@ class ChroniCompanion {
         
         document.body.appendChild(modal);
         modal.paywall = true;
+        
+        // Add click outside to close functionality
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.closeSoftPaywall();
+            }
+        });
     }
     
     closeSoftPaywall() {
-        const modal = document.querySelector('[class*="fixed inset-0"]');
-        if (modal && modal.paywall) {
+        // Try multiple methods to find and remove the modal
+        const modal = document.querySelector('[class*="fixed inset-0"]') || 
+                     document.querySelector('.fixed.inset-0') ||
+                     document.querySelector('div[class*="bg-black bg-opacity-50"]');
+        
+        if (modal) {
+            console.log('🔧 Removing paywall modal');
             modal.remove();
+        } else {
+            console.log('⚠️ No paywall modal found to remove');
         }
     }
     
@@ -1821,6 +1835,9 @@ class ChroniCompanion {
         console.log('🔥 DEBUG: Set isPremium to:', this.isPremium);
 
         this.showSuccessMessage('🎉 7-day premium trial activated! All AI features now unlocked!');
+        
+        // Close any paywall modals immediately
+        this.closeSoftPaywall();
         
         // Force UI updates immediately
         setTimeout(() => {
