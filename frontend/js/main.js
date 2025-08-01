@@ -1649,6 +1649,100 @@ class ChroniCompanion {
         return 'Check console for results';
     }
 
+    // AI Debug Panel Functions
+    async toggleAIDebug() {
+        const panel = document.getElementById('ai-debug-panel');
+        if (panel.classList.contains('hidden')) {
+            panel.classList.remove('hidden');
+            await this.loadAIDebugInfo();
+        } else {
+            panel.classList.add('hidden');
+        }
+    }
+
+    async loadAIDebugInfo() {
+        const content = document.getElementById('ai-debug-content');
+        content.innerHTML = '<div class="text-blue-600">Loading debug info...</div>';
+
+        try {
+            // Get backend AI debug status
+            const response = await fetch(`${this.apiBase}/api/ai/debug`);
+            const debugInfo = await response.json();
+
+            // Get frontend AI status
+            const frontendInfo = {
+                isPremium: this.isPremium,
+                premiumStatus: localStorage.getItem('premium_status'),
+                trialStart: localStorage.getItem('premium_trial_start'),
+                cacheKeys: Object.keys(localStorage).filter(key => key.startsWith('ai_cache_'))
+            };
+
+            content.innerHTML = `
+                <div class="space-y-2">
+                    <div><strong>Backend Status:</strong></div>
+                    <div class="ml-2">
+                        <div>🔑 OpenAI Enabled: <span class="${debugInfo.openai_enabled ? 'text-green-600' : 'text-red-600'}">${debugInfo.openai_enabled}</span></div>
+                        <div>🗝️ Has API Key: <span class="${debugInfo.has_api_key ? 'text-green-600' : 'text-red-600'}">${debugInfo.has_api_key}</span></div>
+                        <div>🎯 Model: ${debugInfo.model || 'None'}</div>
+                        <div>⚡ Client Ready: <span class="${debugInfo.client_initialized ? 'text-green-600' : 'text-red-600'}">${debugInfo.client_initialized}</span></div>
+                        ${debugInfo.api_key_preview ? `<div>🔐 Key Preview: ${debugInfo.api_key_preview}</div>` : ''}
+                    </div>
+                    
+                    <div class="pt-2"><strong>Frontend Status:</strong></div>
+                    <div class="ml-2">
+                        <div>💎 Premium Status: <span class="${frontendInfo.isPremium ? 'text-green-600' : 'text-orange-600'}">${frontendInfo.isPremium}</span></div>
+                        <div>📅 Trial Start: ${frontendInfo.trialStart || 'None'}</div>
+                        <div>💾 Cache Entries: ${frontendInfo.cacheKeys.length}</div>
+                    </div>
+                    
+                    <div class="pt-2"><strong>Last Updated:</strong> ${new Date().toLocaleTimeString()}</div>
+                </div>
+            `;
+        } catch (error) {
+            content.innerHTML = `<div class="text-red-600">Error loading debug info: ${error.message}</div>`;
+        }
+    }
+
+    async testOpenAIConnection() {
+        const content = document.getElementById('ai-debug-content');
+        const originalContent = content.innerHTML;
+        content.innerHTML = '<div class="text-blue-600">🧪 Testing OpenAI connection...</div>';
+
+        try {
+            // Test with a simple predictive insights call
+            const response = await fetch(`${this.apiBase}/api/ai/predictive-insights?days=7`);
+            const result = await response.json();
+            
+            content.innerHTML = `
+                ${originalContent}
+                <div class="pt-2 border-t border-gray-300">
+                    <strong>🧪 OpenAI Test Result:</strong>
+                    <div class="ml-2 mt-1 p-2 bg-white rounded text-xs">
+                        <div>Status: <span class="${response.ok ? 'text-green-600' : 'text-red-600'}">${response.status}</span></div>
+                        <div>Response: ${JSON.stringify(result, null, 2)}</div>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            content.innerHTML = `
+                ${originalContent}
+                <div class="pt-2 border-t border-gray-300">
+                    <strong>🧪 OpenAI Test Failed:</strong>
+                    <div class="ml-2 mt-1 p-2 bg-red-50 rounded text-xs text-red-700">
+                        ${error.message}
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    clearAICache() {
+        const cacheKeys = Object.keys(localStorage).filter(key => key.startsWith('ai_cache_'));
+        cacheKeys.forEach(key => localStorage.removeItem(key));
+        this.showInfoMessage(`Cleared ${cacheKeys.length} AI cache entries`);
+        this.loadAIDebugInfo(); // Refresh debug info
+    }
+
     showMobileDownloadModal(url, filename, blob) {
         // Create mobile download modal
         const modal = document.createElement('div');

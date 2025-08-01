@@ -65,6 +65,18 @@ async def health_check():
         "database": "connected"
     }
 
+@app.get("/api/ai/debug")
+async def ai_debug_status():
+    """Debug endpoint to check OpenAI service status"""
+    return {
+        "openai_enabled": openai_service.enabled,
+        "has_api_key": bool(os.getenv("OPENAI_API_KEY")),
+        "api_key_preview": f"{os.getenv('OPENAI_API_KEY', '')[:10]}..." if os.getenv('OPENAI_API_KEY') else None,
+        "model": openai_service.model,
+        "client_initialized": openai_service.client is not None,
+        "timestamp": datetime.now().isoformat()
+    }
+
 # AI Integration Endpoints
 @app.post("/api/ai/feedback", response_model=AIFeedbackResponse)
 async def generate_ai_feedback(

@@ -225,8 +225,10 @@ class OpenAIService:
     def generate_predictive_insights(self, entries_data: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """Generate predictive insights based on patterns"""
         if not self.enabled:
+            print("🚫 DEBUG: OpenAI service disabled - no API key")
             return None
             
+        print(f"🤖 DEBUG: Generating predictive insights for {len(entries_data)} entries")
         try:
             # Analyze recent patterns
             recent_entries = entries_data[-7:] if len(entries_data) >= 7 else entries_data
@@ -270,14 +272,19 @@ Be gentle, trauma-informed, and focus on empowerment rather than alarm."""
                 }
             
         except Exception as e:
-            print(f"Error generating predictive insights: {e}")
+            print(f"🚨 ERROR generating predictive insights: {type(e).__name__}: {e}")
+            print(f"🚨 Full error details: {str(e)}")
+            import traceback
+            print(f"🚨 Traceback: {traceback.format_exc()}")
             return None
 
     def generate_coping_strategies(self, current_symptoms: Dict[str, Any], entries_data: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """Generate personalized coping strategy suggestions"""
         if not self.enabled:
+            print("🚫 DEBUG: OpenAI service disabled for coping strategies")
             return None
             
+        print(f"🤖 DEBUG: Generating coping strategies for symptoms: {current_symptoms}")
         try:
             # Build context about current state
             current_context = f"""
@@ -319,12 +326,16 @@ Focus on evidence-based, gentle, and accessible strategies. Consider spoon theor
                 return {"immediate_strategies": ["Take gentle, deep breaths", "Rest in a comfortable position", "Reach out to a trusted friend"]}
                 
         except Exception as e:
-            print(f"Error generating coping strategies: {e}")
+            print(f"🚨 ERROR generating coping strategies: {type(e).__name__}: {e}")
+            print(f"🚨 Full error details: {str(e)}")
+            import traceback
+            print(f"🚨 Traceback: {traceback.format_exc()}")
             return None
 
     def detect_crisis_patterns(self, entries_data: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """Detect concerning patterns and provide gentle support"""
         if not self.enabled:
+            print("🚫 DEBUG: OpenAI service disabled for crisis patterns")
             return None
             
         try:
