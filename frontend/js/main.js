@@ -7,6 +7,12 @@ class ChroniCompanion {
         this.isOnline = navigator.onLine;
         this.isMobile = this.detectMobile();
         this.currentChart = null; // Chart.js instance for dashboard
+        
+        // Authentication properties
+        this.currentUser = null;
+        this.authInitialized = false;
+        this.authListeners = [];
+        
         this.init();
     }
 
@@ -17,6 +23,7 @@ class ChroniCompanion {
 
     async init() {
         await this.initIndexedDB();
+        await this.initializeAuthentication(); // Initialize Firebase Authentication
         this.setupEventListeners();
         this.setupMobileOptimizations();
         this.updateCurrentDate();
@@ -3062,6 +3069,461 @@ class ChroniCompanion {
             reader.onerror = reject;
             reader.readAsDataURL(blob);
         });
+    }
+
+    // ========================================
+    // 🔐 AUTHENTICATION METHODS
+    // ========================================
+
+    /**
+     * Initialize Firebase Authentication
+     */
+    async initializeAuthentication() {
+        try {
+            console.log('🔐 Initializing Firebase Authentication...');
+
+            // Import Firebase Authentication dynamically
+            const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+            this.FirebaseAuth = FirebaseAuthentication;
+
+            // Listen for authentication state changes
+            await this.setupAuthStateListener();
+
+            // Check if user is already signed in
+            await this.checkCurrentUser();
+
+            this.authInitialized = true;
+            console.log('✅ Firebase Authentication initialized successfully');
+
+        } catch (error) {
+            console.error('❌ Failed to initialize Firebase Authentication:', error);
+            this.authInitialized = false;
+        }
+    }
+
+    /**
+     * Set up authentication state listener
+     */
+    async setupAuthStateListener() {
+        try {
+            const listener = await this.FirebaseAuth.addListener('authStateChange', (change) => {
+                console.log('🔐 Auth state changed:', change);
+                this.handleAuthStateChange(change);
+            });
+            this.authListeners.push(listener);
+        } catch (error) {
+            console.error('❌ Failed to set up auth state listener:', error);
+        }
+    }
+
+    /**
+     * Handle authentication state changes
+     */
+    async handleAuthStateChange(change) {
+        console.log('🔐 Handling auth state change:', change);
+        
+        if (change.user) {
+            this.currentUser = change.user;
+            await this.onUserSignedIn(change.user);
+        } else {
+            this.currentUser = null;
+            await this.onUserSignedOut();
+        }
+        
+        this.updateAuthUI();
+    }
+
+    /**
+     * Check if user is currently signed in
+     */
+    async checkCurrentUser() {
+        try {
+            const result = await this.FirebaseAuth.getCurrentUser();
+            if (result.user) {
+                console.log('🔐 User already signed in:', result.user);
+                this.currentUser = result.user;
+                await this.onUserSignedIn(result.user);
+            } else {
+                console.log('🔐 No user currently signed in');
+                this.currentUser = null;
+            }
+        } catch (error) {
+            console.error('❌ Failed to check current user:', error);
+            this.currentUser = null;
+        }
+    }
+
+    /**
+     * Sign in with Google
+     */
+    async signInWithGoogle() {
+        try {
+            console.log('🔐 Starting Google sign-in...');
+            this.showMessage('Signing in with Google...', 'info');
+
+            const result = await this.FirebaseAuth.signInWithGoogle();
+            console.log('✅ Google sign-in successful:', result);
+            
+            this.showMessage(`Welcome, ${result.user.displayName}!`, 'success');
+            return result;
+
+        } catch (error) {
+            console.error('❌ Google sign-in failed:', error);
+            this.showMessage('Sign-in failed. Please try again.', 'error');
+            throw error;
+        }
+    }
+
+    /**
+     * Sign out the current user
+     */
+    async signOut() {
+        try {
+            console.log('🔐 Signing out user...');
+            this.showMessage('Signing out...', 'info');
+
+            await this.FirebaseAuth.signOut();
+            console.log('✅ User signed out successfully');
+            
+            this.showMessage('Signed out successfully', 'success');
+
+        } catch (error) {
+            console.error('❌ Sign-out failed:', error);
+            this.showMessage('Sign-out failed. Please try again.', 'error');
+            throw error;
+        }
+    }
+
+    /**
+     * Handle user signed in
+     */
+    async onUserSignedIn(user) {
+        console.log('🔐 User signed in:', user);
+        
+        try {
+            // Store user info in localStorage for persistence
+            localStorage.setItem('chroni_user', JSON.stringify({
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoUrl: user.photoUrl,
+                signInTime: Date.now()
+            }));
+
+            // Get ID token for backend authentication
+            const tokenResult = await this.FirebaseAuth.getIdToken();
+            if (tokenResult.token) {
+                localStorage.setItem('chroni_auth_token', tokenResult.token);
+                console.log('🔐 Auth token stored');
+            }
+
+            // Sync user data with your backend
+            await this.syncUserWithBackend(user);
+
+            // Load user-specific data
+            await this.loadUserData();
+
+        } catch (error) {
+            console.error('❌ Error handling user sign-in:', error);
+        }
+    }
+
+    /**
+     * Handle user signed out
+     */
+    async onUserSignedOut() {
+        console.log('🔐 User signed out');
+        
+        try {
+            // Clear stored user data
+            localStorage.removeItem('chroni_user');
+            localStorage.removeItem('chroni_auth_token');
+            localStorage.removeItem('premium_status');
+            localStorage.removeItem('premium_trial_start');
+
+            // Clear entries (optional - you might want to keep them)
+            // localStorage.removeItem('chroni_entries');
+
+            // Reset premium status
+            this.isPremium = false;
+
+            // Redirect to sign-in if needed
+            // this.showSignInRequired();
+
+        } catch (error) {
+            console.error('❌ Error handling user sign-out:', error);
+        }
+    }
+
+    /**
+     * Sync user with your backend
+     */
+    async syncUserWithBackend(user) {
+        try {
+            const authToken = localStorage.getItem('chroni_auth_token');
+            if (!authToken) {
+                console.warn('⚠️ No auth token available for backend sync');
+                return;
+            }
+
+            const userData = {
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoUrl: user.photoUrl
+            };
+
+            // Call your backend API to create/update user
+            const response = await fetch(`${this.apiBase}/api/users/sync`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ User synced with backend:', result);
+            } else {
+                console.warn('⚠️ Backend user sync failed:', response.status);
+            }
+
+        } catch (error) {
+            console.error('❌ Failed to sync user with backend:', error);
+            // Don't throw - this shouldn't block the user experience
+        }
+    }
+
+    /**
+     * Load user-specific data
+     */
+    async loadUserData() {
+        try {
+            // Load user's entries from backend if available
+            await this.loadEntriesFromBackend();
+            
+            // Load premium status
+            await this.checkPremiumStatus();
+            
+            // Update UI
+            this.updateAuthUI();
+            this.updateAIButtonStates();
+
+        } catch (error) {
+            console.error('❌ Failed to load user data:', error);
+        }
+    }
+
+    /**
+     * Load entries from backend with authentication
+     */
+    async loadEntriesFromBackend() {
+        try {
+            const authToken = localStorage.getItem('chroni_auth_token');
+            if (!authToken) {
+                console.log('📥 No auth token, loading entries from local storage');
+                return;
+            }
+
+            const response = await fetch(`${this.apiBase}/api/entries`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+
+            if (response.ok) {
+                const entries = await response.json();
+                console.log('📥 Loaded entries from backend:', entries.length);
+                
+                // Merge with local entries
+                await this.mergeBackendEntries(entries);
+            }
+
+        } catch (error) {
+            console.error('❌ Failed to load entries from backend:', error);
+            // Fallback to local entries
+            this.loadEntries();
+        }
+    }
+
+    /**
+     * Merge backend entries with local entries
+     */
+    async mergeBackendEntries(backendEntries) {
+        try {
+            // Load local entries
+            const localEntries = this.loadEntriesFromLocalStorage();
+            
+            // Create a map of backend entries by ID
+            const backendMap = new Map(backendEntries.map(entry => [entry.id, entry]));
+            
+            // Merge entries (backend takes precedence)
+            const mergedEntries = [];
+            
+            // Add all backend entries
+            mergedEntries.push(...backendEntries);
+            
+            // Add local entries that don't exist in backend
+            for (const localEntry of localEntries) {
+                if (!backendMap.has(localEntry.id)) {
+                    mergedEntries.push(localEntry);
+                    // Sync to backend
+                    await this.syncEntryToBackend(localEntry);
+                }
+            }
+            
+            // Sort by date
+            mergedEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            // Store merged entries
+            this.entries = mergedEntries;
+            localStorage.setItem('chroni_entries', JSON.stringify(mergedEntries));
+            
+            console.log('✅ Merged entries:', mergedEntries.length);
+
+        } catch (error) {
+            console.error('❌ Failed to merge backend entries:', error);
+        }
+    }
+
+    /**
+     * Sync entry to backend
+     */
+    async syncEntryToBackend(entry) {
+        try {
+            const authToken = localStorage.getItem('chroni_auth_token');
+            if (!authToken) return;
+
+            const response = await fetch(`${this.apiBase}/api/entries`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(entry)
+            });
+
+            if (response.ok) {
+                console.log('✅ Entry synced to backend:', entry.id);
+            }
+
+        } catch (error) {
+            console.error('❌ Failed to sync entry to backend:', error);
+        }
+    }
+
+    /**
+     * Update authentication UI
+     */
+    updateAuthUI() {
+        try {
+            // Update sign-in/sign-out buttons
+            const signInBtn = document.getElementById('sign-in-btn');
+            const signOutBtn = document.getElementById('sign-out-btn');
+            const userInfo = document.getElementById('user-info');
+
+            if (this.currentUser) {
+                // User is signed in
+                if (signInBtn) signInBtn.style.display = 'none';
+                if (signOutBtn) signOutBtn.style.display = 'block';
+                
+                if (userInfo) {
+                    userInfo.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <img src="${this.currentUser.photoUrl || '/frontend/icons/icon-192x192.png'}" 
+                                 alt="Profile" class="w-8 h-8 rounded-full">
+                            <div>
+                                <div class="font-medium text-gray-800">${this.currentUser.displayName || 'User'}</div>
+                                <div class="text-sm text-gray-500">${this.currentUser.email}</div>
+                            </div>
+                        </div>
+                    `;
+                    userInfo.style.display = 'block';
+                }
+            } else {
+                // User is signed out
+                if (signInBtn) signInBtn.style.display = 'block';
+                if (signOutBtn) signOutBtn.style.display = 'none';
+                if (userInfo) userInfo.style.display = 'none';
+            }
+
+        } catch (error) {
+            console.error('❌ Failed to update auth UI:', error);
+        }
+    }
+
+    /**
+     * Show sign-in required message
+     */
+    showSignInRequired() {
+        const message = `
+            <div class="text-center p-6 bg-blue-50 rounded-lg">
+                <div class="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-user-lock text-blue-600 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Sign In Required</h3>
+                <p class="text-gray-600 mb-4">Please sign in to access your health data and premium features.</p>
+                <button onclick="app.signInWithGoogle()" 
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fab fa-google mr-2"></i>Sign In with Google
+                </button>
+            </div>
+        `;
+        
+        // Show in a modal or replace main content
+        this.showModal('Sign In Required', message);
+    }
+
+    /**
+     * Get current user's auth token
+     */
+    async getAuthToken() {
+        try {
+            if (!this.currentUser) {
+                return null;
+            }
+
+            const result = await this.FirebaseAuth.getIdToken({ forceRefresh: true });
+            if (result.token) {
+                localStorage.setItem('chroni_auth_token', result.token);
+                return result.token;
+            }
+
+            return null;
+
+        } catch (error) {
+            console.error('❌ Failed to get auth token:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Check if user is authenticated
+     */
+    isAuthenticated() {
+        return this.currentUser !== null;
+    }
+
+    /**
+     * Clean up authentication listeners
+     */
+    async destroyAuth() {
+        try {
+            // Remove all listeners
+            for (const listener of this.authListeners) {
+                if (listener && listener.remove) {
+                    await listener.remove();
+                }
+            }
+            this.authListeners = [];
+            
+            console.log('🔐 Authentication cleaned up');
+
+        } catch (error) {
+            console.error('❌ Failed to clean up authentication:', error);
+        }
     }
 }
 

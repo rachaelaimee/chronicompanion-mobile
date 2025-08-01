@@ -19,10 +19,12 @@
   "homepage": "https://github.com/Rachaelaimee/chronicompanion-mobile#readme",
   "dependencies": {
     "@capacitor-community/file-opener": "^7.0.1",
+    "@capacitor-firebase/authentication": "^7.3.0",
     "@capacitor/android": "^7.4.2",
     "@capacitor/cli": "^7.4.2",
     "@capacitor/core": "^7.4.2",
     "@capacitor/filesystem": "^7.1.3",
-    "@capacitor/share": "^7.0.1"
+    "@capacitor/share": "^7.0.1",
+    "firebase": "^11.10.0"
   }
 }

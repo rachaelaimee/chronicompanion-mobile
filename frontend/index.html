@@ -265,6 +265,34 @@
             <div class="mt-4 text-sm text-sage-500" id="current-date"></div>
         </header>
 
+        <!-- Authentication Section -->
+        <div class="mb-6">
+            <!-- User Authentication Controls -->
+            <div class="flex justify-center items-center space-x-4 mb-4">
+                <!-- Sign In Button -->
+                <button id="sign-in-btn" 
+                        onclick="app.signInWithGoogle()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                    <i class="fab fa-google mr-2"></i>Sign In with Google
+                </button>
+                
+                <!-- Sign Out Button -->
+                <button id="sign-out-btn" 
+                        onclick="app.signOut()"
+                        style="display: none;"
+                        class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Sign Out
+                </button>
+            </div>
+            
+            <!-- User Info Display -->
+            <div id="user-info" 
+                 style="display: none;"
+                 class="flex justify-center">
+                <!-- User info will be populated by JavaScript -->
+            </div>
+        </div>
+
         <!-- Navigation -->
         <nav class="mb-8">
             <div class="flex justify-center space-x-4 flex-wrap">
