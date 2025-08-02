@@ -23,9 +23,13 @@ _Last Updated: August 2025_
 - **URL**: `https://chronicompanion-mobile-production.up.railway.app`
 - **Purpose**: Main API server, database, AI endpoints
 - **Technology**: Python FastAPI + SQLite
-- **Environment Variables**:
-  - `OPENAI_API_KEY`: For AI health insights
+- **Environment Variables** (⚠️ CRITICAL - Set in Railway Dashboard → Shared Variables):
+  - `OPENAI_API_KEY`: Your OpenAI API key (starts with `sk-...`)
   - Database automatically managed by Railway
+- **Setup Steps**:
+  1. Railway Dashboard → Shared Variables → New Variable
+  2. Name: `OPENAI_API_KEY`, Value: Your OpenAI key
+  3. Redeploy service
 - **Endpoints**:
   - `/health` - Health check
   - `/api/entries` - Health entries CRUD
@@ -245,13 +249,14 @@ _Last Updated: August 2025_
 
 ## 🆘 Troubleshooting Quick Reference
 
-| Issue                 | Solution                                        |
-| --------------------- | ----------------------------------------------- |
-| AI not working        | Check Railway backend status + OpenAI API key   |
-| Mobile build fails    | Check Firebase config files are in place        |
-| Authentication issues | Verify SHA-1 fingerprint in Firebase console    |
-| 404 errors            | Ensure using correct Railway/Vercel URLs        |
-| Data not syncing      | Check IndexedDB storage + Railway API endpoints |
+| Issue                    | Solution                                                                                           |
+| ------------------------ | -------------------------------------------------------------------------------------------------- |
+| AI not working           | Check Railway logs for "OpenAI API key not found" - Add OPENAI_API_KEY to Railway Shared Variables |
+| Mobile build fails       | Check Firebase config files are in place                                                           |
+| Authentication issues    | Verify SHA-1 fingerprint in Firebase console                                                       |
+| 404 errors               | Ensure using correct Railway/Vercel URLs                                                           |
+| Data not syncing         | Check IndexedDB storage + Railway API endpoints                                                    |
+| Railway deployment fails | Check logs for missing environment variables                                                       |
 
 ---
 

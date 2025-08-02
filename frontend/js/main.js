@@ -13,6 +13,11 @@ class ChroniCompanion {
         this.authInitialized = false;
         this.authListeners = [];
         
+        // Firestore properties
+        this.useFirestore = false;
+        this.firestoreReady = false;
+        this.firstTimeUser = false;
+        
         this.init();
     }
 
@@ -391,7 +396,72 @@ class ChroniCompanion {
         }
     }
 
+    /**
+     * Show login required message for protected views
+     */
+    showLoginRequired(requestedView) {
+        // Hide all views first
+        const views = ['entry-form', 'entries-list', 'dashboard'];
+        views.forEach(view => {
+            document.getElementById(view).classList.add('hidden');
+        });
+
+        // Show entry form as default but with login prompt
+        document.getElementById('entry-form').classList.remove('hidden');
+        this.currentView = 'entry-form';
+
+        // Show login required message
+        const viewNames = {
+            'entries-list': 'View Your Health Entries',
+            'dashboard': 'Health Dashboard & Analytics'
+        };
+
+        const message = `
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-semibold text-blue-800 mb-3 flex items-center">
+                    <i class="fas fa-lock mr-2"></i>Sign In Required
+                </h3>
+                <p class="text-blue-700 mb-4">
+                    To access <strong>${viewNames[requestedView]}</strong>, please sign in with your Google account. 
+                    This keeps your health data private and syncs across all your devices.
+                </p>
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-blue-600">
+                        <i class="fas fa-shield-alt mr-1"></i>
+                        Your data is completely private and secure
+                    </div>
+                    <button onclick="app.signInWithGoogle()" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                        <i class="fab fa-google mr-2"></i>Sign In with Google
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Show the message at the top of the entry form
+        const container = document.getElementById('entry-form');
+        const existingAlert = container.querySelector('.login-required-alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+        
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'login-required-alert';
+        alertDiv.innerHTML = message;
+        container.insertBefore(alertDiv, container.firstChild);
+
+        // Store the requested view for after login
+        localStorage.setItem('requestedViewAfterLogin', requestedView);
+    }
+
     showView(viewId) {
+        // 🔐 Check if login is required for this view
+        const protectedViews = ['entries-list', 'dashboard'];
+        if (protectedViews.includes(viewId) && !this.currentUser) {
+            this.showLoginRequired(viewId);
+            return;
+        }
+
         // Hide all views
         const views = ['entry-form', 'entries-list', 'dashboard'];
         views.forEach(view => {
@@ -483,7 +553,30 @@ class ChroniCompanion {
         entryData.id = Date.now().toString();
         entryData.synced = false;
 
-        // Always try to sync first, regardless of this.isOnline status
+        // 🔥 Use Firestore if user is authenticated, otherwise use Railway
+        if (this.useFirestore && this.firestoreReady && this.currentUser) {
+            try {
+                console.log('💾 Saving entry to Firestore for user:', this.currentUser.email);
+                await window.firestoreService.saveEntry(entryData);
+                
+                this.showSuccessMessage('Entry saved to your personal account!');
+                this.resetForm();
+                this.checkAICacheRefresh();
+                
+                // Refresh dashboard if visible
+                if (this.currentView === 'dashboard') {
+                    this.loadDashboard();
+                }
+                return;
+                
+            } catch (firestoreError) {
+                console.error('❌ Firestore save failed, using fallback:', firestoreError);
+                this.showErrorMessage('Failed to save to cloud, using offline storage');
+                // Fall through to offline storage
+            }
+        }
+
+        // Fallback: Always try to sync to Railway API first
         try {
             const response = await fetch(`${this.apiBase}/api/entries`, {
                 method: 'POST',
@@ -635,12 +728,25 @@ class ChroniCompanion {
     }
 
     async loadEntries() {
-        // Always load from IndexedDB first for immediate display
+        // 🔥 Use Firestore if user is authenticated
+        if (this.useFirestore && this.firestoreReady && this.currentUser) {
+            try {
+                console.log('📖 Loading entries from Firestore for user:', this.currentUser.email);
+                const firestoreEntries = await window.firestoreService.getEntries();
+                this.displayEntries(firestoreEntries);
+                return;
+            } catch (firestoreError) {
+                console.error('❌ Firestore load failed, using local data:', firestoreError);
+                // Fall through to IndexedDB
+            }
+        }
+
+        // Fallback: Always load from IndexedDB first for immediate display
         const localEntries = await this.loadEntriesFromIndexedDB();
         this.displayEntries(localEntries);
 
-        // Try to sync with server in background if online
-        if (this.isOnline) {
+        // Try to sync with server in background if online (and not using Firestore)
+        if (this.isOnline && !this.useFirestore) {
             try {
                 const response = await fetch(`${this.apiBase}/api/entries`);
                 if (response.ok) {
@@ -2133,20 +2239,35 @@ class ChroniCompanion {
         if (loadingDiv) loadingDiv.classList.remove('hidden');
         
         try {
-            // Get entries data
-            let entries = await this.loadEntriesFromIndexedDB();
-            console.log('📊 DEBUG: Loaded entries from IndexedDB:', entries.length, 'entries');
-            if (entries.length > 0) {
-                console.log('📊 DEBUG: Sample entry structure:', Object.keys(entries[0]));
-                console.log('📊 DEBUG: Sample entry data:', entries[0]);
+            let entries = [];
+            
+            // 🔥 Use Firestore if user is authenticated
+            if (this.useFirestore && this.firestoreReady && this.currentUser) {
+                try {
+                    console.log('📊 Loading dashboard from Firestore for user:', this.currentUser.email);
+                    entries = await window.firestoreService.getEntries();
+                    console.log('📊 DEBUG: Loaded entries from Firestore:', entries.length, 'entries');
+                } catch (firestoreError) {
+                    console.error('❌ Firestore dashboard load failed:', firestoreError);
+                    // Fall through to IndexedDB
+                }
             }
             
+            // Fallback: Get entries data from IndexedDB
             if (entries.length === 0) {
-                console.log('⚠️ DEBUG: No entries found in IndexedDB, checking localStorage...');
+                entries = await this.loadEntriesFromIndexedDB();
+                console.log('📊 DEBUG: Loaded entries from IndexedDB:', entries.length, 'entries');
+                if (entries.length > 0) {
+                    console.log('📊 DEBUG: Sample entry structure:', Object.keys(entries[0]));
+                    console.log('📊 DEBUG: Sample entry data:', entries[0]);
+                }
                 
-                // Fallback to localStorage if IndexedDB is empty
-                const localStorageEntries = this.loadEntriesFromLocalStorage();
-                console.log('📊 DEBUG: Found', localStorageEntries.length, 'entries in localStorage');
+                if (entries.length === 0) {
+                    console.log('⚠️ DEBUG: No entries found in IndexedDB, checking localStorage...');
+                    
+                    // Fallback to localStorage if IndexedDB is empty
+                    const localStorageEntries = this.loadEntriesFromLocalStorage();
+                    console.log('📊 DEBUG: Found', localStorageEntries.length, 'entries in localStorage');
                 
                 if (localStorageEntries.length > 0) {
                     console.log('📊 DEBUG: Using localStorage entries for dashboard');
@@ -3184,6 +3305,69 @@ class ChroniCompanion {
     }
 
     /**
+     * Initialize Firestore for user-specific data storage
+     */
+    async initializeFirestore(user) {
+        try {
+            console.log('🔥 Initializing Firestore for user:', user.email);
+            
+            // Initialize Firestore service
+            if (window.firestoreService) {
+                const success = await window.firestoreService.initialize();
+                if (success) {
+                    this.firestoreReady = true;
+                    this.useFirestore = true;
+                    
+                    // Check if this is a first-time user (no entries in Firestore)
+                    const hasEntries = await window.firestoreService.hasEntries();
+                    if (!hasEntries) {
+                        console.log('👋 First-time user detected, will offer data migration');
+                        this.firstTimeUser = true;
+                        await this.showMigrationDialog();
+                    } else {
+                        console.log('✅ Returning user with existing data');
+                    }
+                } else {
+                    console.log('⚠️ Firestore initialization failed, using offline mode');
+                }
+            } else {
+                console.log('⚠️ Firestore service not available');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error initializing Firestore:', error);
+        }
+    }
+
+    /**
+     * Show migration dialog for first-time users
+     */
+    async showMigrationDialog() {
+        if (!confirm('Welcome! Would you like to import your existing health data to your personal account? This will keep your data private and sync across devices.')) {
+            return;
+        }
+
+        try {
+            // Load the backup data
+            const response = await fetch('current_health_data_backup.json');
+            if (response.ok) {
+                const backupData = await response.json();
+                if (backupData && backupData.length > 0) {
+                    console.log(`📥 Migrating ${backupData.length} entries to Firestore...`);
+                    await window.firestoreService.importEntries(backupData);
+                    this.showSuccessMessage(`${backupData.length} health entries imported successfully!`);
+                    this.firstTimeUser = false;
+                } else {
+                    console.log('ℹ️ No backup data found to migrate');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error during data migration:', error);
+            this.showErrorMessage('Data migration failed, but you can start fresh!');
+        }
+    }
+
+    /**
      * Handle user signed in
      */
     async onUserSignedIn(user) {
@@ -3206,11 +3390,29 @@ class ChroniCompanion {
                 console.log('🔐 Auth token stored');
             }
 
-            // Sync user data with your backend
+            // Initialize Firestore for user-specific data
+            await this.initializeFirestore(user);
+
+            // Sync user data with your backend (for AI features)
             await this.syncUserWithBackend(user);
 
-            // Load user-specific data
+            // Load user-specific data from Firestore
             await this.loadUserData();
+
+            // Clear any login required messages
+            const loginAlert = document.querySelector('.login-required-alert');
+            if (loginAlert) {
+                loginAlert.remove();
+            }
+
+            // Redirect to requested view after login
+            const requestedView = localStorage.getItem('requestedViewAfterLogin');
+            if (requestedView) {
+                localStorage.removeItem('requestedViewAfterLogin');
+                setTimeout(() => {
+                    this.showView(requestedView);
+                }, 500); // Small delay to let auth state settle
+            }
 
         } catch (error) {
             console.error('❌ Error handling user sign-in:', error);
