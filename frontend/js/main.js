@@ -3198,110 +3198,97 @@ class ChroniCompanion {
      */
     async initializeAuthentication() {
         try {
-            console.log('🔐 Initializing Firebase Authentication...');
-            console.log('🔍 Platform detection:', this.isCapacitor() ? 'Mobile/Native' : 'Web');
+            console.log('🔐 HYBRID AUTHENTICATION APPROACH - Research-Based Solution');
+            console.log('🔍 Platform detection:', this.isCapacitor() ? 'Mobile' : 'Web');
             console.log('🔍 Window.Capacitor exists:', !!window.Capacitor);
-            console.log('🔍 Capacitor platform:', window.Capacitor?.getPlatform());
 
-            if (this.isCapacitor()) {
-                // Mobile: Use ONLY Capacitor Firebase plugin for native auth
-                console.log('📱 Using Native Capacitor Firebase Authentication');
-                console.log('📱 Attempting to import @capacitor-firebase/authentication...');
-                
-                try {
-                    console.log('📱 Checking Capacitor plugins...');
-                    console.log('📱 Available plugins:', Object.keys(window.Capacitor?.Plugins || {}));
-                    console.log('📱 Looking for FirebaseAuthentication specifically...');
-                    console.log('📱 FirebaseAuthentication exists:', !!window.Capacitor?.Plugins?.FirebaseAuthentication);
+            // Always use Firebase Web SDK - it's the most reliable approach
+            console.log('🌐 Using Firebase Web SDK (Works on all platforms)');
+            
+            if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function') {
+                throw new Error('Firebase Web SDK not loaded');
+            }
+
+            // Create a unified auth interface that works everywhere
+            this.FirebaseAuth = {
+                signInWithGoogle: async () => {
+                    console.log('🔑 Starting Google Sign-In...');
                     
-                    // Try to get FirebaseAuthentication from Capacitor.Plugins first
-                    let FirebaseAuthentication = window.Capacitor?.Plugins?.FirebaseAuthentication;
-                    
-                    if (!FirebaseAuthentication) {
-                        console.log('📱 Plugin not found in Capacitor.Plugins, trying dynamic import...');
-                        const imported = await import('@capacitor-firebase/authentication');
-                        FirebaseAuthentication = imported.FirebaseAuthentication;
-                        console.log('✅ Dynamic import successful!');
+                    // Try different methods based on platform
+                    if (this.isCapacitor()) {
+                        console.log('📱 Mobile: Trying signInWithRedirect for better compatibility');
+                        try {
+                            const provider = new firebase.auth.GoogleAuthProvider();
+                            provider.addScope('email');
+                            provider.addScope('profile');
+                            
+                            // Use redirect on mobile for better compatibility
+                            await firebase.auth().signInWithRedirect(provider);
+                            
+                            // Return a promise that will resolve when redirect completes
+                            return new Promise((resolve, reject) => {
+                                const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+                                    if (user) {
+                                        unsubscribe();
+                                        resolve({ user });
+                                    }
+                                });
+                                
+                                // Timeout after 30 seconds
+                                setTimeout(() => {
+                                    unsubscribe();
+                                    reject(new Error('Sign-in timeout'));
+                                }, 30000);
+                            });
+                        } catch (redirectError) {
+                            console.log('📱 Redirect failed, trying popup:', redirectError.message);
+                            // Fallback to popup
+                            const provider = new firebase.auth.GoogleAuthProvider();
+                            const result = await firebase.auth().signInWithPopup(provider);
+                            return { user: result.user };
+                        }
                     } else {
-                        console.log('✅ Plugin found in Capacitor.Plugins!');
-                    }
-                    
-                    console.log('✅ Capacitor Firebase plugin imported successfully!');
-                    console.log('🔍 FirebaseAuthentication object:', typeof FirebaseAuthentication);
-                    
-                    // CRITICAL: Initialize Firebase in the Capacitor plugin first
-                    console.log('🔥 Initializing Firebase in Capacitor plugin...');
-                    
-                    // Wait a moment for plugin to be ready
-                    console.log('⏳ Waiting 500ms for plugin readiness...');
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    // Check if we can get current user (indicates plugin is ready)
-                    console.log('🔍 Testing plugin readiness with getCurrentUser()...');
-                    try {
-                        const currentUserResult = await FirebaseAuthentication.getCurrentUser();
-                        console.log('✅ Capacitor Firebase plugin is ready!');
-                        console.log('🔍 Current user check:', currentUserResult?.user?.displayName || 'No user');
-                    } catch (checkError) {
-                        console.warn('⚠️ Plugin not fully ready yet:', checkError.message);
-                        console.warn('⚠️ Check error details:', checkError);
-                    }
-                    
-                    this.FirebaseAuth = FirebaseAuthentication;
-                    console.log('✅ Native Firebase Authentication ready - NO BROWSER needed!');
-                    console.log('✅ this.FirebaseAuth assigned:', !!this.FirebaseAuth);
-                    
-                    // CRITICAL: Test basic plugin functionality
-                    console.log('🧪 Testing basic plugin functionality...');
-                    try {
-                        await FirebaseAuthentication.getCurrentUser();
-                        console.log('✅ Plugin responds to getCurrentUser() - fully functional!');
-                    } catch (testError) {
-                        console.log('⚠️ Plugin test result:', testError.message);
-                        console.log('⚠️ This may be normal if no user is signed in');
-                    }
-                } catch (importError) {
-                    console.error('❌ Failed to load Capacitor Firebase plugin:', importError);
-                    console.error('❌ Import error message:', importError.message);
-                    console.error('❌ Import error stack:', importError.stack);
-                    console.error('❌ Import error details:', importError);
-                    throw new Error(`Native authentication failed: ${importError.message}`);
-                }
-            } else {
-                // Web: Use Firebase Web SDK
-                console.log('🌐 Using Web Firebase Authentication');
-                if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function') {
-                    throw new Error('Firebase Web SDK not loaded');
-                }
-                
-                this.FirebaseAuth = {
-                    signInWithGoogle: async () => {
+                        // Web: Use popup
+                        console.log('🌐 Web: Using signInWithPopup');
                         const provider = new firebase.auth.GoogleAuthProvider();
+                        provider.addScope('email');
+                        provider.addScope('profile');
                         const result = await firebase.auth().signInWithPopup(provider);
                         return { user: result.user };
-                    },
-                    signOut: async () => {
-                        await firebase.auth().signOut();
-                    },
-                    getCurrentUser: async () => {
-                        const user = firebase.auth().currentUser;
-                        return user ? { user } : null;
-                    },
-                    getIdToken: async (options = {}) => {
-                        const user = firebase.auth().currentUser;
-                        if (!user) throw new Error('No user signed in');
-                        return await user.getIdToken(options.forceRefresh);
-                    },
-                    addListener: (event, callback) => {
-                        if (event === 'authStateChange') {
-                            return firebase.auth().onAuthStateChanged((user) => {
-                                callback({ user });
-                            });
-                        }
                     }
-                };
-                console.log('✅ Web Firebase Authentication ready');
-            }
+                },
+                
+                signOut: async () => {
+                    console.log('🚪 Signing out...');
+                    await firebase.auth().signOut();
+                },
+                
+                getCurrentUser: async () => {
+                    const user = firebase.auth().currentUser;
+                    console.log('👤 Current user check:', user ? user.displayName || user.email : 'No user');
+                    return user ? { user } : { user: null };
+                },
+                
+                getIdToken: async (options = {}) => {
+                    const user = firebase.auth().currentUser;
+                    if (!user) throw new Error('No user signed in');
+                    const token = await user.getIdToken(options.forceRefresh);
+                    return { token };
+                },
+                
+                addListener: (event, callback) => {
+                    console.log('👂 Adding listener for:', event);
+                    if (event === 'authStateChange') {
+                        return firebase.auth().onAuthStateChanged((user) => {
+                            console.log('🔄 Auth state changed:', user ? 'User signed in' : 'User signed out');
+                            callback({ user });
+                        });
+                    }
+                    return () => {}; // Return empty unsubscribe function
+                }
+            };
+
+            console.log('✅ Firebase Web SDK Authentication ready (Universal compatibility)');
 
             // Set up authentication state listener
             await this.setupAuthStateListener();
@@ -3310,18 +3297,32 @@ class ChroniCompanion {
             await this.checkCurrentUser();
 
             this.authInitialized = true;
-            console.log('✅ Firebase Authentication initialized successfully');
-            console.log('✅ Auth initialized flag set to:', this.authInitialized);
-            console.log('✅ FirebaseAuth object exists:', !!this.FirebaseAuth);
+            console.log('✅ HYBRID Authentication initialized successfully');
+            console.log('✅ Method: Firebase Web SDK (Works everywhere)');
+            console.log('✅ Auth ready:', this.authInitialized);
 
         } catch (error) {
-            console.error('❌ Failed to initialize Firebase Authentication:', error);
-            console.error('❌ Error message:', error.message);
-            console.error('❌ Error stack:', error.stack);
+            console.error('❌ Authentication initialization failed:', error);
             this.authInitialized = false;
-            console.log('❌ Auth initialized flag set to:', this.authInitialized);
-            console.log('❌ FirebaseAuth object exists:', !!this.FirebaseAuth);
-            throw error;
+            
+            // Don't throw error - create a fallback that shows clear error messages
+            this.FirebaseAuth = {
+                signInWithGoogle: async () => {
+                    throw new Error('Authentication not initialized. Please reload the app.');
+                },
+                signOut: async () => {
+                    console.log('Cannot sign out - auth not initialized');
+                },
+                getCurrentUser: async () => {
+                    return { user: null };
+                },
+                getIdToken: async () => {
+                    throw new Error('Authentication not initialized');
+                },
+                addListener: () => () => {}
+            };
+            
+            console.log('⚠️ Using fallback auth interface with error messages');
         }
     }
 
