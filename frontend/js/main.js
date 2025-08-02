@@ -3215,34 +3215,44 @@ class ChroniCompanion {
             this.FirebaseAuth = {
                 signInWithGoogle: async () => {
                     console.log('🔑 Starting Google Sign-In...');
+                    console.log('🔍 Platform check - isCapacitor():', this.isCapacitor());
+                    console.log('🔍 Capacitor FirebaseAuthentication plugin available:', !!window.FirebaseAuthentication);
                     
+                    // MOBILE FIRST: Try Capacitor native auth plugin (no localhost issues!)
+                    if (this.isCapacitor() && window.FirebaseAuthentication) {
+                        console.log('📱 MOBILE: Using Capacitor native Firebase Authentication (no localhost!)');
+                        try {
+                            const result = await window.FirebaseAuthentication.signInWithGoogle();
+                            console.log('✅ Native mobile sign-in successful:', result);
+                            
+                            // Convert to Firebase format
+                            return { 
+                                user: {
+                                    uid: result.user.uid,
+                                    email: result.user.email,
+                                    displayName: result.user.displayName,
+                                    photoURL: result.user.photoUrl
+                                }
+                            };
+                        } catch (nativeError) {
+                            console.error('❌ Capacitor native auth failed:', nativeError);
+                            console.log('📱 Falling back to Firebase Web SDK...');
+                        }
+                    }
+                    
+                    // FALLBACK: Firebase Web SDK (for web browsers or if native fails)
+                    console.log('🌐 WEB/FALLBACK: Using Firebase Web SDK');
                     const provider = new firebase.auth.GoogleAuthProvider();
                     provider.addScope('email');
                     provider.addScope('profile');
                     
-                    // ALWAYS use popup - it works better on mobile apps
-                    console.log('🔥 UNIVERSAL: Using signInWithPopup for all platforms');
-                    
                     try {
                         const result = await firebase.auth().signInWithPopup(provider);
-                        console.log('✅ Popup sign-in successful');
+                        console.log('✅ Web popup sign-in successful');
                         return { user: result.user };
-                    } catch (error) {
-                        console.error('❌ Popup sign-in failed:', error);
-                        
-                        // If popup fails and we're on mobile, try Capacitor native
-                        if (this.isCapacitor() && window.FirebaseAuthentication) {
-                            console.log('📱 Trying Capacitor native auth...');
-                            try {
-                                const result = await window.FirebaseAuthentication.signInWithGoogle();
-                                return { user: result.user };
-                            } catch (nativeError) {
-                                console.error('❌ Native auth also failed:', nativeError);
-                                throw error; // Throw original popup error
-                            }
-                        }
-                        
-                        throw error;
+                    } catch (webError) {
+                        console.error('❌ Web popup sign-in also failed:', webError);
+                        throw webError;
                     }
                 },
                 

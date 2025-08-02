@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-v102-BUTTONS-WORK';
+const CACHE_NAME = 'chronicompanion-v103-NATIVE-AUTH-FIRST';
 const urlsToCache = [
   '/',
   '/index.html',

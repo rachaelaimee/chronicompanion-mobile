@@ -936,17 +936,17 @@
         </div>
     </div>
 
-    <script src="js/main.js?v=BUTTONS-WORK-102"></script>
+    <script src="js/main.js?v=NATIVE-AUTH-103"></script>
     
-    <!-- CACHE BUSTER FOR BUTTONS FIX -->
+    <!-- CACHE BUSTER FOR NATIVE AUTH FIX -->
     <script>
-        console.log('🔥 BUTTONS FIX: v102 loaded at', new Date());
-        console.log('🔥 Fixed: All buttons now work without authentication!');
+        console.log('🔥 NATIVE AUTH FIX: v103 loaded at', new Date());
+        console.log('🔥 Fixed: Mobile-first authentication - no more localhost redirects!');
         // Clear old caches on load
         if ('caches' in window) {
             caches.keys().then(names => {
                 names.forEach(name => {
-                    if (name.includes('chronicompanion') && !name.includes('v102')) {
+                    if (name.includes('chronicompanion') && !name.includes('v103')) {
                         caches.delete(name);
                         console.log('🔥 Old cache deleted:', name);
                     }
