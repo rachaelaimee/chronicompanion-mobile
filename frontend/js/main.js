@@ -3211,6 +3211,8 @@ class ChroniCompanion {
                 try {
                     console.log('📱 Checking Capacitor plugins...');
                     console.log('📱 Available plugins:', Object.keys(window.Capacitor?.Plugins || {}));
+                    console.log('📱 Looking for FirebaseAuthentication specifically...');
+                    console.log('📱 FirebaseAuthentication exists:', !!window.Capacitor?.Plugins?.FirebaseAuthentication);
                     
                     // Try to get FirebaseAuthentication from Capacitor.Plugins first
                     let FirebaseAuthentication = window.Capacitor?.Plugins?.FirebaseAuthentication;
@@ -3248,6 +3250,16 @@ class ChroniCompanion {
                     this.FirebaseAuth = FirebaseAuthentication;
                     console.log('✅ Native Firebase Authentication ready - NO BROWSER needed!');
                     console.log('✅ this.FirebaseAuth assigned:', !!this.FirebaseAuth);
+                    
+                    // CRITICAL: Test basic plugin functionality
+                    console.log('🧪 Testing basic plugin functionality...');
+                    try {
+                        await FirebaseAuthentication.getCurrentUser();
+                        console.log('✅ Plugin responds to getCurrentUser() - fully functional!');
+                    } catch (testError) {
+                        console.log('⚠️ Plugin test result:', testError.message);
+                        console.log('⚠️ This may be normal if no user is signed in');
+                    }
                 } catch (importError) {
                     console.error('❌ Failed to load Capacitor Firebase plugin:', importError);
                     console.error('❌ Import error message:', importError.message);
