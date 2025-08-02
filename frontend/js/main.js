@@ -2823,6 +2823,27 @@ class ChroniCompanion {
         // For now, we'll just use alerts to ensure it works
     }
 
+    showMessage(message, type = 'info') {
+        // Universal message handler for different message types
+        switch(type) {
+            case 'success':
+                this.showSuccessMessage(message);
+                break;
+            case 'error':
+                this.showErrorMessage(message);
+                break;
+            case 'warning':
+                console.log('⚠️ WARNING:', message);
+                alert(`⚠️ ${message}`);
+                break;
+            case 'info':
+            default:
+                console.log('ℹ️ INFO:', message);
+                alert(`ℹ️ ${message}`);
+                break;
+        }
+    }
+
     showSuccessMessage(message) {
         console.log('✅ SUCCESS:', message);
         alert(`✅ ${message}`);
