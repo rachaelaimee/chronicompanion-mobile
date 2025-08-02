@@ -8,8 +8,7 @@
   "plugins": {
     "FirebaseAuthentication": {
       "skipNativeAuth": false,
-      "providers": ["google.com"],
-      "forceCodeForRefreshToken": true
+      "providers": ["google.com"]
     }
   }
 }

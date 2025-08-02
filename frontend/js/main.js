@@ -3190,184 +3190,58 @@ class ChroniCompanion {
     async initializeAuthentication() {
         try {
             console.log('🔐 Initializing Firebase Authentication...');
-            console.log('🔍 Platform detection:');
-            console.log('  - window.Capacitor exists:', !!window.Capacitor);
-            console.log('  - Capacitor platform:', window.Capacitor?.getPlatform());
-            console.log('  - isCapacitor() result:', this.isCapacitor());
+            console.log('🔍 Platform detection:', this.isCapacitor() ? 'Mobile/Native' : 'Web');
 
-            // Detect platform and use appropriate Firebase SDK
             if (this.isCapacitor()) {
-                // Mobile: Use Capacitor Firebase plugin
-                console.log('📱 Initializing Capacitor Firebase Auth...');
-                console.log('📱 Attempting to import @capacitor-firebase/authentication...');
+                // Mobile: Use ONLY Capacitor Firebase plugin for native auth
+                console.log('📱 Using Native Capacitor Firebase Authentication');
                 
                 try {
                     const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
-                    console.log('✅ Capacitor Firebase plugin imported successfully');
-                    
-                    // Configure Capacitor Firebase for native auth (no browser)
-                    await FirebaseAuthentication.initializeFirebase({
-                        apiKey: "AIzaSyAHxkbuZMcHdUwPj_C4W2LYrvWQDjtEoFY",
-                        authDomain: "chronicompanion.firebaseapp.com",
-                        projectId: "chronicompanion",
-                        storageBucket: "chronicompanion.firebasestorage.app",
-                        messagingSenderId: "241042747133",
-                        appId: "1:241042747133:web:1f64e9d15dfb2c8e2e1894"
-                    });
-                    console.log('✅ Firebase initialized in Capacitor plugin');
-                    
                     this.FirebaseAuth = FirebaseAuthentication;
-                    console.log('✅ FirebaseAuth set to Capacitor plugin');
+                    console.log('✅ Native Firebase Authentication ready - NO BROWSER needed!');
                 } catch (importError) {
-                    console.error('❌ Failed to import Capacitor Firebase plugin:', importError);
-                    console.log('🔄 Falling back to Web Firebase SDK on mobile...');
-                    
-                    // Fallback to web Firebase SDK even on mobile
-                    if (typeof firebase !== 'undefined' && typeof firebase.auth === 'function') {
-                        console.log('✅ Using Web Firebase SDK as fallback on mobile');
-                        this.FirebaseAuth = {
-                            signInWithGoogle: async () => {
-                                try {
-                                    console.log('🔐 [MOBILE FALLBACK] Creating Google Auth provider...');
-                                    const provider = new firebase.auth.GoogleAuthProvider();
-                                    console.log('🔐 [MOBILE FALLBACK] Provider created, opening popup...');
-                                    console.log('🔐 [MOBILE FALLBACK] Current URL:', window.location.href);
-                                    console.log('🔐 [MOBILE FALLBACK] Auth domain:', firebase.app().options.authDomain);
-                                    
-                                    // Force new tab behavior and try popup first, fallback to redirect
-                                    console.log('🔐 [MOBILE FALLBACK] Trying popup with new tab forcing...');
-                                    
-                                    try {
-                                        // Try popup first (works better and doesn't interfere with existing tabs)
-                                        const result = await firebase.auth().signInWithPopup(provider);
-                                        console.log('✅ [MOBILE FALLBACK] Popup sign-in successful:', result.user?.displayName);
-                                        return { user: result.user };
-                                    } catch (popupError) {
-                                        console.log('🔄 [MOBILE FALLBACK] Popup failed, trying redirect...');
-                                        console.log('🔐 [MOBILE FALLBACK] Clearing current tab and redirecting...');
-                                        
-                                        // Clear current page to avoid tab reuse issues
-                                        window.location.href = 'about:blank';
-                                        setTimeout(() => {
-                                            firebase.auth().signInWithRedirect(provider);
-                                        }, 100);
-                                        return null;
-                                    }
-                                } catch (error) {
-                                    console.error('❌ [MOBILE FALLBACK] Sign-in error:', error);
-                                    console.error('❌ [MOBILE FALLBACK] Error code:', error.code);
-                                    console.error('❌ [MOBILE FALLBACK] Error message:', error.message);
-                                    throw error;
-                                }
-                            },
-                            signOut: async () => {
-                                await firebase.auth().signOut();
-                            },
-                            getCurrentUser: async () => {
-                                const user = firebase.auth().currentUser;
-                                return user ? { user } : null;
-                            },
-                            getIdToken: async (options = {}) => {
-                                const user = firebase.auth().currentUser;
-                                if (!user) throw new Error('No user signed in');
-                                return await user.getIdToken(options.forceRefresh);
-                            },
-                            addListener: (event, callback) => {
-                                if (event === 'authStateChange') {
-                                    return firebase.auth().onAuthStateChanged((user) => {
-                                        callback({ user });
-                                    });
-                                }
-                            }
-                        };
-                    } else {
-                        throw new Error(`Both Capacitor and Web Firebase failed: ${importError.message}`);
-                    }
+                    console.error('❌ Failed to load Capacitor Firebase plugin:', importError);
+                    throw new Error(`Native authentication failed: ${importError.message}`);
                 }
             } else {
                 // Web: Use Firebase Web SDK
-                console.log('🌐 Initializing Web Firebase Auth...');
+                console.log('🌐 Using Web Firebase Authentication');
                 if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function') {
                     throw new Error('Firebase Web SDK not loaded');
                 }
-                console.log('✅ Firebase Web SDK detected, creating auth wrapper...');
+                
                 this.FirebaseAuth = {
-                    // Wrap Firebase Web SDK to match Capacitor interface
                     signInWithGoogle: async () => {
-                        try {
-                            console.log('🔐 Creating Google Auth provider...');
-                            const provider = new firebase.auth.GoogleAuthProvider();
-                            console.log('🔐 Opening Google Sign-In popup...');
-                            const result = await firebase.auth().signInWithPopup(provider);
-                            console.log('✅ Google Sign-In successful:', result.user?.displayName);
-                            return { user: result.user };
-                        } catch (error) {
-                            console.error('❌ Google Sign-In error:', error);
-                            throw error;
-                        }
+                        const provider = new firebase.auth.GoogleAuthProvider();
+                        const result = await firebase.auth().signInWithPopup(provider);
+                        return { user: result.user };
                     },
                     signOut: async () => {
-                        try {
-                            await firebase.auth().signOut();
-                            console.log('✅ Sign-out successful');
-                        } catch (error) {
-                            console.error('❌ Sign-out error:', error);
-                            throw error;
-                        }
+                        await firebase.auth().signOut();
                     },
                     getCurrentUser: async () => {
-                        try {
-                            const user = firebase.auth().currentUser;
-                            console.log('🔐 Current user check:', user?.displayName || 'No user');
-                            return user ? { user } : null;
-                        } catch (error) {
-                            console.error('❌ Get current user error:', error);
-                            return null;
-                        }
+                        const user = firebase.auth().currentUser;
+                        return user ? { user } : null;
                     },
                     getIdToken: async (options = {}) => {
-                        try {
-                            const user = firebase.auth().currentUser;
-                            if (!user) throw new Error('No user signed in');
-                            return await user.getIdToken(options.forceRefresh);
-                        } catch (error) {
-                            console.error('❌ Get ID token error:', error);
-                            throw error;
-                        }
+                        const user = firebase.auth().currentUser;
+                        if (!user) throw new Error('No user signed in');
+                        return await user.getIdToken(options.forceRefresh);
                     },
                     addListener: (event, callback) => {
-                        try {
-                            if (event === 'authStateChange') {
-                                console.log('🔐 Setting up auth state listener...');
-                                return firebase.auth().onAuthStateChanged((user) => {
-                                    console.log('🔐 Auth state changed:', user?.displayName || 'No user');
-                                    callback({ user });
-                                });
-                            }
-                        } catch (error) {
-                            console.error('❌ Auth listener error:', error);
+                        if (event === 'authStateChange') {
+                            return firebase.auth().onAuthStateChanged((user) => {
+                                callback({ user });
+                            });
                         }
                     }
                 };
+                console.log('✅ Web Firebase Authentication ready');
             }
 
-            // Listen for authentication state changes
+            // Set up authentication state listener
             await this.setupAuthStateListener();
-
-                                        // Check for redirect result first (mobile auth)
-            if (!this.isCapacitor() && typeof firebase !== 'undefined') {
-                console.log('🔐 Checking for redirect result...');
-                try {
-                    const result = await firebase.auth().getRedirectResult();
-                    if (result && result.user) {
-                        console.log('✅ Redirect sign-in successful:', result.user.displayName);
-                        this.currentUser = result.user;
-                        await this.onUserSignedIn(result.user);
-                    }
-                } catch (error) {
-                    console.error('❌ Redirect result error:', error);
-                }
-            }
 
             // Check if user is already signed in
             await this.checkCurrentUser();
@@ -3378,6 +3252,7 @@ class ChroniCompanion {
         } catch (error) {
             console.error('❌ Failed to initialize Firebase Authentication:', error);
             this.authInitialized = false;
+            throw error;
         }
     }
 
