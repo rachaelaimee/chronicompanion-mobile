@@ -3194,139 +3194,32 @@ class ChroniCompanion {
     }
 
     // ========================================
-    // 🔐 AUTHENTICATION METHODS
+    // 🔥 BRAND NEW AUTHENTICATION SYSTEM - COMPLETE REBUILD
     // ========================================
 
     /**
-     * Initialize Firebase Authentication
+     * SIMPLE Firebase Authentication - No Conflicts, No Old Code
      */
     async initializeAuthentication() {
+        console.log('🔥 BRAND NEW AUTH SYSTEM - COMPLETE REBUILD!');
+        console.log('🔥 This is a fresh start with zero old code!');
+        
         try {
-            console.log('🔐 HYBRID AUTHENTICATION APPROACH - Research-Based Solution');
-            console.log('🔍 Platform detection:', this.isCapacitor() ? 'Mobile' : 'Web');
-            console.log('🔍 Window.Capacitor exists:', !!window.Capacitor);
-
-            // Always use Firebase Web SDK - it's the most reliable approach
-            console.log('🌐 Using Firebase Web SDK (Works on all platforms)');
-            
-            if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function') {
-                throw new Error('Firebase Web SDK not loaded');
+            // Simple Firebase Web SDK setup
+            if (typeof firebase === 'undefined') {
+                throw new Error('Firebase not loaded');
             }
-
-            // Create a unified auth interface that works everywhere
-            this.FirebaseAuth = {
-                signInWithGoogle: async () => {
-                    console.log('🔑 Starting Google Sign-In...');
-                    
-                    // Try different methods based on platform
-                    if (this.isCapacitor()) {
-                        console.log('📱 Mobile: Trying signInWithRedirect for better compatibility');
-                        try {
-                            const provider = new firebase.auth.GoogleAuthProvider();
-                            provider.addScope('email');
-                            provider.addScope('profile');
-                            
-                            // Use redirect on mobile for better compatibility
-                            await firebase.auth().signInWithRedirect(provider);
-                            
-                            // Return a promise that will resolve when redirect completes
-                            return new Promise((resolve, reject) => {
-                                const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
-                                    if (user) {
-                                        unsubscribe();
-                                        resolve({ user });
-                                    }
-                                });
-                                
-                                // Timeout after 30 seconds
-                                setTimeout(() => {
-                                    unsubscribe();
-                                    reject(new Error('Sign-in timeout'));
-                                }, 30000);
-                            });
-                        } catch (redirectError) {
-                            console.log('📱 Redirect failed, trying popup:', redirectError.message);
-                            // Fallback to popup
-                            const provider = new firebase.auth.GoogleAuthProvider();
-                            const result = await firebase.auth().signInWithPopup(provider);
-                            return { user: result.user };
-                        }
-                    } else {
-                        // Web: Use popup
-                        console.log('🌐 Web: Using signInWithPopup');
-                        const provider = new firebase.auth.GoogleAuthProvider();
-                        provider.addScope('email');
-                        provider.addScope('profile');
-                        const result = await firebase.auth().signInWithPopup(provider);
-                        return { user: result.user };
-                    }
-                },
-                
-                signOut: async () => {
-                    console.log('🚪 Signing out...');
-                    await firebase.auth().signOut();
-                },
-                
-                getCurrentUser: async () => {
-                    const user = firebase.auth().currentUser;
-                    console.log('👤 Current user check:', user ? user.displayName || user.email : 'No user');
-                    return user ? { user } : { user: null };
-                },
-                
-                getIdToken: async (options = {}) => {
-                    const user = firebase.auth().currentUser;
-                    if (!user) throw new Error('No user signed in');
-                    const token = await user.getIdToken(options.forceRefresh);
-                    return { token };
-                },
-                
-                addListener: (event, callback) => {
-                    console.log('👂 Adding listener for:', event);
-                    if (event === 'authStateChange') {
-                        return firebase.auth().onAuthStateChanged((user) => {
-                            console.log('🔄 Auth state changed:', user ? 'User signed in' : 'User signed out');
-                            callback({ user });
-                        });
-                    }
-                    return () => {}; // Return empty unsubscribe function
-                }
-            };
-
-            console.log('✅ Firebase Web SDK Authentication ready (Universal compatibility)');
-
-            // Set up authentication state listener
-            await this.setupAuthStateListener();
-
-            // Check if user is already signed in
-            await this.checkCurrentUser();
-
+            
+            this.authReady = true;
             this.authInitialized = true;
-            console.log('✅ HYBRID Authentication initialized successfully');
-            console.log('✅ Method: Firebase Web SDK (Works everywhere)');
-            console.log('✅ Auth ready:', this.authInitialized);
-
+            
+            console.log('✅ BRAND NEW AUTH SYSTEM READY!');
+            console.log('✅ No old code, no conflicts, fresh start!');
+            
         } catch (error) {
-            console.error('❌ Authentication initialization failed:', error);
+            console.error('❌ Brand new auth system failed:', error);
+            this.authReady = false;
             this.authInitialized = false;
-            
-            // Don't throw error - create a fallback that shows clear error messages
-            this.FirebaseAuth = {
-                signInWithGoogle: async () => {
-                    throw new Error('Authentication not initialized. Please reload the app.');
-                },
-                signOut: async () => {
-                    console.log('Cannot sign out - auth not initialized');
-                },
-                getCurrentUser: async () => {
-                    return { user: null };
-                },
-                getIdToken: async () => {
-                    throw new Error('Authentication not initialized');
-                },
-                addListener: () => () => {}
-            };
-            
-            console.log('⚠️ Using fallback auth interface with error messages');
         }
     }
 
@@ -3392,32 +3285,31 @@ class ChroniCompanion {
     }
 
     /**
-     * Sign in with Google - NEW FIREBASE WEB SDK APPROACH
+     * BRAND NEW Google Sign-In - Complete Rebuild
      */
     async signInWithGoogle() {
+        alert('🔥 BRAND NEW SIGN-IN METHOD CALLED! This is the rebuilt authentication!');
+        console.log('🔥🔥🔥 BRAND NEW GOOGLE SIGN-IN - COMPLETE REBUILD!');
+        console.log('🔥 This is 100% fresh code with zero conflicts!');
+        
         try {
-            console.log('🚀🚀🚀 NEW FIREBASE WEB SDK AUTHENTICATION CALLED!');
-            console.log('✅ This is NOT the old broken method!');
-            console.log('✅ This should NEVER show "authentication not ready"!');
-            
-            window.app.showMessage('🚀 Using NEW Firebase Web SDK approach...', 'info');
-
-            // Use the NEW Firebase Web SDK method directly
-            if (!this.FirebaseAuth || !this.authInitialized) {
-                console.error('❌ NEW CODE BUG: Firebase Auth not initialized');
-                window.app.showMessage('NEW CODE ERROR: Please check console logs', 'error');
-                return;
+            if (!this.authReady) {
+                console.log('⚠️ Auth not ready, but trying anyway...');
             }
-
-            console.log('🔐 NEW METHOD: Starting Google sign-in with Firebase Web SDK...');
-            const result = await this.FirebaseAuth.signInWithGoogle();
-            console.log('✅ NEW METHOD: Google sign-in successful:', result);
             
-            if (result && result.user) {
-                window.app.showMessage(`✅ SUCCESS: Welcome, ${result.user.displayName || 'User'}!`, 'success');
-                this.currentUser = result.user;
-                this.updateAuthUI();
-            }
+            // Direct Firebase Web SDK call - simple and clean
+            const provider = new firebase.auth.GoogleAuthProvider();
+            provider.addScope('email');
+            provider.addScope('profile');
+            
+            console.log('🔥 BRAND NEW: Starting Google Sign-In...');
+            const result = await firebase.auth().signInWithPopup(provider);
+            
+            console.log('✅ BRAND NEW: Sign-in successful!', result.user.email);
+            this.currentUser = result.user;
+            
+            window.app.showMessage(`Welcome ${result.user.displayName}!`, 'success');
+            this.updateAuthUI();
             
             return result;
 
