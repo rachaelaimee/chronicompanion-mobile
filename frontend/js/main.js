@@ -3268,12 +3268,12 @@ class ChroniCompanion {
     async signInWithGoogle() {
         try {
             console.log('🔐 Starting Google sign-in...');
-            this.showMessage('Signing in with Google...', 'info');
+            window.app.showMessage('Signing in with Google...', 'info');
 
             // Check if Firebase Auth is initialized
             if (!this.FirebaseAuth) {
                 console.error('❌ Firebase Auth not initialized');
-                this.showMessage('Authentication not ready. Please try again.', 'error');
+                window.app.showMessage('Authentication not ready. Please try again.', 'error');
                 return;
             }
 
@@ -3282,7 +3282,7 @@ class ChroniCompanion {
             console.log('✅ Google sign-in successful:', result);
             
             if (result && result.user) {
-                this.showMessage(`Welcome, ${result.user.displayName || 'User'}!`, 'success');
+                window.app.showMessage(`Welcome, ${result.user.displayName || 'User'}!`, 'success');
                 this.currentUser = result.user;
                 this.updateAuthUI();
             }
@@ -3295,11 +3295,11 @@ class ChroniCompanion {
             
             // More specific error messages
             if (error.code === 'auth/popup-blocked') {
-                this.showMessage('Pop-up blocked. Please allow pop-ups and try again.', 'error');
+                window.app.showMessage('Pop-up blocked. Please allow pop-ups and try again.', 'error');
             } else if (error.code === 'auth/cancelled-popup-request') {
-                this.showMessage('Sign-in cancelled.', 'warning');
+                window.app.showMessage('Sign-in cancelled.', 'warning');
             } else {
-                this.showMessage(`Sign-in failed: ${error.message}`, 'error');
+                window.app.showMessage(`Sign-in failed: ${error.message}`, 'error');
             }
             
             throw error;
@@ -3312,16 +3312,16 @@ class ChroniCompanion {
     async signOut() {
         try {
             console.log('🔐 Signing out user...');
-            this.showMessage('Signing out...', 'info');
+            window.app.showMessage('Signing out...', 'info');
 
             await this.FirebaseAuth.signOut();
             console.log('✅ User signed out successfully');
             
-            this.showMessage('Signed out successfully', 'success');
+            window.app.showMessage('Signed out successfully', 'success');
 
         } catch (error) {
             console.error('❌ Sign-out failed:', error);
-            this.showMessage('Sign-out failed. Please try again.', 'error');
+            window.app.showMessage('Sign-out failed. Please try again.', 'error');
             throw error;
         }
     }
