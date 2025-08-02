@@ -3215,9 +3215,25 @@ class ChroniCompanion {
                         console.log('✅ Using Web Firebase SDK as fallback on mobile');
                         this.FirebaseAuth = {
                             signInWithGoogle: async () => {
-                                const provider = new firebase.auth.GoogleAuthProvider();
-                                const result = await firebase.auth().signInWithPopup(provider);
-                                return { user: result.user };
+                                try {
+                                    console.log('🔐 [MOBILE FALLBACK] Creating Google Auth provider...');
+                                    const provider = new firebase.auth.GoogleAuthProvider();
+                                    console.log('🔐 [MOBILE FALLBACK] Provider created, opening popup...');
+                                    console.log('🔐 [MOBILE FALLBACK] Current URL:', window.location.href);
+                                    console.log('🔐 [MOBILE FALLBACK] Auth domain:', firebase.app().options.authDomain);
+                                    
+                                    // Try redirect instead of popup on mobile (better compatibility)
+                                    console.log('🔐 [MOBILE FALLBACK] Using redirect instead of popup...');
+                                    await firebase.auth().signInWithRedirect(provider);
+                                    // Note: signInWithRedirect doesn't return immediately, it redirects the page
+                                    // We'll handle the result in getRedirectResult on app startup
+                                    return null;
+                                } catch (error) {
+                                    console.error('❌ [MOBILE FALLBACK] Sign-in error:', error);
+                                    console.error('❌ [MOBILE FALLBACK] Error code:', error.code);
+                                    console.error('❌ [MOBILE FALLBACK] Error message:', error.message);
+                                    throw error;
+                                }
                             },
                             signOut: async () => {
                                 await firebase.auth().signOut();
@@ -3312,6 +3328,21 @@ class ChroniCompanion {
 
             // Listen for authentication state changes
             await this.setupAuthStateListener();
+
+                                        // Check for redirect result first (mobile auth)
+            if (!this.isCapacitor() && typeof firebase !== 'undefined') {
+                console.log('🔐 Checking for redirect result...');
+                try {
+                    const result = await firebase.auth().getRedirectResult();
+                    if (result && result.user) {
+                        console.log('✅ Redirect sign-in successful:', result.user.displayName);
+                        this.currentUser = result.user;
+                        await this.onUserSignedIn(result.user);
+                    }
+                } catch (error) {
+                    console.error('❌ Redirect result error:', error);
+                }
+            }
 
             // Check if user is already signed in
             await this.checkCurrentUser();
