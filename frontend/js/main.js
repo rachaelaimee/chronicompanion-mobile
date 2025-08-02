@@ -3306,9 +3306,27 @@ class ChroniCompanion {
         console.log('🔥 This is 100% fresh code with zero conflicts!');
         
         try {
+            console.log('🔍 STEP 1: Checking Firebase availability...');
+            console.log('🔍 typeof firebase:', typeof firebase);
+            console.log('🔍 firebase exists:', !!window.firebase);
+            console.log('🔍 firebase.auth exists:', !!(window.firebase && window.firebase.auth));
+            console.log('🔍 typeof firebase.auth:', typeof (window.firebase && window.firebase.auth));
+
             // Robust Firebase Auth availability check
             if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function') {
-                window.app.showMessage('Firebase Authentication not loaded. Please reload the app.', 'error');
+                console.error('🚨 Firebase Auth not available!');
+                window.app.showMessage('🚨 Firebase Authentication not loaded. Please reload the app.', 'error');
+                return;
+            }
+            
+            console.log('🔍 STEP 2: Testing Firebase Auth initialization...');
+            try {
+                const testAuth = firebase.auth();
+                console.log('✅ firebase.auth() call successful');
+                console.log('🔍 Auth object:', testAuth);
+            } catch (testError) {
+                console.error('🚨 firebase.auth() call failed:', testError);
+                window.app.showMessage('🚨 Firebase Auth call failed. Check console.', 'error');
                 return;
             }
             
@@ -3316,14 +3334,20 @@ class ChroniCompanion {
                 console.log('⚠️ Auth not ready, but trying anyway...');
             }
             
-            console.log('🔥 Firebase Auth confirmed ready for sign-in');
+            console.log('🔍 STEP 3: Firebase Auth confirmed ready for sign-in');
             
             // Direct Firebase Web SDK call - simple and clean
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.addScope('email');
             provider.addScope('profile');
             
+            console.log('🔍 STEP 4: Creating Google Auth Provider...');
+            console.log('🔍 Provider created:', provider);
+            
+            console.log('🔍 STEP 5: About to call signInWithPopup...');
             console.log('🔥 BRAND NEW: Starting Google Sign-In...');
+            
+            // This is the critical call that might be failing
             const result = await firebase.auth().signInWithPopup(provider);
             
             console.log('✅ BRAND NEW: Sign-in successful!', result.user.email);
@@ -3335,8 +3359,19 @@ class ChroniCompanion {
             return result;
 
         } catch (error) {
-            console.error('❌ Google sign-in failed:', error);
-            console.error('Error details:', error.message, error.code);
+            console.error('🚨 COMPREHENSIVE ERROR DEBUGGING:');
+            console.error('❌ Error object:', error);
+            console.error('❌ Error message:', error.message);
+            console.error('❌ Error code:', error.code);
+            console.error('❌ Error stack:', error.stack);
+            console.error('❌ Error name:', error.name);
+            
+            // Log the exact error message to help identify the "authentication not ready" source
+            if (error.message && error.message.toLowerCase().includes('authentication') && error.message.toLowerCase().includes('ready')) {
+                console.error('🚨🚨🚨 FOUND THE CULPRIT! This error contains "authentication" and "ready"!');
+                console.error('🚨 Source error message:', error.message);
+                console.error('🚨 This is likely coming from the Capacitor Firebase plugin or Firebase SDK itself!');
+            }
             
             // More specific error messages
             if (error.code === 'auth/popup-blocked') {
@@ -3344,7 +3379,8 @@ class ChroniCompanion {
             } else if (error.code === 'auth/cancelled-popup-request') {
                 window.app.showMessage('Sign-in cancelled.', 'warning');
             } else {
-                window.app.showMessage(`Sign-in failed: ${error.message}`, 'error');
+                console.error('🔍 UNKNOWN ERROR - Showing user the exact error message for debugging');
+                window.app.showMessage(`🔍 EXACT ERROR: ${error.message}`, 'error');
             }
             
             throw error;
