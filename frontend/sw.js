@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-v8-DEEP-DEBUG';
+const CACHE_NAME = 'chronicompanion-v9-FINAL-FIX-RACE-CONDITION';
 const urlsToCache = [
   '/',
   '/index.html',

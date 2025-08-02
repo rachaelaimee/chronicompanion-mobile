@@ -3201,18 +3201,13 @@ class ChroniCompanion {
      * SIMPLE Firebase Authentication - No Conflicts, No Old Code
      */
     async initializeAuthentication() {
-        console.log('🔥 BRAND NEW AUTH SYSTEM - COMPLETE REBUILD!');
-        console.log('🔥 This is a fresh start with zero old code!');
+        console.log('🔥 FINAL FIX: FIREBASE INITIALIZATION WITH RACE CONDITION PROTECTION!');
+        console.log('🔥 This addresses the "authentication not ready" root cause!');
         
         try {
-            // Simple Firebase Web SDK setup - Check Firebase is fully loaded
-            if (typeof firebase === 'undefined') {
-                throw new Error('Firebase not loaded');
-            }
-            if (typeof firebase.auth !== 'function') {
-                throw new Error('Firebase Auth not available');
-            }
-            console.log('🔥 Firebase Auth confirmed available');
+            // CRITICAL: Wait for Firebase to be fully loaded with retry mechanism
+            console.log('⏳ Waiting for Firebase to be fully loaded...');
+            await this.waitForFirebaseReady();
             
             console.log('🔥 Setting up auth state listener...');
             await this.setupAuthStateListener();
@@ -3223,15 +3218,72 @@ class ChroniCompanion {
             this.authReady = true;
             this.authInitialized = true;
             
-            console.log('✅ BRAND NEW AUTH SYSTEM READY!');
-            console.log('✅ Auth listener set up, existing user checked!');
-            console.log('✅ No old code, no conflicts, fresh start!');
+            console.log('✅ FINAL FIX: AUTH SYSTEM READY WITH RACE CONDITION PROTECTION!');
+            console.log('✅ Firebase fully loaded, auth listener set up, existing user checked!');
             
         } catch (error) {
-            console.error('❌ Brand new auth system failed:', error);
+            console.error('❌ Final fix auth system failed:', error);
             this.authReady = false;
             this.authInitialized = false;
         }
+    }
+
+    /**
+     * CRITICAL: Wait for Firebase to be fully ready with retry mechanism
+     * This fixes the race condition causing "authentication not ready" error
+     */
+    async waitForFirebaseReady(maxRetries = 10, delayMs = 500) {
+        console.log('🔍 CRITICAL: Waiting for Firebase to be fully ready...');
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            console.log(`🔍 Firebase readiness check attempt ${attempt}/${maxRetries}`);
+            
+            try {
+                // Check if Firebase is loaded
+                if (typeof firebase === 'undefined') {
+                    console.log(`❌ Attempt ${attempt}: Firebase object not loaded yet`);
+                    await this.delay(delayMs);
+                    continue;
+                }
+                
+                // Check if Firebase Auth is available
+                if (typeof firebase.auth !== 'function') {
+                    console.log(`❌ Attempt ${attempt}: Firebase Auth function not available yet`);
+                    await this.delay(delayMs);
+                    continue;
+                }
+                
+                // Try to create Firebase Auth instance
+                const testAuth = firebase.auth();
+                if (!testAuth) {
+                    console.log(`❌ Attempt ${attempt}: Firebase Auth instance creation failed`);
+                    await this.delay(delayMs);
+                    continue;
+                }
+                
+                // Check if Firebase Auth is ready to use
+                testAuth.onAuthStateChanged(() => {}); // Test listener setup
+                
+                console.log(`✅ CRITICAL: Firebase is fully ready after ${attempt} attempts!`);
+                return true;
+                
+            } catch (error) {
+                console.log(`❌ Attempt ${attempt}: Firebase test failed:`, error.message);
+                if (attempt === maxRetries) {
+                    throw new Error(`Firebase failed to initialize after ${maxRetries} attempts: ${error.message}`);
+                }
+                await this.delay(delayMs);
+            }
+        }
+        
+        throw new Error(`Firebase failed to initialize after ${maxRetries} attempts`);
+    }
+
+    /**
+     * Simple delay utility
+     */
+    async delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     /**
@@ -3301,40 +3353,28 @@ class ChroniCompanion {
      * BRAND NEW Google Sign-In - Complete Rebuild
      */
     async signInWithGoogle() {
-        alert('🔥 BRAND NEW SIGN-IN METHOD CALLED! This is the rebuilt authentication!');
-        console.log('🔥🔥🔥 BRAND NEW GOOGLE SIGN-IN - COMPLETE REBUILD!');
-        console.log('🔥 This is 100% fresh code with zero conflicts!');
+        alert('🔥 FINAL FIX: SIGN-IN WITH RACE CONDITION PROTECTION!');
+        console.log('🔥🔥🔥 FINAL FIX: GOOGLE SIGN-IN WITH FIREBASE READINESS CHECK!');
+        console.log('🔥 This should fix the "authentication not ready" error!');
         
         try {
-            console.log('🔍 STEP 1: Checking Firebase availability...');
-            console.log('🔍 typeof firebase:', typeof firebase);
-            console.log('🔍 firebase exists:', !!window.firebase);
-            console.log('🔍 firebase.auth exists:', !!(window.firebase && window.firebase.auth));
-            console.log('🔍 typeof firebase.auth:', typeof (window.firebase && window.firebase.auth));
-
-            // Robust Firebase Auth availability check
-            if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function') {
-                console.error('🚨 Firebase Auth not available!');
-                window.app.showMessage('🚨 Firebase Authentication not loaded. Please reload the app.', 'error');
-                return;
-            }
+            console.log('🔍 CRITICAL: Ensuring Firebase is fully ready before sign-in...');
             
-            console.log('🔍 STEP 2: Testing Firebase Auth initialization...');
+            // CRITICAL: Ensure Firebase is fully ready before attempting sign-in
             try {
-                const testAuth = firebase.auth();
-                console.log('✅ firebase.auth() call successful');
-                console.log('🔍 Auth object:', testAuth);
-            } catch (testError) {
-                console.error('🚨 firebase.auth() call failed:', testError);
-                window.app.showMessage('🚨 Firebase Auth call failed. Check console.', 'error');
+                await this.waitForFirebaseReady(5, 200); // Quick check with fewer retries
+                console.log('✅ CRITICAL: Firebase confirmed ready for sign-in!');
+            } catch (readyError) {
+                console.error('🚨 CRITICAL: Firebase not ready for sign-in:', readyError);
+                window.app.showMessage('🚨 Firebase still loading. Please wait and try again.', 'error');
                 return;
             }
             
             if (!this.authReady) {
-                console.log('⚠️ Auth not ready, but trying anyway...');
+                console.log('⚠️ Auth not ready flag, but Firebase is confirmed loaded...');
             }
             
-            console.log('🔍 STEP 3: Firebase Auth confirmed ready for sign-in');
+            console.log('🔍 FINAL: Firebase confirmed ready, proceeding with sign-in...');
             
             // Direct Firebase Web SDK call - simple and clean
             const provider = new firebase.auth.GoogleAuthProvider();

@@ -6,10 +6,7 @@
     "androidScheme": "https"
   },
   "plugins": {
-    "FirebaseAuthentication": {
-      "skipNativeAuth": true,
-      "providers": ["google.com"]
-    }
+    "_comment": "Firebase Authentication plugin removed - using Firebase Web SDK directly to avoid conflicts"
   }
 }
 
