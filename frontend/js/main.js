@@ -3190,13 +3190,59 @@ class ChroniCompanion {
     async initializeAuthentication() {
         try {
             console.log('🔐 Initializing Firebase Authentication...');
+            console.log('🔍 Platform detection:');
+            console.log('  - window.Capacitor exists:', !!window.Capacitor);
+            console.log('  - Capacitor platform:', window.Capacitor?.getPlatform());
+            console.log('  - isCapacitor() result:', this.isCapacitor());
 
             // Detect platform and use appropriate Firebase SDK
             if (this.isCapacitor()) {
                 // Mobile: Use Capacitor Firebase plugin
                 console.log('📱 Initializing Capacitor Firebase Auth...');
-                const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
-                this.FirebaseAuth = FirebaseAuthentication;
+                console.log('📱 Attempting to import @capacitor-firebase/authentication...');
+                
+                try {
+                    const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+                    console.log('✅ Capacitor Firebase plugin imported successfully');
+                    this.FirebaseAuth = FirebaseAuthentication;
+                    console.log('✅ FirebaseAuth set to Capacitor plugin');
+                } catch (importError) {
+                    console.error('❌ Failed to import Capacitor Firebase plugin:', importError);
+                    console.log('🔄 Falling back to Web Firebase SDK on mobile...');
+                    
+                    // Fallback to web Firebase SDK even on mobile
+                    if (typeof firebase !== 'undefined' && typeof firebase.auth === 'function') {
+                        console.log('✅ Using Web Firebase SDK as fallback on mobile');
+                        this.FirebaseAuth = {
+                            signInWithGoogle: async () => {
+                                const provider = new firebase.auth.GoogleAuthProvider();
+                                const result = await firebase.auth().signInWithPopup(provider);
+                                return { user: result.user };
+                            },
+                            signOut: async () => {
+                                await firebase.auth().signOut();
+                            },
+                            getCurrentUser: async () => {
+                                const user = firebase.auth().currentUser;
+                                return user ? { user } : null;
+                            },
+                            getIdToken: async (options = {}) => {
+                                const user = firebase.auth().currentUser;
+                                if (!user) throw new Error('No user signed in');
+                                return await user.getIdToken(options.forceRefresh);
+                            },
+                            addListener: (event, callback) => {
+                                if (event === 'authStateChange') {
+                                    return firebase.auth().onAuthStateChanged((user) => {
+                                        callback({ user });
+                                    });
+                                }
+                            }
+                        };
+                    } else {
+                        throw new Error(`Both Capacitor and Web Firebase failed: ${importError.message}`);
+                    }
+                }
             } else {
                 // Web: Use Firebase Web SDK
                 console.log('🌐 Initializing Web Firebase Auth...');
@@ -3346,11 +3392,19 @@ class ChroniCompanion {
     async signInWithGoogle() {
         try {
             console.log('🔐 Starting Google sign-in...');
+            console.log('🔍 Platform check - isCapacitor():', this.isCapacitor());
+            console.log('🔍 FirebaseAuth object:', !!this.FirebaseAuth);
+            console.log('🔍 Auth initialized flag:', this.authInitialized);
+            
             window.app.showMessage('Signing in with Google...', 'info');
 
             // Check if Firebase Auth is initialized
             if (!this.FirebaseAuth) {
                 console.error('❌ Firebase Auth not initialized');
+                console.error('❌ Debug info:');
+                console.error('  - isCapacitor():', this.isCapacitor());
+                console.error('  - authInitialized:', this.authInitialized);
+                console.error('  - FirebaseAuth object:', this.FirebaseAuth);
                 window.app.showMessage('Authentication not ready. Please try again.', 'error');
                 return;
             }
