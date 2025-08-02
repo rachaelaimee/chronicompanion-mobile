@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-v2-NEW-AUTH';
+const CACHE_NAME = 'chronicompanion-v3-ALERT-TEST';
 const urlsToCache = [
   '/',
   '/index.html',
