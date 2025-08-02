@@ -936,7 +936,23 @@
         </div>
     </div>
 
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=FIREBASE-FRESH-100"></script>
+    
+    <!-- CACHE BUSTER FOR FIREBASE -->
+    <script>
+        console.log('🔥 FIREBASE CACHE BUSTER: v100 loaded at', new Date());
+        // Clear old caches on load
+        if ('caches' in window) {
+            caches.keys().then(names => {
+                names.forEach(name => {
+                    if (name.includes('chronicompanion') && !name.includes('v100')) {
+                        caches.delete(name);
+                        console.log('🔥 Old cache deleted:', name);
+                    }
+                });
+            });
+        }
+    </script>
 <script src="js/firestore.js"></script>
     
     <!-- PWA Service Worker Registration -->

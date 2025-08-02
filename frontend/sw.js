@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-v1';
+const CACHE_NAME = 'chronicompanion-v100-FIREBASE-FRESH';
 const urlsToCache = [
   '/',
   '/index.html',
