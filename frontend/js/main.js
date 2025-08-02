@@ -3209,8 +3209,21 @@ class ChroniCompanion {
                 console.log('📱 Attempting to import @capacitor-firebase/authentication...');
                 
                 try {
-                    console.log('📱 Starting dynamic import...');
-                    const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+                    console.log('📱 Checking Capacitor plugins...');
+                    console.log('📱 Available plugins:', Object.keys(window.Capacitor?.Plugins || {}));
+                    
+                    // Try to get FirebaseAuthentication from Capacitor.Plugins first
+                    let FirebaseAuthentication = window.Capacitor?.Plugins?.FirebaseAuthentication;
+                    
+                    if (!FirebaseAuthentication) {
+                        console.log('📱 Plugin not found in Capacitor.Plugins, trying dynamic import...');
+                        const imported = await import('@capacitor-firebase/authentication');
+                        FirebaseAuthentication = imported.FirebaseAuthentication;
+                        console.log('✅ Dynamic import successful!');
+                    } else {
+                        console.log('✅ Plugin found in Capacitor.Plugins!');
+                    }
+                    
                     console.log('✅ Capacitor Firebase plugin imported successfully!');
                     console.log('🔍 FirebaseAuthentication object:', typeof FirebaseAuthentication);
                     
