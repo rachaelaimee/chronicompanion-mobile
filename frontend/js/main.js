@@ -2277,6 +2277,7 @@ class ChroniCompanion {
                     this.showEmptyDashboard();
                     return;
                 }
+                }
             }
             
             // Get filter settings
