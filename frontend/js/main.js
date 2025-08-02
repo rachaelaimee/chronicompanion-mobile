@@ -30,7 +30,16 @@ class ChroniCompanion {
         await this.initIndexedDB();
         
         // Initialize Firebase Authentication
-        await this.initializeAuthentication(); // Initialize Firebase Authentication
+        try {
+            console.log('🚀 App startup: Attempting to initialize Firebase Authentication...');
+            await this.initializeAuthentication(); 
+            console.log('✅ App startup: Firebase Authentication initialized successfully');
+        } catch (authError) {
+            console.error('❌ App startup: Firebase Authentication initialization failed:', authError);
+            console.error('❌ Auth error details:', authError.message);
+            console.error('❌ Auth error stack:', authError.stack);
+            // Continue app startup even if auth fails
+        }
         
         this.setupEventListeners();
         this.setupMobileOptimizations();
@@ -3191,33 +3200,46 @@ class ChroniCompanion {
         try {
             console.log('🔐 Initializing Firebase Authentication...');
             console.log('🔍 Platform detection:', this.isCapacitor() ? 'Mobile/Native' : 'Web');
+            console.log('🔍 Window.Capacitor exists:', !!window.Capacitor);
+            console.log('🔍 Capacitor platform:', window.Capacitor?.getPlatform());
 
             if (this.isCapacitor()) {
                 // Mobile: Use ONLY Capacitor Firebase plugin for native auth
                 console.log('📱 Using Native Capacitor Firebase Authentication');
+                console.log('📱 Attempting to import @capacitor-firebase/authentication...');
                 
                 try {
+                    console.log('📱 Starting dynamic import...');
                     const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+                    console.log('✅ Capacitor Firebase plugin imported successfully!');
+                    console.log('🔍 FirebaseAuthentication object:', typeof FirebaseAuthentication);
                     
                     // CRITICAL: Initialize Firebase in the Capacitor plugin first
                     console.log('🔥 Initializing Firebase in Capacitor plugin...');
                     
                     // Wait a moment for plugin to be ready
+                    console.log('⏳ Waiting 500ms for plugin readiness...');
                     await new Promise(resolve => setTimeout(resolve, 500));
                     
                     // Check if we can get current user (indicates plugin is ready)
+                    console.log('🔍 Testing plugin readiness with getCurrentUser()...');
                     try {
                         const currentUserResult = await FirebaseAuthentication.getCurrentUser();
                         console.log('✅ Capacitor Firebase plugin is ready!');
                         console.log('🔍 Current user check:', currentUserResult?.user?.displayName || 'No user');
                     } catch (checkError) {
                         console.warn('⚠️ Plugin not fully ready yet:', checkError.message);
+                        console.warn('⚠️ Check error details:', checkError);
                     }
                     
                     this.FirebaseAuth = FirebaseAuthentication;
                     console.log('✅ Native Firebase Authentication ready - NO BROWSER needed!');
+                    console.log('✅ this.FirebaseAuth assigned:', !!this.FirebaseAuth);
                 } catch (importError) {
                     console.error('❌ Failed to load Capacitor Firebase plugin:', importError);
+                    console.error('❌ Import error message:', importError.message);
+                    console.error('❌ Import error stack:', importError.stack);
+                    console.error('❌ Import error details:', importError);
                     throw new Error(`Native authentication failed: ${importError.message}`);
                 }
             } else {
@@ -3264,10 +3286,16 @@ class ChroniCompanion {
 
             this.authInitialized = true;
             console.log('✅ Firebase Authentication initialized successfully');
+            console.log('✅ Auth initialized flag set to:', this.authInitialized);
+            console.log('✅ FirebaseAuth object exists:', !!this.FirebaseAuth);
 
         } catch (error) {
             console.error('❌ Failed to initialize Firebase Authentication:', error);
+            console.error('❌ Error message:', error.message);
+            console.error('❌ Error stack:', error.stack);
             this.authInitialized = false;
+            console.log('❌ Auth initialized flag set to:', this.authInitialized);
+            console.log('❌ FirebaseAuth object exists:', !!this.FirebaseAuth);
             throw error;
         }
     }
