@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-v6-OLD-CODE-REMOVED';
+const CACHE_NAME = 'chronicompanion-v7-COMPLETE-AUTH-SYSTEM';
 const urlsToCache = [
   '/',
   '/index.html',

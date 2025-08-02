@@ -3205,15 +3205,26 @@ class ChroniCompanion {
         console.log('🔥 This is a fresh start with zero old code!');
         
         try {
-            // Simple Firebase Web SDK setup
+            // Simple Firebase Web SDK setup - Check Firebase is fully loaded
             if (typeof firebase === 'undefined') {
                 throw new Error('Firebase not loaded');
             }
+            if (typeof firebase.auth !== 'function') {
+                throw new Error('Firebase Auth not available');
+            }
+            console.log('🔥 Firebase Auth confirmed available');
+            
+            console.log('🔥 Setting up auth state listener...');
+            await this.setupAuthStateListener();
+            
+            console.log('🔥 Checking for existing user...');
+            await this.checkCurrentUser();
             
             this.authReady = true;
             this.authInitialized = true;
             
             console.log('✅ BRAND NEW AUTH SYSTEM READY!');
+            console.log('✅ Auth listener set up, existing user checked!');
             console.log('✅ No old code, no conflicts, fresh start!');
             
         } catch (error) {
@@ -3295,9 +3306,17 @@ class ChroniCompanion {
         console.log('🔥 This is 100% fresh code with zero conflicts!');
         
         try {
+            // Robust Firebase Auth availability check
+            if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function') {
+                window.app.showMessage('Firebase Authentication not loaded. Please reload the app.', 'error');
+                return;
+            }
+            
             if (!this.authReady) {
                 console.log('⚠️ Auth not ready, but trying anyway...');
             }
+            
+            console.log('🔥 Firebase Auth confirmed ready for sign-in');
             
             // Direct Firebase Web SDK call - simple and clean
             const provider = new firebase.auth.GoogleAuthProvider();
