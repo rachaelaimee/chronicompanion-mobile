@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, date
 
-from database import get_db
-from models import JournalEntry, JournalEntryCreate, JournalEntryUpdate, JournalEntryResponse
+from backend.database import get_db
+from backend.models import JournalEntry, JournalEntryCreate, JournalEntryUpdate, JournalEntryResponse
 
 router = APIRouter()
 
