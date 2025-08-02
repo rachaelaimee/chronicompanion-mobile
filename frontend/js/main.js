@@ -3214,47 +3214,33 @@ class ChroniCompanion {
                 signInWithGoogle: async () => {
                     console.log('🔑 Starting Google Sign-In...');
                     
-                    // Try different methods based on platform
-                    if (this.isCapacitor()) {
-                        console.log('📱 Mobile: Trying signInWithRedirect for better compatibility');
-                        try {
-                            const provider = new firebase.auth.GoogleAuthProvider();
-                            provider.addScope('email');
-                            provider.addScope('profile');
-                            
-                            // Use redirect on mobile for better compatibility
-                            await firebase.auth().signInWithRedirect(provider);
-                            
-                            // Return a promise that will resolve when redirect completes
-                            return new Promise((resolve, reject) => {
-                                const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
-                                    if (user) {
-                                        unsubscribe();
-                                        resolve({ user });
-                                    }
-                                });
-                                
-                                // Timeout after 30 seconds
-                                setTimeout(() => {
-                                    unsubscribe();
-                                    reject(new Error('Sign-in timeout'));
-                                }, 30000);
-                            });
-                        } catch (redirectError) {
-                            console.log('📱 Redirect failed, trying popup:', redirectError.message);
-                            // Fallback to popup
-                            const provider = new firebase.auth.GoogleAuthProvider();
-                            const result = await firebase.auth().signInWithPopup(provider);
-                            return { user: result.user };
-                        }
-                    } else {
-                        // Web: Use popup
-                        console.log('🌐 Web: Using signInWithPopup');
-                        const provider = new firebase.auth.GoogleAuthProvider();
-                        provider.addScope('email');
-                        provider.addScope('profile');
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    provider.addScope('email');
+                    provider.addScope('profile');
+                    
+                    // ALWAYS use popup - it works better on mobile apps
+                    console.log('🔥 UNIVERSAL: Using signInWithPopup for all platforms');
+                    
+                    try {
                         const result = await firebase.auth().signInWithPopup(provider);
+                        console.log('✅ Popup sign-in successful');
                         return { user: result.user };
+                    } catch (error) {
+                        console.error('❌ Popup sign-in failed:', error);
+                        
+                        // If popup fails and we're on mobile, try Capacitor native
+                        if (this.isCapacitor() && window.FirebaseAuthentication) {
+                            console.log('📱 Trying Capacitor native auth...');
+                            try {
+                                const result = await window.FirebaseAuthentication.signInWithGoogle();
+                                return { user: result.user };
+                            } catch (nativeError) {
+                                console.error('❌ Native auth also failed:', nativeError);
+                                throw error; // Throw original popup error
+                            }
+                        }
+                        
+                        throw error;
                     }
                 },
                 

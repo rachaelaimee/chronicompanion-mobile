@@ -936,16 +936,17 @@
         </div>
     </div>
 
-    <script src="js/main.js?v=FIREBASE-FRESH-100"></script>
+    <script src="js/main.js?v=LOCALHOST-FIX-101"></script>
     
-    <!-- CACHE BUSTER FOR FIREBASE -->
+    <!-- CACHE BUSTER FOR LOCALHOST FIX -->
     <script>
-        console.log('🔥 FIREBASE CACHE BUSTER: v100 loaded at', new Date());
+        console.log('🔥 LOCALHOST FIX: v101 loaded at', new Date());
+        console.log('🔥 Fixed: No more localhost redirects on mobile!');
         // Clear old caches on load
         if ('caches' in window) {
             caches.keys().then(names => {
                 names.forEach(name => {
-                    if (name.includes('chronicompanion') && !name.includes('v100')) {
+                    if (name.includes('chronicompanion') && !name.includes('v101')) {
                         caches.delete(name);
                         console.log('🔥 Old cache deleted:', name);
                     }
