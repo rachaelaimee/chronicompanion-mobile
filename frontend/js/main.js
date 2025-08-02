@@ -1,4 +1,7 @@
 // ChroniCompanion Frontend JavaScript
+alert('🚨 NEW CODE TEST! If you see this alert, the NEW JavaScript is loading! Jan 2025 version!');
+console.log('🚀🚀🚀 NEW CHRONICOMPANION CODE LOADING - JAN 2025 VERSION!');
+
 class ChroniCompanion {
     constructor() {
         this.apiBase = 'https://chronicompanion-mobile-production.up.railway.app'; // Backend API URL (will fallback to offline mode)
