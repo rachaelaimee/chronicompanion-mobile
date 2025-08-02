@@ -3198,6 +3198,22 @@ class ChroniCompanion {
                 
                 try {
                     const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+                    
+                    // CRITICAL: Initialize Firebase in the Capacitor plugin first
+                    console.log('🔥 Initializing Firebase in Capacitor plugin...');
+                    
+                    // Wait a moment for plugin to be ready
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Check if we can get current user (indicates plugin is ready)
+                    try {
+                        const currentUserResult = await FirebaseAuthentication.getCurrentUser();
+                        console.log('✅ Capacitor Firebase plugin is ready!');
+                        console.log('🔍 Current user check:', currentUserResult?.user?.displayName || 'No user');
+                    } catch (checkError) {
+                        console.warn('⚠️ Plugin not fully ready yet:', checkError.message);
+                    }
+                    
                     this.FirebaseAuth = FirebaseAuthentication;
                     console.log('✅ Native Firebase Authentication ready - NO BROWSER needed!');
                 } catch (importError) {
@@ -3336,8 +3352,25 @@ class ChroniCompanion {
                 console.error('  - isCapacitor():', this.isCapacitor());
                 console.error('  - authInitialized:', this.authInitialized);
                 console.error('  - FirebaseAuth object:', this.FirebaseAuth);
-                window.app.showMessage('Authentication not ready. Please try again.', 'error');
-                return;
+                
+                // Try to initialize authentication if not ready
+                console.log('🔄 Attempting to initialize authentication...');
+                window.app.showMessage('Initializing authentication...', 'info');
+                
+                try {
+                    await this.initializeAuthentication();
+                    
+                    if (!this.FirebaseAuth) {
+                        throw new Error('Failed to initialize Firebase Auth');
+                    }
+                    
+                    console.log('✅ Authentication initialized successfully');
+                    window.app.showMessage('Authentication ready, signing in...', 'info');
+                } catch (initError) {
+                    console.error('❌ Failed to initialize authentication:', initError);
+                    window.app.showMessage('Authentication initialization failed. Please restart the app.', 'error');
+                    return;
+                }
             }
 
             console.log('🔐 Firebase Auth available, attempting sign-in...');
