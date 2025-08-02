@@ -29,13 +29,14 @@ class ChroniCompanion {
     async init() {
         await this.initIndexedDB();
         
-        // Initialize Firebase Authentication
+        // Initialize Firebase Authentication - NEW APPROACH
         try {
-            console.log('🚀 App startup: Attempting to initialize Firebase Authentication...');
+            console.log('🚀🚀🚀 APP STARTUP: NEW FIREBASE WEB SDK INITIALIZATION!');
             await this.initializeAuthentication(); 
-            console.log('✅ App startup: Firebase Authentication initialized successfully');
+            console.log('✅✅✅ APP STARTUP: NEW Firebase Web SDK initialized successfully!');
+            console.log('✅ You should see "HYBRID AUTHENTICATION" messages above');
         } catch (authError) {
-            console.error('❌ App startup: Firebase Authentication initialization failed:', authError);
+            console.error('❌❌❌ APP STARTUP: NEW Firebase Web SDK initialization failed:', authError);
             console.error('❌ Auth error details:', authError.message);
             console.error('❌ Auth error stack:', authError.stack);
             // Continue app startup even if auth fails
@@ -3388,51 +3389,29 @@ class ChroniCompanion {
     }
 
     /**
-     * Sign in with Google
+     * Sign in with Google - NEW FIREBASE WEB SDK APPROACH
      */
     async signInWithGoogle() {
         try {
-            console.log('🔐 Starting Google sign-in...');
-            console.log('🔍 Platform check - isCapacitor():', this.isCapacitor());
-            console.log('🔍 FirebaseAuth object:', !!this.FirebaseAuth);
-            console.log('🔍 Auth initialized flag:', this.authInitialized);
+            console.log('🚀🚀🚀 NEW FIREBASE WEB SDK AUTHENTICATION CALLED!');
+            console.log('✅ This is NOT the old broken method!');
+            console.log('✅ This should NEVER show "authentication not ready"!');
             
-            window.app.showMessage('Signing in with Google...', 'info');
+            window.app.showMessage('🚀 Using NEW Firebase Web SDK approach...', 'info');
 
-            // Check if Firebase Auth is initialized
-            if (!this.FirebaseAuth) {
-                console.error('❌ Firebase Auth not initialized');
-                console.error('❌ Debug info:');
-                console.error('  - isCapacitor():', this.isCapacitor());
-                console.error('  - authInitialized:', this.authInitialized);
-                console.error('  - FirebaseAuth object:', this.FirebaseAuth);
-                
-                // Try to initialize authentication if not ready
-                console.log('🔄 Attempting to initialize authentication...');
-                window.app.showMessage('Initializing authentication...', 'info');
-                
-                try {
-                    await this.initializeAuthentication();
-                    
-                    if (!this.FirebaseAuth) {
-                        throw new Error('Failed to initialize Firebase Auth');
-                    }
-                    
-                    console.log('✅ Authentication initialized successfully');
-                    window.app.showMessage('Authentication ready, signing in...', 'info');
-                } catch (initError) {
-                    console.error('❌ Failed to initialize authentication:', initError);
-                    window.app.showMessage('Authentication initialization failed. Please restart the app.', 'error');
-                    return;
-                }
+            // Use the NEW Firebase Web SDK method directly
+            if (!this.FirebaseAuth || !this.authInitialized) {
+                console.error('❌ NEW CODE BUG: Firebase Auth not initialized');
+                window.app.showMessage('NEW CODE ERROR: Please check console logs', 'error');
+                return;
             }
 
-            console.log('🔐 Firebase Auth available, attempting sign-in...');
+            console.log('🔐 NEW METHOD: Starting Google sign-in with Firebase Web SDK...');
             const result = await this.FirebaseAuth.signInWithGoogle();
-            console.log('✅ Google sign-in successful:', result);
+            console.log('✅ NEW METHOD: Google sign-in successful:', result);
             
             if (result && result.user) {
-                window.app.showMessage(`Welcome, ${result.user.displayName || 'User'}!`, 'success');
+                window.app.showMessage(`✅ SUCCESS: Welcome, ${result.user.displayName || 'User'}!`, 'success');
                 this.currentUser = result.user;
                 this.updateAuthUI();
             }
