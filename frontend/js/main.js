@@ -3191,9 +3191,46 @@ class ChroniCompanion {
         try {
             console.log('🔐 Initializing Firebase Authentication...');
 
-            // Import Firebase Authentication dynamically
-            const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
-            this.FirebaseAuth = FirebaseAuthentication;
+            // Detect platform and use appropriate Firebase SDK
+            if (this.isCapacitor()) {
+                // Mobile: Use Capacitor Firebase plugin
+                console.log('📱 Initializing Capacitor Firebase Auth...');
+                const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+                this.FirebaseAuth = FirebaseAuthentication;
+            } else {
+                // Web: Use Firebase Web SDK
+                console.log('🌐 Initializing Web Firebase Auth...');
+                if (typeof firebase === 'undefined' || !firebase.auth) {
+                    throw new Error('Firebase Web SDK not loaded');
+                }
+                this.FirebaseAuth = {
+                    // Wrap Firebase Web SDK to match Capacitor interface
+                    signInWithGoogle: async () => {
+                        const provider = new firebase.auth.GoogleAuthProvider();
+                        const result = await firebase.auth().signInWithPopup(provider);
+                        return { user: result.user };
+                    },
+                    signOut: async () => {
+                        await firebase.auth().signOut();
+                    },
+                    getCurrentUser: async () => {
+                        const user = firebase.auth().currentUser;
+                        return user ? { user } : null;
+                    },
+                    getIdToken: async (options = {}) => {
+                        const user = firebase.auth().currentUser;
+                        if (!user) throw new Error('No user signed in');
+                        return await user.getIdToken(options.forceRefresh);
+                    },
+                    addListener: (event, callback) => {
+                        if (event === 'authStateChange') {
+                            return firebase.auth().onAuthStateChanged((user) => {
+                                callback({ user });
+                            });
+                        }
+                    }
+                };
+            }
 
             // Listen for authentication state changes
             await this.setupAuthStateListener();
@@ -3208,6 +3245,15 @@ class ChroniCompanion {
             console.error('❌ Failed to initialize Firebase Authentication:', error);
             this.authInitialized = false;
         }
+    }
+
+    /**
+     * Check if running in Capacitor environment
+     */
+    isCapacitor() {
+        return typeof window !== 'undefined' && 
+               window.Capacitor && 
+               window.Capacitor.getPlatform() !== 'web';
     }
 
     /**
