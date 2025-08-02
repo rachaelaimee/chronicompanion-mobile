@@ -3200,33 +3200,65 @@ class ChroniCompanion {
             } else {
                 // Web: Use Firebase Web SDK
                 console.log('🌐 Initializing Web Firebase Auth...');
-                if (typeof firebase === 'undefined' || !firebase.auth) {
+                if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function') {
                     throw new Error('Firebase Web SDK not loaded');
                 }
+                console.log('✅ Firebase Web SDK detected, creating auth wrapper...');
                 this.FirebaseAuth = {
                     // Wrap Firebase Web SDK to match Capacitor interface
                     signInWithGoogle: async () => {
-                        const provider = new firebase.auth.GoogleAuthProvider();
-                        const result = await firebase.auth().signInWithPopup(provider);
-                        return { user: result.user };
+                        try {
+                            console.log('🔐 Creating Google Auth provider...');
+                            const provider = new firebase.auth.GoogleAuthProvider();
+                            console.log('🔐 Opening Google Sign-In popup...');
+                            const result = await firebase.auth().signInWithPopup(provider);
+                            console.log('✅ Google Sign-In successful:', result.user?.displayName);
+                            return { user: result.user };
+                        } catch (error) {
+                            console.error('❌ Google Sign-In error:', error);
+                            throw error;
+                        }
                     },
                     signOut: async () => {
-                        await firebase.auth().signOut();
+                        try {
+                            await firebase.auth().signOut();
+                            console.log('✅ Sign-out successful');
+                        } catch (error) {
+                            console.error('❌ Sign-out error:', error);
+                            throw error;
+                        }
                     },
                     getCurrentUser: async () => {
-                        const user = firebase.auth().currentUser;
-                        return user ? { user } : null;
+                        try {
+                            const user = firebase.auth().currentUser;
+                            console.log('🔐 Current user check:', user?.displayName || 'No user');
+                            return user ? { user } : null;
+                        } catch (error) {
+                            console.error('❌ Get current user error:', error);
+                            return null;
+                        }
                     },
                     getIdToken: async (options = {}) => {
-                        const user = firebase.auth().currentUser;
-                        if (!user) throw new Error('No user signed in');
-                        return await user.getIdToken(options.forceRefresh);
+                        try {
+                            const user = firebase.auth().currentUser;
+                            if (!user) throw new Error('No user signed in');
+                            return await user.getIdToken(options.forceRefresh);
+                        } catch (error) {
+                            console.error('❌ Get ID token error:', error);
+                            throw error;
+                        }
                     },
                     addListener: (event, callback) => {
-                        if (event === 'authStateChange') {
-                            return firebase.auth().onAuthStateChanged((user) => {
-                                callback({ user });
-                            });
+                        try {
+                            if (event === 'authStateChange') {
+                                console.log('🔐 Setting up auth state listener...');
+                                return firebase.auth().onAuthStateChanged((user) => {
+                                    console.log('🔐 Auth state changed:', user?.displayName || 'No user');
+                                    callback({ user });
+                                });
+                            }
+                        } catch (error) {
+                            console.error('❌ Auth listener error:', error);
                         }
                     }
                 };
