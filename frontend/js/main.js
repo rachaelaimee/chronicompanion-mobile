@@ -3204,6 +3204,18 @@ class ChroniCompanion {
                 try {
                     const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
                     console.log('✅ Capacitor Firebase plugin imported successfully');
+                    
+                    // Configure Capacitor Firebase for native auth (no browser)
+                    await FirebaseAuthentication.initializeFirebase({
+                        apiKey: "AIzaSyAHxkbuZMcHdUwPj_C4W2LYrvWQDjtEoFY",
+                        authDomain: "chronicompanion.firebaseapp.com",
+                        projectId: "chronicompanion",
+                        storageBucket: "chronicompanion.firebasestorage.app",
+                        messagingSenderId: "241042747133",
+                        appId: "1:241042747133:web:1f64e9d15dfb2c8e2e1894"
+                    });
+                    console.log('✅ Firebase initialized in Capacitor plugin');
+                    
                     this.FirebaseAuth = FirebaseAuthentication;
                     console.log('✅ FirebaseAuth set to Capacitor plugin');
                 } catch (importError) {
@@ -3222,12 +3234,25 @@ class ChroniCompanion {
                                     console.log('🔐 [MOBILE FALLBACK] Current URL:', window.location.href);
                                     console.log('🔐 [MOBILE FALLBACK] Auth domain:', firebase.app().options.authDomain);
                                     
-                                    // Try redirect instead of popup on mobile (better compatibility)
-                                    console.log('🔐 [MOBILE FALLBACK] Using redirect instead of popup...');
-                                    await firebase.auth().signInWithRedirect(provider);
-                                    // Note: signInWithRedirect doesn't return immediately, it redirects the page
-                                    // We'll handle the result in getRedirectResult on app startup
-                                    return null;
+                                    // Force new tab behavior and try popup first, fallback to redirect
+                                    console.log('🔐 [MOBILE FALLBACK] Trying popup with new tab forcing...');
+                                    
+                                    try {
+                                        // Try popup first (works better and doesn't interfere with existing tabs)
+                                        const result = await firebase.auth().signInWithPopup(provider);
+                                        console.log('✅ [MOBILE FALLBACK] Popup sign-in successful:', result.user?.displayName);
+                                        return { user: result.user };
+                                    } catch (popupError) {
+                                        console.log('🔄 [MOBILE FALLBACK] Popup failed, trying redirect...');
+                                        console.log('🔐 [MOBILE FALLBACK] Clearing current tab and redirecting...');
+                                        
+                                        // Clear current page to avoid tab reuse issues
+                                        window.location.href = 'about:blank';
+                                        setTimeout(() => {
+                                            firebase.auth().signInWithRedirect(provider);
+                                        }, 100);
+                                        return null;
+                                    }
                                 } catch (error) {
                                     console.error('❌ [MOBILE FALLBACK] Sign-in error:', error);
                                     console.error('❌ [MOBILE FALLBACK] Error code:', error.code);
