@@ -936,17 +936,17 @@
         </div>
     </div>
 
-    <script src="js/main.js?v=LOCALHOST-FIX-101"></script>
+    <script src="js/main.js?v=BUTTONS-WORK-102"></script>
     
-    <!-- CACHE BUSTER FOR LOCALHOST FIX -->
+    <!-- CACHE BUSTER FOR BUTTONS FIX -->
     <script>
-        console.log('🔥 LOCALHOST FIX: v101 loaded at', new Date());
-        console.log('🔥 Fixed: No more localhost redirects on mobile!');
+        console.log('🔥 BUTTONS FIX: v102 loaded at', new Date());
+        console.log('🔥 Fixed: All buttons now work without authentication!');
         // Clear old caches on load
         if ('caches' in window) {
             caches.keys().then(names => {
                 names.forEach(name => {
-                    if (name.includes('chronicompanion') && !name.includes('v101')) {
+                    if (name.includes('chronicompanion') && !name.includes('v102')) {
                         caches.delete(name);
                         console.log('🔥 Old cache deleted:', name);
                     }

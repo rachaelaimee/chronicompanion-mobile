@@ -464,12 +464,14 @@ class ChroniCompanion {
     }
 
     showView(viewId) {
-        // 🔐 Check if login is required for this view
-        const protectedViews = ['entries-list', 'dashboard'];
-        if (protectedViews.includes(viewId) && !this.currentUser) {
-            this.showLoginRequired(viewId);
-            return;
-        }
+        // 🔐 TEMPORARILY DISABLED: Check if login is required for this view
+        // const protectedViews = ['entries-list', 'dashboard'];
+        // if (protectedViews.includes(viewId) && !this.currentUser) {
+        //     this.showLoginRequired(viewId);
+        //     return;
+        // }
+        
+        console.log('🔥 TEMP FIX: Authentication requirement disabled - you can access all features!');
 
         // Hide all views
         const views = ['entry-form', 'entries-list', 'dashboard'];
