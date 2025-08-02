@@ -3233,15 +3233,16 @@ class ChroniCompanion {
     }
 
     /**
-     * Set up authentication state listener
+     * Set up authentication state listener - NEW DIRECT FIREBASE
      */
     async setupAuthStateListener() {
         try {
-            const listener = await this.FirebaseAuth.addListener('authStateChange', (change) => {
-                console.log('🔐 Auth state changed:', change);
-                this.handleAuthStateChange(change);
+            console.log('🔥 NEW AUTH LISTENER: Direct Firebase Web SDK');
+            firebase.auth().onAuthStateChanged((user) => {
+                console.log('🔐 Auth state changed:', user ? 'User signed in' : 'User signed out');
+                this.currentUser = user;
+                this.updateAuthUI();
             });
-            this.authListeners.push(listener);
         } catch (error) {
             console.error('❌ Failed to set up auth state listener:', error);
         }
@@ -3269,11 +3270,12 @@ class ChroniCompanion {
      */
     async checkCurrentUser() {
         try {
-            const result = await this.FirebaseAuth.getCurrentUser();
-            if (result.user) {
-                console.log('🔐 User already signed in:', result.user);
-                this.currentUser = result.user;
-                await this.onUserSignedIn(result.user);
+            console.log('🔥 NEW CHECK USER: Direct Firebase Web SDK');
+            const user = firebase.auth().currentUser;
+            if (user) {
+                console.log('🔐 User already signed in:', user.email);
+                this.currentUser = user;
+                await this.onUserSignedIn(user);
             } else {
                 console.log('🔐 No user currently signed in');
                 this.currentUser = null;
@@ -3335,12 +3337,14 @@ class ChroniCompanion {
      */
     async signOut() {
         try {
-            console.log('🔐 Signing out user...');
+            console.log('🔥 NEW SIGN OUT: Direct Firebase Web SDK');
             window.app.showMessage('Signing out...', 'info');
 
-            await this.FirebaseAuth.signOut();
+            await firebase.auth().signOut();
             console.log('✅ User signed out successfully');
             
+            this.currentUser = null;
+            this.updateAuthUI();
             window.app.showMessage('Signed out successfully', 'success');
 
         } catch (error) {
@@ -3429,10 +3433,11 @@ class ChroniCompanion {
                 signInTime: Date.now()
             }));
 
-            // Get ID token for backend authentication
-            const tokenResult = await this.FirebaseAuth.getIdToken();
-            if (tokenResult.token) {
-                localStorage.setItem('chroni_auth_token', tokenResult.token);
+            // Get ID token for backend authentication - NEW DIRECT FIREBASE
+            console.log('🔥 NEW GET TOKEN: Direct Firebase Web SDK');
+            const token = await user.getIdToken();
+            if (token) {
+                localStorage.setItem('chroni_auth_token', token);
                 console.log('🔐 Auth token stored');
             }
 
@@ -3718,14 +3723,15 @@ class ChroniCompanion {
      */
     async getAuthToken() {
         try {
+            console.log('🔥 NEW GET AUTH TOKEN: Direct Firebase Web SDK');
             if (!this.currentUser) {
                 return null;
             }
 
-            const result = await this.FirebaseAuth.getIdToken({ forceRefresh: true });
-            if (result.token) {
-                localStorage.setItem('chroni_auth_token', result.token);
-                return result.token;
+            const token = await this.currentUser.getIdToken(true); // true = forceRefresh
+            if (token) {
+                localStorage.setItem('chroni_auth_token', token);
+                return token;
             }
 
             return null;
