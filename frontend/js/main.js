@@ -3482,19 +3482,34 @@ class ChroniCompanion {
             // ULTRA SIMPLE: Just call signInWithOAuth with proper redirect
             console.log('🔥 Calling signInWithOAuth with proper redirect...');
             
-            // Auto-detect development vs production
+            // Detect mobile vs web environment
+            const isCapacitorApp = window.Capacitor?.isNativePlatform?.() || false;
             const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const redirectUrl = isLocalhost ? 'http://localhost:8080' : 'https://chronicompanion.app';
             
-            console.log('🔍 Detected environment:', isLocalhost ? 'DEVELOPMENT' : 'PRODUCTION');
-            console.log('🔍 Redirect URL will be:', redirectUrl);
+            console.log('🔍 Is Capacitor mobile app:', isCapacitorApp);
+            console.log('🔍 Is localhost:', isLocalhost);
             
-            const { data, error } = await window.supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
+            let oauthOptions = {
+                provider: 'google'
+            };
+            
+            if (isCapacitorApp) {
+                // Mobile app: Use deep link and open in system browser
+                console.log('📱 MOBILE: Using deep link redirect');
+                oauthOptions.options = {
+                    redirectTo: 'chronicompanion://app/auth/callback',
+                    skipBrowserRedirect: true
+                };
+            } else {
+                // Web app: Use appropriate domain
+                const redirectUrl = isLocalhost ? 'http://localhost:8080' : 'https://chronicompanion.app';
+                console.log('🌐 WEB: Redirecting to', redirectUrl);
+                oauthOptions.options = {
                     redirectTo: redirectUrl
-                }
-            });
+                };
+            }
+            
+            const { data, error } = await window.supabase.auth.signInWithOAuth(oauthOptions);
             
             console.log('🔍 OAuth response data:', data);
             console.log('🔍 OAuth response error:', error);
@@ -3511,14 +3526,24 @@ class ChroniCompanion {
             
             if (data?.url) {
                 console.log('✅ OAuth URL received:', data.url);
-                console.log('🔥 About to redirect to:', data.url);
                 window.app.showMessage('Redirecting to Google...', 'info');
                 
-                // For debugging: Log before redirect
-                setTimeout(() => {
-                    console.log('🔥 REDIRECT HAPPENING NOW');
-                    window.location.href = data.url;
-                }, 1000);
+                if (isCapacitorApp) {
+                    // Mobile: Open in system browser
+                    console.log('📱 MOBILE: Opening OAuth in system browser');
+                    if (window.Capacitor?.Plugins?.Browser) {
+                        await window.Capacitor.Plugins.Browser.open({ url: data.url });
+                    } else {
+                        // Fallback: try window.open
+                        window.open(data.url, '_system');
+                    }
+                } else {
+                    // Web: Normal redirect
+                    console.log('🌐 WEB: Redirecting to OAuth');
+                    setTimeout(() => {
+                        window.location.href = data.url;
+                    }, 1000);
+                }
             } else {
                 console.error('❌ No OAuth URL received');
                 window.app.showMessage('No OAuth URL received', 'error');
