@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-ULTRA-DEBUG-v6';
+const CACHE_NAME = 'chronicompanion-UI-DEBUG-v7';
 const urlsToCache = [
   '/',
   '/index.html',

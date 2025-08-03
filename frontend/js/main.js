@@ -3297,6 +3297,7 @@ class ChroniCompanion {
             if (error) {
                 console.error('❌ Error checking user session:', error);
                 this.currentUser = null;
+                this.updateAuthUI(false, null); // ← FIX: Show sign-in button on error
                 return;
             }
             
@@ -3312,6 +3313,7 @@ class ChroniCompanion {
         } catch (error) {
             console.error('❌ Error in checkCurrentUser:', error);
             this.currentUser = null;
+            this.updateAuthUI(false, null); // ← FIX: Always show sign-in button on error
         }
     }
 
@@ -3382,12 +3384,21 @@ class ChroniCompanion {
      * Update authentication UI based on user state
      */
     updateAuthUI(isSignedIn, user) {
+        console.log('🔥 DEBUG: updateAuthUI called with:', { isSignedIn, userEmail: user?.email });
+        
         const signInBtn = document.getElementById('sign-in-btn');
         const signOutBtn = document.getElementById('sign-out-btn');
         const userInfo = document.getElementById('user-info');
         
+        console.log('🔥 DEBUG: Found elements:', { 
+            signInBtn: !!signInBtn, 
+            signOutBtn: !!signOutBtn, 
+            userInfo: !!userInfo 
+        });
+        
         if (isSignedIn && user) {
             // User is signed in
+            console.log('🔥 DEBUG: User is signed in - hiding sign-in button');
             if (signInBtn) signInBtn.style.display = 'none';
             if (signOutBtn) signOutBtn.style.display = 'inline-flex';
             if (userInfo) {
@@ -3400,10 +3411,28 @@ class ChroniCompanion {
             }
         } else {
             // User is signed out
-            if (signInBtn) signInBtn.style.display = 'inline-flex';
+            console.log('🔥 DEBUG: User is signed out - showing sign-in button');
+            if (signInBtn) {
+                signInBtn.style.display = 'inline-flex';
+                console.log('🔥 DEBUG: Sign-in button should now be visible');
+            } else {
+                console.error('❌ DEBUG: Sign-in button element not found!');
+            }
             if (signOutBtn) signOutBtn.style.display = 'none';
             if (userInfo) userInfo.style.display = 'none';
         }
+        
+        // Double-check button visibility
+        setTimeout(() => {
+            const btn = document.getElementById('sign-in-btn');
+            if (btn) {
+                console.log('🔥 DEBUG: Sign-in button final state:', {
+                    display: btn.style.display,
+                    visible: btn.offsetWidth > 0 && btn.offsetHeight > 0,
+                    computed: window.getComputedStyle(btn).display
+                });
+            }
+        }, 100);
     }
 
     /**
