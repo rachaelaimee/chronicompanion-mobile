@@ -1,5 +1,5 @@
 {
-  "appId": "com.github.rachaelaimee.chronicompanion",
+  "appId": "io.github.rachaelaimee.chronicompanion",
   "appName": "ChroniCompanion",
   "webDir": "frontend",
   "server": {

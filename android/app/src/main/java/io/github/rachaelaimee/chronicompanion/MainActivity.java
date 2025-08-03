@@ -1,4 +1,4 @@
-package com.github.rachaelaimee.chronicompanion;
+package io.github.rachaelaimee.chronicompanion;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-GOOGLE-OAUTH-CONFIGURED-v1';
+const CACHE_NAME = 'chronicompanion-GOOGLE-OAUTH-READY-v2';
 const urlsToCache = [
   '/',
   '/index.html',
