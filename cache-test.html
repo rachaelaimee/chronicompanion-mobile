@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cache Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- PREVENT CACHING -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-bold text-red-600 mb-4">🔥 CACHE-FREE TEST</h1>
+        <p class="text-lg mb-4">Generated at: <strong id="timestamp"></strong></p>
+        
+        <!-- This is the EXACT button from your app -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-semibold mb-4">Authentication Section:</h2>
+            
+            <div class="flex justify-center items-center space-x-4 mb-4">
+                <!-- Sign In Button -->
+                <button id="sign-in-btn" 
+                        onclick="testSignIn()"
+                        class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                    <i class="fab fa-google mr-2"></i>Sign In with Google (Cache Test!)
+                </button>
+                
+                <!-- Sign Out Button -->
+                <button id="sign-out-btn" 
+                        onclick="testSignOut()"
+                        style="display: none;"
+                        class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Sign Out
+                </button>
+            </div>
+            
+            <!-- User Info Display -->
+            <div id="user-info" 
+                 style="display: none;"
+                 class="flex justify-center">
+                <!-- User info will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Status Display -->
+        <div id="status" class="mt-6 p-4 bg-blue-100 rounded-lg">
+            <h3 class="font-bold">Status:</h3>
+            <div id="status-content">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        // Display current timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        
+        console.log('🔥 CACHE-FREE TEST LOADED AT:', new Date());
+        
+        function updateStatus(message) {
+            document.getElementById('status-content').innerHTML = message;
+        }
+        
+        function testSignIn() {
+            alert('✅ SIGN-IN BUTTON CLICKED! This proves the button is working.');
+            updateStatus('✅ Sign-in button is functional!');
+        }
+        
+        function testSignOut() {
+            alert('✅ SIGN-OUT BUTTON CLICKED!');
+            updateStatus('✅ Sign-out button is functional!');
+        }
+        
+        // Test button visibility
+        function testButtons() {
+            const signInBtn = document.getElementById('sign-in-btn');
+            const signOutBtn = document.getElementById('sign-out-btn');
+            
+            let status = '<strong>Button Test Results:</strong><br>';
+            status += `Sign-in button found: ${!!signInBtn}<br>`;
+            status += `Sign-out button found: ${!!signOutBtn}<br>`;
+            
+            if (signInBtn) {
+                const isVisible = signInBtn.offsetWidth > 0 && signInBtn.offsetHeight > 0;
+                status += `Sign-in button visible: ${isVisible}<br>`;
+                status += `Sign-in display style: ${signInBtn.style.display || 'default'}<br>`;
+                status += `Sign-in computed display: ${window.getComputedStyle(signInBtn).display}<br>`;
+                
+                if (!isVisible) {
+                    signInBtn.style.display = 'inline-flex';
+                    status += '<strong>🔧 Forced button visible!</strong><br>';
+                }
+            }
+            
+            updateStatus(status);
+        }
+        
+        // Run test after page loads
+        setTimeout(testButtons, 100);
+    </script>
+</body>
+</html>
