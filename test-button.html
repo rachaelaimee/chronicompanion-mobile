@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="bg-gray-100 p-8">
+    <h1 class="text-2xl font-bold mb-4">🔥 BUTTON VISIBILITY TEST</h1>
+    
+    <!-- Test if basic button works -->
+    <div class="mb-4">
+        <h2 class="text-lg font-semibold">1. Basic Button Test:</h2>
+        <button class="bg-red-500 text-white px-4 py-2 rounded">Basic Button</button>
+    </div>
+    
+    <!-- Test the exact button from our app -->
+    <div class="mb-4">
+        <h2 class="text-lg font-semibold">2. Exact App Button HTML:</h2>
+        <button id="sign-in-btn" 
+                onclick="alert('Button clicked!')"
+                class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors duration-200 flex items-center">
+            <i class="fab fa-google mr-2"></i>Sign In with Google (Test)
+        </button>
+    </div>
+    
+    <!-- Test button manipulation -->
+    <div class="mb-4">
+        <h2 class="text-lg font-semibold">3. JavaScript Test:</h2>
+        <button onclick="testButton()" class="bg-blue-500 text-white px-4 py-2 rounded">
+            Test Button Visibility
+        </button>
+        <div id="test-result" class="mt-2 p-2 bg-yellow-100 rounded"></div>
+    </div>
+    
+    <script>
+        console.log('🔥 TEST PAGE LOADED');
+        
+        function testButton() {
+            const btn = document.getElementById('sign-in-btn');
+            const result = document.getElementById('test-result');
+            
+            if (btn) {
+                result.innerHTML = `
+                    <strong>✅ Button Found!</strong><br>
+                    Display: ${btn.style.display || 'default'}<br>
+                    Computed Display: ${window.getComputedStyle(btn).display}<br>
+                    Visible: ${btn.offsetWidth > 0 && btn.offsetHeight > 0}<br>
+                    Classes: ${btn.className}
+                `;
+                
+                // Force show button
+                btn.style.display = 'inline-flex';
+            } else {
+                result.innerHTML = '❌ Button NOT found!';
+            }
+        }
+        
+        // Auto-run test on load
+        setTimeout(testButton, 100);
+    </script>
+</body>
+</html>
