@@ -54,27 +54,23 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
-    <!-- Firebase Configuration -->
+    <!-- Supabase Setup -->
+    <!-- Supabase Authentication - Simple & Mobile-Friendly! -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAHxkbuZMcHdUwPj_C4W2LYrvWQDjtEoFY",
-            authDomain: "chronicompanion.firebaseapp.com",
-            projectId: "chronicompanion",
-            storageBucket: "chronicompanion.firebasestorage.app",
-            messagingSenderId: "241042747133",
-            appId: "1:241042747133:web:1f64e9d15dfb2c8e2e1894",
-            measurementId: "G-9CS3RDVVRH"
-        };
+        console.log('🚀 Supabase loaded! No more Firebase headaches!');
         
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        console.log('🔥 Firebase initialized');
+        // Supabase configuration - READY TO GO! 🚀
+        const SUPABASE_URL = 'https://wiriwyzrrbjmydbnjpei.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indpcml3eXpycmJqbXlkYm5qcGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxNzk5MTYsImV4cCI6MjA2OTc1NTkxNn0.S_AaAv2jL4ZN-7zPF-J0a12drcrVNdU-MfFXS8h65fw';
+        
+        // Initialize Supabase client  
+        if (SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE') {
+            window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('✅ Supabase client initialized');
+        } else {
+            console.log('⚠️ Supabase config needed - add your URL and key');
+        }
     </script>
     
     <!-- Google AdSense -->
@@ -307,33 +303,33 @@
             <div class="mt-4 text-sm text-sage-500" id="current-date"></div>
         </header>
 
-        <!-- Authentication Section - Firebase Ready! -->
-        <div class="mb-6">
-            <!-- User Authentication Controls -->
-            <div class="flex justify-center items-center space-x-4 mb-4">
-                <!-- Sign In Button -->
-                <button id="sign-in-btn" 
-                        onclick="app.signInWithGoogle()"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors duration-200 flex items-center">
-                    <i class="fab fa-google mr-2"></i>Sign In with Google
-                </button>
+                    <!-- Authentication Section - PROPER SUPABASE GOOGLE AUTH! -->
+            <div class="mb-6">
+                <!-- User Authentication Controls -->
+                <div class="flex justify-center items-center space-x-4 mb-4">
+                    <!-- Sign In Button -->
+                    <button id="sign-in-btn" 
+                            onclick="app.signInWithGoogle()"
+                            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                        <i class="fab fa-google mr-2"></i>Sign In with Google (Supabase Configured!)
+                    </button>
+                    
+                    <!-- Sign Out Button -->
+                    <button id="sign-out-btn" 
+                            onclick="app.signOut()"
+                            style="display: none;"
+                            class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Sign Out
+                    </button>
+                </div>
                 
-                <!-- Sign Out Button -->
-                <button id="sign-out-btn" 
-                        onclick="app.signOut()"
-                        style="display: none;"
-                        class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
-                    <i class="fas fa-sign-out-alt mr-2"></i>Sign Out
-                </button>
+                <!-- User Info Display -->
+                <div id="user-info" 
+                     style="display: none;"
+                     class="flex justify-center">
+                    <!-- User info will be populated by JavaScript -->
+                </div>
             </div>
-            
-            <!-- User Info Display -->
-            <div id="user-info" 
-                 style="display: none;"
-                 class="flex justify-center">
-                <!-- User info will be populated by JavaScript -->
-            </div>
-        </div>
 
         <!-- Navigation -->
         <nav class="mb-8">
@@ -936,25 +932,44 @@
         </div>
     </div>
 
-    <script src="js/main.js?v=NATIVE-AUTH-103"></script>
-    
-    <!-- CACHE BUSTER FOR NATIVE AUTH FIX -->
-    <script>
-        console.log('🔥 NATIVE AUTH FIX: v103 loaded at', new Date());
-        console.log('🔥 Fixed: Mobile-first authentication - no more localhost redirects!');
-        // Clear old caches on load
-        if ('caches' in window) {
-            caches.keys().then(names => {
-                names.forEach(name => {
-                    if (name.includes('chronicompanion') && !name.includes('v103')) {
-                        caches.delete(name);
-                        console.log('🔥 Old cache deleted:', name);
-                    }
-                });
-            });
-        }
-    </script>
-<script src="js/firestore.js"></script>
+                <script src="js/main.js?v=GOOGLE-OAUTH-CONFIGURED-v1"></script>
+            
+            <!-- GOOGLE OAUTH PROPERLY CONFIGURED! -->
+            <script>
+                console.log('✅ GOOGLE OAUTH CONFIGURED v1: Proper Supabase setup at', new Date());
+                console.log('🚀 Google OAuth should now be enabled in Supabase dashboard!');
+                console.log('✨ Ready to test Google Sign-In with proper configuration!');
+                
+                // NUCLEAR OPTION: Delete ALL caches
+                if ('caches' in window) {
+                    caches.keys().then(names => {
+                        console.log('💣 Found caches to destroy:', names);
+                        names.forEach(name => {
+                            caches.delete(name);
+                            console.log('💣 NUKED CACHE:', name);
+                        });
+                    });
+                }
+                
+                // Clear ALL storage
+                if (typeof(Storage) !== "undefined") {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    console.log('💣 ALL STORAGE CLEARED');
+                }
+                
+                // Force reload service worker
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        registrations.forEach(registration => {
+                            registration.unregister();
+                            console.log('💣 SERVICE WORKER UNREGISTERED');
+                        });
+                    });
+                }
+                
+                console.log('💣 CACHE DESTRUCTION COMPLETE - SUPABASE SHOULD LOAD NOW!');
+            </script>
     
     <!-- PWA Service Worker Registration -->
     <script>

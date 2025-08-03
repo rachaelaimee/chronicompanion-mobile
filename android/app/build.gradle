@@ -45,26 +45,9 @@ dependencies {
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
 
-    // Import the Firebase BoM
-    implementation platform('com.google.firebase:firebase-bom:34.0.0')
-
-    // Firebase Authentication
-    implementation 'com.google.firebase:firebase-auth'
-    
-    // Firebase Analytics (optional but recommended)  
-    implementation 'com.google.firebase:firebase-analytics'
-
-    // Add other Firebase dependencies as needed
-    // When using the BoM, don't specify versions in Firebase dependencies
+    // 🚀 No Firebase dependencies needed! Supabase uses pure JavaScript
 }
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
-}
+// 🚀 No Google Services needed! Supabase authentication works without native configs

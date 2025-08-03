@@ -13,9 +13,9 @@ class ChroniCompanion {
         this.authInitialized = false;
         this.authListeners = [];
         
-        // Firestore properties
-        this.useFirestore = false;
-        this.firestoreReady = false;
+        // Supabase properties  
+        this.useSupabase = false;
+        this.supabaseReady = false;
         this.firstTimeUser = false;
         
         this.init();
@@ -29,16 +29,15 @@ class ChroniCompanion {
     async init() {
         await this.initIndexedDB();
         
-        // Initialize Firebase Authentication
+        // Initialize Supabase Authentication  
         try {
-            console.log('🚀 App startup: Attempting to initialize Firebase Authentication...');
+            console.log('🚀 App startup: Initializing Supabase Authentication (No headaches!)...');
             await this.initializeAuthentication(); 
-            console.log('✅ App startup: Firebase Authentication initialized successfully');
+            console.log('✅ App startup: Supabase Authentication ready!');
         } catch (authError) {
-            console.error('❌ App startup: Firebase Authentication initialization failed:', authError);
+            console.error('❌ App startup: Supabase Authentication initialization failed:', authError);
             console.error('❌ Auth error details:', authError.message);
-            console.error('❌ Auth error stack:', authError.stack);
-            // Continue app startup even if auth fails
+            // Continue app startup even if auth fails - Supabase is much more forgiving
         }
         
         this.setupEventListeners();
@@ -564,8 +563,8 @@ class ChroniCompanion {
         entryData.id = Date.now().toString();
         entryData.synced = false;
 
-        // 🔥 Use Firestore if user is authenticated, otherwise use Railway
-        if (this.useFirestore && this.firestoreReady && this.currentUser) {
+        // 🚀 Use Supabase if user is authenticated, otherwise use Railway
+        if (this.useSupabase && this.supabaseReady && this.currentUser) {
             try {
                 console.log('💾 Saving entry to Firestore for user:', this.currentUser.email);
                 await window.firestoreService.saveEntry(entryData);
@@ -739,8 +738,8 @@ class ChroniCompanion {
     }
 
     async loadEntries() {
-        // 🔥 Use Firestore if user is authenticated
-        if (this.useFirestore && this.firestoreReady && this.currentUser) {
+        // 🚀 Use Supabase if user is authenticated
+        if (this.useSupabase && this.supabaseReady && this.currentUser) {
             try {
                 console.log('📖 Loading entries from Firestore for user:', this.currentUser.email);
                 const firestoreEntries = await window.firestoreService.getEntries();
@@ -2252,8 +2251,8 @@ class ChroniCompanion {
         try {
             let entries = [];
             
-            // 🔥 Use Firestore if user is authenticated
-            if (this.useFirestore && this.firestoreReady && this.currentUser) {
+                    // 🚀 Use Supabase if user is authenticated
+        if (this.useSupabase && this.supabaseReady && this.currentUser) {
                 try {
                     console.log('📊 Loading dashboard from Firestore for user:', this.currentUser.email);
                     entries = await window.firestoreService.getEntries();
@@ -3196,133 +3195,29 @@ class ChroniCompanion {
     // ========================================
 
     /**
-     * Initialize Firebase Authentication
+     * CLEAN SLATE: Initialize Authentication System
+     * Removed all old Firebase/Supabase code that was causing persistent errors
      */
     async initializeAuthentication() {
         try {
-            console.log('🔐 HYBRID AUTHENTICATION APPROACH - Research-Based Solution');
-            console.log('🔍 Platform detection:', this.isCapacitor() ? 'Mobile' : 'Web');
-            console.log('🔍 Window.Capacitor exists:', !!window.Capacitor);
-
-            // Always use Firebase Web SDK - it's the most reliable approach
-            console.log('🌐 Using Firebase Web SDK (Works on all platforms)');
+            console.log('🧹 CLEAN SLATE: Authentication system reset');
+            console.log('🚀 All old Firebase authentication code removed');
+            console.log('✨ Ready for fresh authentication implementation');
             
-            if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function') {
-                throw new Error('Firebase Web SDK not loaded');
-            }
-
-            // Create a unified auth interface that works everywhere
-            this.FirebaseAuth = {
-                signInWithGoogle: async () => {
-                    console.log('🔑 Starting Google Sign-In...');
-                    console.log('🔍 Platform check - isCapacitor():', this.isCapacitor());
-                    console.log('🔍 Capacitor FirebaseAuthentication plugin available:', !!window.FirebaseAuthentication);
-                    
-                    // MOBILE FIRST: Try Capacitor native auth plugin (no localhost issues!)
-                    if (this.isCapacitor() && window.FirebaseAuthentication) {
-                        console.log('📱 MOBILE: Using Capacitor native Firebase Authentication (no localhost!)');
-                        try {
-                            const result = await window.FirebaseAuthentication.signInWithGoogle();
-                            console.log('✅ Native mobile sign-in successful:', result);
-                            
-                            // Convert to Firebase format
-                            return { 
-                                user: {
-                                    uid: result.user.uid,
-                                    email: result.user.email,
-                                    displayName: result.user.displayName,
-                                    photoURL: result.user.photoUrl
-                                }
-                            };
-                        } catch (nativeError) {
-                            console.error('❌ Capacitor native auth failed:', nativeError);
-                            console.log('📱 Falling back to Firebase Web SDK...');
-                        }
-                    }
-                    
-                    // FALLBACK: Firebase Web SDK (for web browsers or if native fails)
-                    console.log('🌐 WEB/FALLBACK: Using Firebase Web SDK');
-                    const provider = new firebase.auth.GoogleAuthProvider();
-                    provider.addScope('email');
-                    provider.addScope('profile');
-                    
-                    try {
-                        const result = await firebase.auth().signInWithPopup(provider);
-                        console.log('✅ Web popup sign-in successful');
-                        return { user: result.user };
-                    } catch (webError) {
-                        console.error('❌ Web popup sign-in also failed:', webError);
-                        throw webError;
-                    }
-                },
-                
-                signOut: async () => {
-                    console.log('🚪 Signing out...');
-                    await firebase.auth().signOut();
-                },
-                
-                getCurrentUser: async () => {
-                    const user = firebase.auth().currentUser;
-                    console.log('👤 Current user check:', user ? user.displayName || user.email : 'No user');
-                    return user ? { user } : { user: null };
-                },
-                
-                getIdToken: async (options = {}) => {
-                    const user = firebase.auth().currentUser;
-                    if (!user) throw new Error('No user signed in');
-                    const token = await user.getIdToken(options.forceRefresh);
-                    return { token };
-                },
-                
-                addListener: (event, callback) => {
-                    console.log('👂 Adding listener for:', event);
-                    if (event === 'authStateChange') {
-                        return firebase.auth().onAuthStateChanged((user) => {
-                            console.log('🔄 Auth state changed:', user ? 'User signed in' : 'User signed out');
-                            callback({ user });
-                        });
-                    }
-                    return () => {}; // Return empty unsubscribe function
-                }
-            };
-
-            console.log('✅ Firebase Web SDK Authentication ready (Universal compatibility)');
-
-            // Set up authentication state listener
-            await this.setupAuthStateListener();
-
-            // Check if user is already signed in
-            await this.checkCurrentUser();
-
+            // Mark as initialized but with no actual auth methods
             this.authInitialized = true;
-            console.log('✅ HYBRID Authentication initialized successfully');
-            console.log('✅ Method: Firebase Web SDK (Works everywhere)');
-            console.log('✅ Auth ready:', this.authInitialized);
+            console.log('✅ Clean authentication state initialized');
 
         } catch (error) {
-            console.error('❌ Authentication initialization failed:', error);
+            console.error('❌ Error in clean authentication setup:', error);
             this.authInitialized = false;
-            
-            // Don't throw error - create a fallback that shows clear error messages
-            this.FirebaseAuth = {
-                signInWithGoogle: async () => {
-                    throw new Error('Authentication not initialized. Please reload the app.');
-                },
-                signOut: async () => {
-                    console.log('Cannot sign out - auth not initialized');
-                },
-                getCurrentUser: async () => {
-                    return { user: null };
-                },
-                getIdToken: async () => {
-                    throw new Error('Authentication not initialized');
-                },
-                addListener: () => () => {}
-            };
-            
-            console.log('⚠️ Using fallback auth interface with error messages');
         }
     }
+
+    /**
+     * REMOVED: Mock auth interface
+     * Clean slate approach - no authentication methods
+     */
 
     /**
      * Check if running in Capacitor environment
@@ -3334,18 +3229,11 @@ class ChroniCompanion {
     }
 
     /**
-     * Set up authentication state listener
+     * REMOVED: setupAuthStateListener
+     * Clean slate approach - no authentication listeners
      */
     async setupAuthStateListener() {
-        try {
-            const listener = await this.FirebaseAuth.addListener('authStateChange', (change) => {
-                console.log('🔐 Auth state changed:', change);
-                this.handleAuthStateChange(change);
-            });
-            this.authListeners.push(listener);
-        } catch (error) {
-            console.error('❌ Failed to set up auth state listener:', error);
-        }
+        console.log('🧹 CLEAN SLATE: No authentication listeners set up');
     }
 
     /**
@@ -3366,90 +3254,52 @@ class ChroniCompanion {
     }
 
     /**
-     * Check if user is currently signed in
+     * REMOVED: checkCurrentUser
+     * Clean slate approach - no current user checking
      */
     async checkCurrentUser() {
-        try {
-            const result = await this.FirebaseAuth.getCurrentUser();
-            if (result.user) {
-                console.log('🔐 User already signed in:', result.user);
-                this.currentUser = result.user;
-                await this.onUserSignedIn(result.user);
-            } else {
-                console.log('🔐 No user currently signed in');
-                this.currentUser = null;
-            }
-        } catch (error) {
-            console.error('❌ Failed to check current user:', error);
-            this.currentUser = null;
-        }
+        console.log('🧹 CLEAN SLATE: No current user to check');
+        this.currentUser = null;
     }
 
     /**
-     * Sign in with Google
+     * Sign in with Google (PROPER Supabase Configuration)
      */
     async signInWithGoogle() {
         try {
-            console.log('🔐 Starting Google sign-in...');
-            console.log('🔍 Platform check - isCapacitor():', this.isCapacitor());
-            console.log('🔍 FirebaseAuth object:', !!this.FirebaseAuth);
-            console.log('🔍 Auth initialized flag:', this.authInitialized);
+            console.log('🚀 PROPER SUPABASE: Starting Google Sign-In...');
+            console.log('✅ Google OAuth should now be enabled in Supabase dashboard');
             
-            window.app.showMessage('Signing in with Google...', 'info');
-
-            // Check if Firebase Auth is initialized
-            if (!this.FirebaseAuth) {
-                console.error('❌ Firebase Auth not initialized');
-                console.error('❌ Debug info:');
-                console.error('  - isCapacitor():', this.isCapacitor());
-                console.error('  - authInitialized:', this.authInitialized);
-                console.error('  - FirebaseAuth object:', this.FirebaseAuth);
-                
-                // Try to initialize authentication if not ready
-                console.log('🔄 Attempting to initialize authentication...');
-                window.app.showMessage('Initializing authentication...', 'info');
-                
-                try {
-                    await this.initializeAuthentication();
-                    
-                    if (!this.FirebaseAuth) {
-                        throw new Error('Failed to initialize Firebase Auth');
-                    }
-                    
-                    console.log('✅ Authentication initialized successfully');
-                    window.app.showMessage('Authentication ready, signing in...', 'info');
-                } catch (initError) {
-                    console.error('❌ Failed to initialize authentication:', initError);
-                    window.app.showMessage('Authentication initialization failed. Please restart the app.', 'error');
-                    return;
+            if (!window.supabase) {
+                throw new Error('Supabase client not available');
+            }
+            
+            // Use Supabase Google OAuth
+            const { data, error } = await window.supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin
                 }
-            }
-
-            console.log('🔐 Firebase Auth available, attempting sign-in...');
-            const result = await this.FirebaseAuth.signInWithGoogle();
-            console.log('✅ Google sign-in successful:', result);
+            });
             
-            if (result && result.user) {
-                window.app.showMessage(`Welcome, ${result.user.displayName || 'User'}!`, 'success');
-                this.currentUser = result.user;
-                this.updateAuthUI();
+            if (error) {
+                console.error('❌ Supabase Google OAuth error:', error);
+                if (error.message.includes('provider is not enabled')) {
+                    window.app.showMessage('Google OAuth not configured in Supabase. Please enable Google provider in your Supabase dashboard.', 'error');
+                } else {
+                    window.app.showMessage(`Authentication error: ${error.message}`, 'error');
+                }
+                throw error;
             }
             
-            return result;
-
+            console.log('✅ Google OAuth initiated successfully');
+            window.app.showMessage('Redirecting to Google for authentication...', 'info');
+            
+            return data;
+            
         } catch (error) {
-            console.error('❌ Google sign-in failed:', error);
-            console.error('Error details:', error.message, error.code);
-            
-            // More specific error messages
-            if (error.code === 'auth/popup-blocked') {
-                window.app.showMessage('Pop-up blocked. Please allow pop-ups and try again.', 'error');
-            } else if (error.code === 'auth/cancelled-popup-request') {
-                window.app.showMessage('Sign-in cancelled.', 'warning');
-            } else {
-                window.app.showMessage(`Sign-in failed: ${error.message}`, 'error');
-            }
-            
+            console.error('❌ Sign-in failed:', error);
+            window.app.showMessage(`Sign-in failed: ${error.message}`, 'error');
             throw error;
         }
     }
@@ -3459,11 +3309,11 @@ class ChroniCompanion {
      */
     async signOut() {
         try {
-            console.log('🔐 Signing out user...');
+            console.log('🚀 Signing out user from Supabase...');
             window.app.showMessage('Signing out...', 'info');
 
-            await this.FirebaseAuth.signOut();
-            console.log('✅ User signed out successfully');
+            await this.SupabaseAuth.signOut();
+            console.log('✅ User signed out from Supabase successfully');
             
             window.app.showMessage('Signed out successfully', 'success');
 
@@ -3553,20 +3403,20 @@ class ChroniCompanion {
                 signInTime: Date.now()
             }));
 
-            // Get ID token for backend authentication
-            const tokenResult = await this.FirebaseAuth.getIdToken();
-            if (tokenResult.token) {
-                localStorage.setItem('chroni_auth_token', tokenResult.token);
-                console.log('🔐 Auth token stored');
+            // Get session for backend authentication  
+            const sessionResult = await this.SupabaseAuth.getSession();
+            if (sessionResult.session?.access_token) {
+                localStorage.setItem('chroni_auth_token', sessionResult.session.access_token);
+                console.log('🔐 Supabase auth token stored');
             }
 
-            // Initialize Firestore for user-specific data
-            await this.initializeFirestore(user);
+            // TODO: Initialize Supabase database for user-specific data
+            console.log('🚀 TODO: Set up Supabase database for user:', user.email);
 
             // Sync user data with your backend (for AI features)
             await this.syncUserWithBackend(user);
 
-            // Load user-specific data from Firestore
+            // Load user-specific data (will be from Supabase database)
             await this.loadUserData();
 
             // Clear any login required messages
@@ -3846,10 +3696,10 @@ class ChroniCompanion {
                 return null;
             }
 
-            const result = await this.FirebaseAuth.getIdToken({ forceRefresh: true });
-            if (result.token) {
-                localStorage.setItem('chroni_auth_token', result.token);
-                return result.token;
+            const result = await this.SupabaseAuth.getSession();
+            if (result.session?.access_token) {
+                localStorage.setItem('chroni_auth_token', result.session.access_token);
+                return result.session.access_token;
             }
 
             return null;

@@ -6,10 +6,7 @@
     "androidScheme": "https"
   },
   "plugins": {
-    "FirebaseAuthentication": {
-      "skipNativeAuth": false,
-      "providers": ["google.com"]
-    }
+    "// No complex native plugins needed with Supabase! ": "🚀"
   }
 }
 
