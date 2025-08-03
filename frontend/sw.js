@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-GOOGLE-OAUTH-READY-v2';
+const CACHE_NAME = 'chronicompanion-DEEP-LINK-FIX-v4';
 const urlsToCache = [
   '/',
   '/index.html',

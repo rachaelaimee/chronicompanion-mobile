@@ -3204,9 +3204,13 @@ class ChroniCompanion {
             console.log('🚀 All old Firebase authentication code removed');
             console.log('✨ Ready for fresh authentication implementation');
             
-            // Mark as initialized but with no actual auth methods
+            // Initialize Supabase authentication properly
+            await this.setupAuthStateListener(); 
+            await this.setupMobileDeepLinkListener();
+            await this.checkCurrentUser();
+            
             this.authInitialized = true;
-            console.log('✅ Clean authentication state initialized');
+            console.log('✅ Supabase authentication system initialized');
 
         } catch (error) {
             console.error('❌ Error in clean authentication setup:', error);
@@ -3233,7 +3237,28 @@ class ChroniCompanion {
      * Clean slate approach - no authentication listeners
      */
     async setupAuthStateListener() {
-        console.log('🧹 CLEAN SLATE: No authentication listeners set up');
+        console.log('🎯 Setting up Supabase auth state listener...');
+        
+        if (!window.supabase) {
+            console.error('❌ Supabase not available for auth listener');
+            return;
+        }
+        
+        // Listen for auth state changes
+        window.supabase.auth.onAuthStateChange((event, session) => {
+            console.log('🎯 Auth state changed:', event, session ? 'Session exists' : 'No session');
+            
+            if (event === 'SIGNED_IN' && session) {
+                console.log('✅ User signed in successfully!');
+                this.currentUser = session.user;
+                this.updateAuthUI(true, session.user);
+                window.app.showMessage(`Welcome ${session.user.email}!`, 'success');
+            } else if (event === 'SIGNED_OUT') {
+                console.log('🚪 User signed out');
+                this.currentUser = null;
+                this.updateAuthUI(false, null);
+            }
+        });
     }
 
     /**
@@ -3258,8 +3283,155 @@ class ChroniCompanion {
      * Clean slate approach - no current user checking
      */
     async checkCurrentUser() {
-        console.log('🧹 CLEAN SLATE: No current user to check');
-        this.currentUser = null;
+        console.log('🎯 Checking current Supabase user...');
+        
+        if (!window.supabase) {
+            console.error('❌ Supabase not available for user check');
+            this.currentUser = null;
+            return;
+        }
+        
+        try {
+            const { data: { session }, error } = await window.supabase.auth.getSession();
+            
+            if (error) {
+                console.error('❌ Error checking user session:', error);
+                this.currentUser = null;
+                return;
+            }
+            
+            if (session && session.user) {
+                console.log('✅ Found existing user session:', session.user.email);
+                this.currentUser = session.user;
+                this.updateAuthUI(true, session.user);
+            } else {
+                console.log('ℹ️ No existing user session');
+                this.currentUser = null;
+                this.updateAuthUI(false, null);
+            }
+        } catch (error) {
+            console.error('❌ Error in checkCurrentUser:', error);
+            this.currentUser = null;
+        }
+    }
+
+    /**
+     * Set up mobile deep link listener for OAuth redirects
+     */
+    async setupMobileDeepLinkListener() {
+        console.log('📱 Setting up mobile deep link listener...');
+        
+        // Check if we're in a Capacitor mobile app
+        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+            // Import Capacitor App plugin dynamically
+            try {
+                const { App } = await import('@capacitor/app');
+                
+                // Listen for app URL open events (deep links)
+                App.addListener('appUrlOpen', async (event) => {
+                    console.log('🔗 Deep link received:', event.url);
+                    
+                    try {
+                        const url = new URL(event.url);
+                        console.log('🔍 Parsing deep link URL:', url.href);
+                        
+                        // Check if this is an OAuth callback
+                        if (url.hash) {
+                            const params = new URLSearchParams(url.hash.substring(1)); // remove leading '#'
+                            const accessToken = params.get('access_token');
+                            const refreshToken = params.get('refresh_token');
+                            
+                            console.log('🎯 OAuth tokens found:', { 
+                                hasAccessToken: !!accessToken, 
+                                hasRefreshToken: !!refreshToken 
+                            });
+                            
+                            if (accessToken) {
+                                // Set the session using the tokens from the deep link  
+                                const { data, error } = await window.supabase.auth.setSession({
+                                    access_token: accessToken,
+                                    refresh_token: refreshToken || ''
+                                });
+                                
+                                if (error) {
+                                    console.error('❌ Error setting session from deep link:', error);
+                                    window.app.showMessage(`OAuth error: ${error.message}`, 'error');
+                                } else {
+                                    console.log('✅ Session set successfully from deep link!');
+                                    window.app.showMessage('Successfully signed in!', 'success');
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('❌ Error processing deep link:', error);
+                    }
+                });
+                
+                console.log('✅ Mobile deep link listener set up successfully');
+                
+            } catch (error) {
+                console.warn('⚠️ Could not set up deep link listener:', error);
+                console.log('ℹ️ This is expected in web browser mode');
+            }
+        } else {
+            console.log('ℹ️ Not in mobile app - skipping deep link listener');
+        }
+    }
+
+    /**
+     * Update authentication UI based on user state
+     */
+    updateAuthUI(isSignedIn, user) {
+        const signInBtn = document.getElementById('sign-in-btn');
+        const signOutBtn = document.getElementById('sign-out-btn');
+        const userInfo = document.getElementById('user-info');
+        
+        if (isSignedIn && user) {
+            // User is signed in
+            if (signInBtn) signInBtn.style.display = 'none';
+            if (signOutBtn) signOutBtn.style.display = 'inline-flex';
+            if (userInfo) {
+                userInfo.style.display = 'block';
+                userInfo.innerHTML = `
+                    <div class="text-center bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded">
+                        <p class="text-sm">✅ Signed in as: <strong>${user.email}</strong></p>
+                    </div>
+                `;
+            }
+        } else {
+            // User is signed out
+            if (signInBtn) signInBtn.style.display = 'inline-flex';
+            if (signOutBtn) signOutBtn.style.display = 'none';
+            if (userInfo) userInfo.style.display = 'none';
+        }
+    }
+
+    /**
+     * Sign out the current user
+     */
+    async signOut() {
+        try {
+            console.log('🚪 Signing out user...');
+            
+            if (!window.supabase) {
+                throw new Error('Supabase client not available');
+            }
+            
+            const { error } = await window.supabase.auth.signOut();
+            
+            if (error) {
+                console.error('❌ Sign out error:', error);
+                window.app.showMessage(`Sign out failed: ${error.message}`, 'error');
+                throw error;
+            }
+            
+            console.log('✅ User signed out successfully');
+            window.app.showMessage('Signed out successfully', 'success');
+            
+        } catch (error) {
+            console.error('❌ Sign out failed:', error);
+            window.app.showMessage(`Sign out failed: ${error.message}`, 'error');
+        }
     }
 
     /**
@@ -3274,13 +3446,34 @@ class ChroniCompanion {
                 throw new Error('Supabase client not available');
             }
             
-            // Use Supabase Google OAuth
-            const { data, error } = await window.supabase.auth.signInWithOAuth({
+            // Use Supabase Google OAuth - Mobile optimized with deep linking
+            // Detect if we're in a mobile app (Capacitor) or web browser
+            const isCapacitorApp = window.Capacitor && window.Capacitor.isNativePlatform();
+            
+            const oauthOptions = {
                 provider: 'google',
-                options: {
-                    redirectTo: window.location.origin
-                }
-            });
+                options: {}
+            };
+            
+            if (isCapacitorApp) {
+                // For mobile apps: use deep link URL
+                oauthOptions.options = { 
+                    redirectTo: 'chronicompanion://app/auth/callback',
+                    skipBrowserRedirect: true
+                };
+                console.log('📱 Using mobile deep link redirect');
+            } else {
+                // For web browsers: use current origin
+                oauthOptions.options = { 
+                    redirectTo: window.location.origin 
+                };
+                console.log('🌐 Using web browser redirect');
+            }
+            
+            console.log('🎯 OAuth Environment:', isCapacitorApp ? 'Mobile App (Capacitor)' : 'Web Browser');
+            console.log('🎯 OAuth Config:', oauthOptions);
+            
+            const { data, error } = await window.supabase.auth.signInWithOAuth(oauthOptions);
             
             if (error) {
                 console.error('❌ Supabase Google OAuth error:', error);
@@ -3293,7 +3486,24 @@ class ChroniCompanion {
             }
             
             console.log('✅ Google OAuth initiated successfully');
-            window.app.showMessage('Redirecting to Google for authentication...', 'info');
+            
+            if (isCapacitorApp && data?.url) {  
+                // For mobile apps: open OAuth URL in system browser
+                console.log('📱 Opening OAuth URL in system browser:', data.url);
+                window.app.showMessage('Opening Google Sign-In...', 'info');
+                
+                // Import Browser plugin dynamically
+                try {
+                    const { Browser } = await import('@capacitor/browser');
+                    await Browser.open({ url: data.url });
+                } catch (browserError) {
+                    console.warn('⚠️ Could not open system browser, falling back to window.open');
+                    window.open(data.url, '_system');
+                }
+            } else {
+                // For web browsers: normal redirect
+                window.app.showMessage('Redirecting to Google for authentication...', 'info');
+            }
             
             return data;
             

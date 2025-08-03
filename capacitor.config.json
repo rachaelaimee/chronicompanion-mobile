@@ -7,6 +7,12 @@
   },
   "plugins": {
     "// No complex native plugins needed with Supabase! ": "🚀"
+  },
+  "cordova": {
+    "preferences": {
+      "scheme": "chronicompanion",
+      "hostname": "app"
+    }
   }
 }
 

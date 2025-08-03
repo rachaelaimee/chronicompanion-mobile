@@ -64,10 +64,19 @@
         const SUPABASE_URL = 'https://wiriwyzrrbjmydbnjpei.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indpcml3eXpycmJqbXlkYm5qcGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxNzk5MTYsImV4cCI6MjA2OTc1NTkxNn0.S_AaAv2jL4ZN-7zPF-J0a12drcrVNdU-MfFXS8h65fw';
         
-        // Initialize Supabase client  
+        // Initialize Supabase client with proper auth configuration for mobile
         if (SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE') {
-            window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log('✅ Supabase client initialized');
+            window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                auth: {
+                    // Use PKCE flow for mobile security
+                    flowType: 'pkce',
+                    // Automatically detect storage for mobile
+                    detectSessionInUrl: true,
+                    // Persist auth in mobile
+                    persistSession: true
+                }
+            });
+            console.log('✅ Supabase client initialized with mobile auth config');
         } else {
             console.log('⚠️ Supabase config needed - add your URL and key');
         }
@@ -932,11 +941,11 @@
         </div>
     </div>
 
-                <script src="js/main.js?v=GOOGLE-OAUTH-READY-v2"></script>
+                <script src="js/main.js?v=DEEP-LINK-FIX-v4"></script>
             
-            <!-- GOOGLE OAUTH READY FOR TESTING! -->
+            <!-- DEEP LINK REDIRECT FIX! -->
             <script>
-                console.log('✅ GOOGLE OAUTH READY v2: Web client configured in Supabase at', new Date());
+                console.log('✅ DEEP LINK FIX v4: Complete mobile OAuth solution at', new Date());
                 console.log('🚀 Google OAuth should now be enabled in Supabase dashboard!');
                 console.log('✨ Ready to test Google Sign-In with proper configuration!');
                 
