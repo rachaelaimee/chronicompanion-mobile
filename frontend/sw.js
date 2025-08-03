@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-DEEP-LINK-FIX-v4';
+const CACHE_NAME = 'chronicompanion-ULTRA-DEBUG-v6';
 const urlsToCache = [
   '/',
   '/index.html',

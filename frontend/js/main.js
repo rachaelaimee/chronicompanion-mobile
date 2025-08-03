@@ -3439,78 +3439,56 @@ class ChroniCompanion {
      */
     async signInWithGoogle() {
         try {
-            console.log('🚀 PROPER SUPABASE: Starting Google Sign-In...');
-            console.log('✅ Google OAuth should now be enabled in Supabase dashboard');
+            console.log('🔥 ULTRA SIMPLE DEBUG: Starting Google Sign-In...');
+            console.log('🔍 Supabase client available:', !!window.supabase);
+            console.log('🔍 Capacitor available:', !!window.Capacitor);
+            console.log('🔍 Is native platform:', window.Capacitor?.isNativePlatform?.());
             
             if (!window.supabase) {
-                throw new Error('Supabase client not available');
+                console.error('❌ Supabase client not available');
+                window.app.showMessage('Supabase client not available', 'error');
+                return;
             }
             
-            // Use Supabase Google OAuth - Mobile optimized with deep linking
-            // Detect if we're in a mobile app (Capacitor) or web browser
-            const isCapacitorApp = window.Capacitor && window.Capacitor.isNativePlatform();
+            // ULTRA SIMPLE: Just call signInWithOAuth with minimal config
+            console.log('🔥 Calling signInWithOAuth with minimal config...');
             
-            const oauthOptions = {
-                provider: 'google',
-                options: {}
-            };
+            const { data, error } = await window.supabase.auth.signInWithOAuth({
+                provider: 'google'
+            });
             
-            if (isCapacitorApp) {
-                // For mobile apps: use deep link URL
-                oauthOptions.options = { 
-                    redirectTo: 'chronicompanion://app/auth/callback',
-                    skipBrowserRedirect: true
-                };
-                console.log('📱 Using mobile deep link redirect');
-            } else {
-                // For web browsers: use current origin
-                oauthOptions.options = { 
-                    redirectTo: window.location.origin 
-                };
-                console.log('🌐 Using web browser redirect');
-            }
-            
-            console.log('🎯 OAuth Environment:', isCapacitorApp ? 'Mobile App (Capacitor)' : 'Web Browser');
-            console.log('🎯 OAuth Config:', oauthOptions);
-            
-            const { data, error } = await window.supabase.auth.signInWithOAuth(oauthOptions);
+            console.log('🔍 OAuth response data:', data);
+            console.log('🔍 OAuth response error:', error);
             
             if (error) {
-                console.error('❌ Supabase Google OAuth error:', error);
-                if (error.message.includes('provider is not enabled')) {
-                    window.app.showMessage('Google OAuth not configured in Supabase. Please enable Google provider in your Supabase dashboard.', 'error');
-                } else {
-                    window.app.showMessage(`Authentication error: ${error.message}`, 'error');
-                }
-                throw error;
+                console.error('❌ OAuth Error Details:', {
+                    message: error.message,
+                    status: error.status,
+                    statusText: error.statusText
+                });
+                window.app.showMessage(`OAuth Error: ${error.message}`, 'error');
+                return;
             }
             
-            console.log('✅ Google OAuth initiated successfully');
-            
-            if (isCapacitorApp && data?.url) {  
-                // For mobile apps: open OAuth URL in system browser
-                console.log('📱 Opening OAuth URL in system browser:', data.url);
-                window.app.showMessage('Opening Google Sign-In...', 'info');
+            if (data?.url) {
+                console.log('✅ OAuth URL received:', data.url);
+                console.log('🔥 About to redirect to:', data.url);
+                window.app.showMessage('Redirecting to Google...', 'info');
                 
-                // Import Browser plugin dynamically
-                try {
-                    const { Browser } = await import('@capacitor/browser');
-                    await Browser.open({ url: data.url });
-                } catch (browserError) {
-                    console.warn('⚠️ Could not open system browser, falling back to window.open');
-                    window.open(data.url, '_system');
-                }
+                // For debugging: Log before redirect
+                setTimeout(() => {
+                    console.log('🔥 REDIRECT HAPPENING NOW');
+                    window.location.href = data.url;
+                }, 1000);
             } else {
-                // For web browsers: normal redirect
-                window.app.showMessage('Redirecting to Google for authentication...', 'info');
+                console.error('❌ No OAuth URL received');
+                window.app.showMessage('No OAuth URL received', 'error');
             }
-            
-            return data;
             
         } catch (error) {
-            console.error('❌ Sign-in failed:', error);
+            console.error('❌ CATCH BLOCK - Sign-in failed:', error);
+            console.error('❌ Error stack:', error.stack);
             window.app.showMessage(`Sign-in failed: ${error.message}`, 'error');
-            throw error;
         }
     }
 
