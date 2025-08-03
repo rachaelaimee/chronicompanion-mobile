@@ -587,18 +587,18 @@ class ChroniCompanion {
         }
 
         // Fallback: Always try to sync to Railway API first
-        try {
-            const response = await fetch(`${this.apiBase}/api/entries`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(entryData)
-            });
+            try {
+                const response = await fetch(`${this.apiBase}/api/entries`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(entryData)
+                });
 
-            if (response.ok) {
+                if (response.ok) {
                 // Successfully synced to server
-                entryData.synced = true;
+                    entryData.synced = true;
                 this.isOnline = true; // Update online status
                 
                 try {
@@ -609,16 +609,16 @@ class ChroniCompanion {
                 
                 // ALWAYS save to localStorage as backup
                 this.saveToLocalStorage(entryData);
-                this.showSuccessMessage('Entry saved successfully!');
-                this.resetForm();
+                    this.showSuccessMessage('Entry saved successfully!');
+                    this.resetForm();
                 
                 // Check if AI cache should be refreshed (8+ hours old)
                 this.checkAICacheRefresh();
-                return;
-            } else {
+                    return;
+                } else {
                 throw new Error('Server returned error status');
-            }
-        } catch (error) {
+                }
+            } catch (error) {
             // Failed to sync - save locally
             console.log('Failed to sync with server, saving locally:', error.message);
             this.isOnline = false; // Update online status
@@ -636,8 +636,8 @@ class ChroniCompanion {
             // Show appropriate message based on network connectivity
             if (navigator.onLine) {
                 this.showSuccessMessage('Entry saved locally - server will sync later');
-            } else {
-                this.showSuccessMessage('Entry saved offline - will sync when connected');
+        } else {
+            this.showSuccessMessage('Entry saved offline - will sync when connected');
             }
             
             this.resetForm();
@@ -2015,7 +2015,7 @@ class ChroniCompanion {
         if (panel.classList.contains('hidden')) {
             panel.classList.remove('hidden');
             await this.loadAIDebugInfo();
-        } else {
+            } else {
             panel.classList.add('hidden');
         }
     }
@@ -3479,11 +3479,21 @@ class ChroniCompanion {
                 return;
             }
             
-            // ULTRA SIMPLE: Just call signInWithOAuth with minimal config
-            console.log('🔥 Calling signInWithOAuth with minimal config...');
+            // ULTRA SIMPLE: Just call signInWithOAuth with proper redirect
+            console.log('🔥 Calling signInWithOAuth with proper redirect...');
+            
+            // Auto-detect development vs production
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const redirectUrl = isLocalhost ? 'http://localhost:8080' : 'https://chronicompanion.app';
+            
+            console.log('🔍 Detected environment:', isLocalhost ? 'DEVELOPMENT' : 'PRODUCTION');
+            console.log('🔍 Redirect URL will be:', redirectUrl);
             
             const { data, error } = await window.supabase.auth.signInWithOAuth({
-                provider: 'google'
+                provider: 'google',
+                options: {
+                    redirectTo: redirectUrl
+                }
             });
             
             console.log('🔍 OAuth response data:', data);
