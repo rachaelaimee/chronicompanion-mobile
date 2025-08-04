@@ -3537,11 +3537,16 @@ class ChroniCompanion {
                 if (isCapacitorApp) {
                     // Mobile: Open in system browser
                     console.log('📱 MOBILE: Opening OAuth in system browser');
+                    console.log('🔍 Capacitor.Plugins.Browser available:', !!window.Capacitor?.Plugins?.Browser);
+                    console.log('🔍 OAuth URL to open:', data.url);
+                    
                     if (window.Capacitor?.Plugins?.Browser) {
+                        console.log('✅ Using Capacitor Browser plugin');
                         await window.Capacitor.Plugins.Browser.open({ url: data.url });
                     } else {
-                        // Fallback: try window.open
-                        window.open(data.url, '_system');
+                        console.log('⚠️ FALLBACK: Using window.open');
+                        // Try using location.href instead of window.open
+                        window.location.href = data.url;
                     }
                 } else {
                     // Web: Normal redirect
