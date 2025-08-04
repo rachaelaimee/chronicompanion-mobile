@@ -3206,7 +3206,8 @@ class ChroniCompanion {
             
             // Initialize Supabase authentication properly
             await this.setupAuthStateListener(); 
-            await this.setupMobileDeepLinkListener();
+            // DISABLED: setupMobileDeepLinkListener (FIX #1: Interferes with native auth)
+            // await this.setupMobileDeepLinkListener();
             await this.checkCurrentUser();
             
             this.authInitialized = true;
@@ -3244,8 +3245,14 @@ class ChroniCompanion {
             return;
         }
         
-        // Listen for auth state changes
+        // Listen for auth state changes (FIX #2: Respect disabled flag)
         window.supabase.auth.onAuthStateChange((event, session) => {
+            // Skip if auth listener is temporarily disabled (during native sign-in)
+            if (this.authListenerDisabled) {
+                console.log('🔧 Auth listener disabled, skipping event:', event);
+                return;
+            }
+            
             console.log('🎯 Auth state changed:', event, session ? 'Session exists' : 'No session');
             console.log('Auth event:', event);
             console.log('Session:', session);
@@ -3482,7 +3489,7 @@ class ChroniCompanion {
      */
     async signInWithGoogle() {
         try {
-            console.log('🚀 SUPER SIMPLE: Starting Native Google Sign-In...');
+            console.log('🚀 FIXED NATIVE: Starting Google Sign-In with NO INTERRUPTIONS...');
             
             if (!window.supabase) {
                 console.error('❌ Supabase not available');
@@ -3490,8 +3497,21 @@ class ChroniCompanion {
                 return;
             }
 
-            // For mobile: ONLY use native GoogleAuth plugin
-            const isCapacitorApp = !!window.Capacitor;
+            // WAIT for Capacitor to be ready (FIX #3: Timing Issue)
+            let capacitorReady = false;
+            let attempts = 0;
+            while (!capacitorReady && attempts < 10) {
+                if (window.Capacitor && window.Capacitor.Plugins) {
+                    capacitorReady = true;
+                    break;
+                }
+                console.log(`⏳ Waiting for Capacitor (attempt ${attempts + 1}/10)...`);
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+
+            const isCapacitorApp = capacitorReady && !!window.Capacitor;
+            console.log('🔍 Capacitor ready:', capacitorReady);
             console.log('🔍 Is mobile app:', isCapacitorApp);
             
             if (!isCapacitorApp) {
@@ -3506,14 +3526,18 @@ class ChroniCompanion {
                 return;
             }
 
-            // MOBILE: Simple native approach
-            console.log('📱 MOBILE: Using GoogleAuth plugin...');
+            // MOBILE: Pure native approach (FIX #1: No deep link interference)
+            console.log('📱 MOBILE: Using GoogleAuth plugin (NO DEEP LINKS)...');
             
             if (!window.Capacitor.Plugins?.GoogleAuth) {
                 console.error('❌ GoogleAuth plugin not found');
                 window.app.showMessage('GoogleAuth plugin not available', 'error');
                 return;
             }
+
+            // FIX #2: Temporarily disable auth listener to prevent interruption
+            console.log('🔧 Temporarily disabling auth listener...');
+            this.authListenerDisabled = true;
 
             console.log('📱 NATIVE: Calling GoogleAuth.signIn()...');
             window.app.showMessage('Opening native Google Sign-In...', 'info');
@@ -3525,6 +3549,7 @@ class ChroniCompanion {
             if (!googleUser?.authentication?.idToken) {
                 console.error('❌ No ID token received');
                 window.app.showMessage('No authentication token received', 'error');
+                this.authListenerDisabled = false; // Re-enable listener
                 return;
             }
 
@@ -3537,6 +3562,7 @@ class ChroniCompanion {
             if (error) {
                 console.error('❌ Supabase error:', error);
                 window.app.showMessage(`Authentication failed: ${error.message}`, 'error');
+                this.authListenerDisabled = false; // Re-enable listener
                 return;
             }
 
@@ -3545,9 +3571,13 @@ class ChroniCompanion {
             this.updateAuthUI(true, data.user);
             window.app.showMessage(`Welcome ${data.user.email}!`, 'success');
             
+            // Re-enable auth listener
+            this.authListenerDisabled = false;
+            
         } catch (error) {
             console.error('❌ Sign-in error:', error);
             window.app.showMessage(`Sign-in failed: ${error.message}`, 'error');
+            this.authListenerDisabled = false; // Always re-enable listener
         }
     }
 
