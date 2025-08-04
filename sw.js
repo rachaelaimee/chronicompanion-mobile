@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-NO-INTERRUPTIONS-FIXED-v27';
+const CACHE_NAME = 'chronicompanion-CORRECT-NATIVE-FLOW-v28';
 const urlsToCache = [
   '/',
   '/index.html',

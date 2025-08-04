@@ -3531,8 +3531,22 @@ class ChroniCompanion {
             
             if (!window.Capacitor.Plugins?.GoogleAuth) {
                 console.error('❌ GoogleAuth plugin not found');
+                console.error('❌ Available plugins:', Object.keys(window.Capacitor.Plugins || {}));
                 window.app.showMessage('GoogleAuth plugin not available', 'error');
                 return;
+            }
+
+            // CRITICAL: Initialize GoogleAuth plugin if needed
+            try {
+                console.log('🔧 Initializing GoogleAuth plugin...');
+                // Some versions require explicit initialization
+                if (window.Capacitor.Plugins.GoogleAuth.initialize) {
+                    await window.Capacitor.Plugins.GoogleAuth.initialize();
+                    console.log('✅ GoogleAuth plugin initialized');
+                }
+            } catch (initError) {
+                console.error('❌ GoogleAuth initialization failed:', initError);
+                // Continue anyway - some versions don't need initialization
             }
 
             // FIX #2: Temporarily disable auth listener to prevent interruption
@@ -3546,17 +3560,27 @@ class ChroniCompanion {
             console.log('✅ NATIVE: Google Sign-In completed!');
             console.log('🔍 Google user:', googleUser);
 
-            if (!googleUser?.authentication?.idToken) {
-                console.error('❌ No ID token received');
-                window.app.showMessage('No authentication token received', 'error');
+            // ⚠️ CRITICAL: Check the actual structure of the response
+            console.log('🔍 Full Google user object:', JSON.stringify(googleUser, null, 2));
+            
+            // Try different possible token locations
+            const idToken = googleUser?.idToken || 
+                          googleUser?.authentication?.idToken || 
+                          googleUser?.credential?.idToken;
+            
+            if (!idToken) {
+                console.error('❌ No ID token found in:', googleUser);
+                window.app.showMessage('No authentication token received from Google', 'error');
                 this.authListenerDisabled = false; // Re-enable listener
                 return;
             }
 
             console.log('📱 NATIVE: Sending ID token to Supabase...');
+            console.log('🔍 Using token:', idToken.substring(0, 50) + '...');
+            
             const { data, error } = await window.supabase.auth.signInWithIdToken({
                 provider: 'google',
-                token: googleUser.authentication.idToken,
+                token: idToken,
             });
 
             if (error) {
