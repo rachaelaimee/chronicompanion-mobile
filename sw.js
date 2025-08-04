@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-NATIVE-GOOGLE-CONFIGURED-v18';
+const CACHE_NAME = 'chronicompanion-CORRECT-SUPABASE-MOBILE-OAUTH-v21';
 const urlsToCache = [
   '/',
   '/index.html',
