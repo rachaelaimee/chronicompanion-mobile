@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "io.github.rachaelaimee.chronicompanion"
+    namespace "com.rachaelaimee.chronicompanion"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.github.rachaelaimee.chronicompanion"
+        applicationId "com.rachaelaimee.chronicompanion"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

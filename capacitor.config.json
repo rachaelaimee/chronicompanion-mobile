@@ -1,5 +1,5 @@
 {
-  "appId": "io.github.rachaelaimee.chronicompanion",
+  "appId": "com.rachaelaimee.chronicompanion",
   "appName": "ChroniCompanion",
   "webDir": "dist",
   "server": {
@@ -8,7 +8,7 @@
   "plugins": {
     "GoogleAuth": {
       "scopes": ["profile", "email"],
-      "serverClientId": "1042241139827-p3d1cnupjvjc8jmriiihfo9ujfqau4r.apps.googleusercontent.com",
+      "serverClientId": "1042241139827-kuj3i2l2qrq0of7q9682oigieau9u4kv.apps.googleusercontent.com",
       "forceCodeForRefreshToken": true
     }
   },
