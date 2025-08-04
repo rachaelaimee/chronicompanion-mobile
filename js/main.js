@@ -1,7 +1,8 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🚨 AGGRESSIVE CACHE CLEAR v31: JavaScript loading at', new Date());
-console.log('🚨 This should appear if new code is loading!');
-console.log('🚨 If you see this, the cache issue is resolved!');
+console.log('🔥🔥🔥 NUCLEAR CACHE DESTRUCTION v32 🔥🔥🔥');
+console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
+console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
 
 class ChroniCompanion {
     constructor() {

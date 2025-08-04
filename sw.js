@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-AGGRESSIVE-CACHE-CLEAR-v31';
+const CACHE_NAME = 'chronicompanion-NUCLEAR-CACHE-DESTRUCTION-v32';
 const urlsToCache = [
   '/',
   '/index.html',
