@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-OAUTH-SESSION-DETECTION-v14';
+const CACHE_NAME = 'chronicompanion-NUCLEAR-MOBILE-CACHE-DESTROY-v15';
 const urlsToCache = [
   '/',
   '/index.html',
