@@ -4,4 +4,5 @@
     <string name="title_activity_main">ChroniCompanion</string>
     <string name="package_name">com.rachaelaimee.chronicompanion</string>
     <string name="custom_url_scheme">com.rachaelaimee.chronicompanion</string>
+    <string name="server_client_id">1042241139827-p3d1cnupjvjc8jmriiihfo9ujfqau4r.apps.googleusercontent.com</string>
 </resources>
