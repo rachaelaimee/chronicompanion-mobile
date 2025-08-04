@@ -3339,32 +3339,35 @@ class ChroniCompanion {
                     try {
                         const url = new URL(event.url);
                         console.log('🔍 Parsing deep link URL:', url.href);
+                        console.log('🔍 URL hash:', url.hash);
+                        console.log('🔍 URL search:', url.search);
                         
-                        // Check if this is an OAuth callback
-                        if (url.hash) {
-                            const params = new URLSearchParams(url.hash.substring(1)); // remove leading '#'
-                            const accessToken = params.get('access_token');
-                            const refreshToken = params.get('refresh_token');
+                        // Check if this is an OAuth callback from Supabase
+                        if (url.pathname.includes('auth/callback') || url.hash || url.search) {
+                            console.log('🎯 Detected OAuth callback, letting Supabase handle session...');
                             
-                            console.log('🎯 OAuth tokens found:', { 
-                                hasAccessToken: !!accessToken, 
-                                hasRefreshToken: !!refreshToken 
-                            });
+                            // Let Supabase detect and process the session from the URL
+                            const { data, error } = await window.supabase.auth.getSession();
                             
-                            if (accessToken) {
-                                // Set the session using the tokens from the deep link  
-                                const { data, error } = await window.supabase.auth.setSession({
-                                    access_token: accessToken,
-                                    refresh_token: refreshToken || ''
-                                });
-                                
-                                if (error) {
-                                    console.error('❌ Error setting session from deep link:', error);
-                                    window.app.showMessage(`OAuth error: ${error.message}`, 'error');
+                            if (error) {
+                                console.error('❌ Error getting session from callback:', error);
+                                // Try to manually get user session
+                                const { data: user, error: userError } = await window.supabase.auth.getUser();
+                                if (user && !userError) {
+                                    console.log('✅ Found user session after callback!');
+                                    window.app.showMessage(`Welcome ${user.user.email}!`, 'success');
                                 } else {
-                                    console.log('✅ Session set successfully from deep link!');
-                                    window.app.showMessage('Successfully signed in!', 'success');
+                                    window.app.showMessage(`OAuth error: ${error.message}`, 'error');
                                 }
+                            } else if (data?.session) {
+                                console.log('✅ Session detected from deep link!', data.session.user);
+                                window.app.showMessage(`Welcome ${data.session.user.email}!`, 'success');
+                            } else {
+                                console.log('⚠️ No session found in callback URL');
+                                // Force a session check
+                                setTimeout(() => {
+                                    window.app.checkCurrentUser();
+                                }, 1000);
                             }
                         }
                     } catch (error) {
