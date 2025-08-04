@@ -3478,11 +3478,12 @@ class ChroniCompanion {
     }
 
     /**
-     * Sign in with Google (PROPER Supabase Configuration)
+     * Sign in with Google (CORRECT NATIVE APPROACH)
+     * Research shows: Native mobile apps should use signInWithIdToken, NOT signInWithOAuth!
      */
     async signInWithGoogle() {
         try {
-            console.log('🔥 NATIVE OAUTH: Starting Google Sign-In...');
+            console.log('🚀 CORRECT NATIVE APPROACH: Starting Google Sign-In...');
             
             if (!window.supabase) {
                 console.error('❌ Supabase client not available');
@@ -3490,25 +3491,17 @@ class ChroniCompanion {
                 return;
             }
             
-            // ULTRA SIMPLE mobile detection - if Capacitor exists, it's mobile!
+            // Simple mobile detection
             const isCapacitorApp = !!window.Capacitor;
             const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             
             console.log('🔍 Is Capacitor mobile app:', isCapacitorApp);
             console.log('🔍 Is localhost:', isLocalhost);
-            console.log('🔍 Location protocol:', window.location.protocol);
-            console.log('🔍 Location href:', window.location.href);
-            console.log('🔍 Capacitor object:', window.Capacitor);
-            console.log('🔍 isNativePlatform method:', window.Capacitor?.isNativePlatform);
-            
-            // 🚀 RESEARCH BREAKTHROUGH: Use Supabase OAuth for both web AND mobile!
-            // Mobile apps use web OAuth + deep linking (NOT native plugins)
-            console.log('🚀 USING SUPABASE OAUTH FOR MOBILE (skipBrowserRedirect + deep linking)');
             
             if (isCapacitorApp) {
-                // 📱 MOBILE: Use Supabase OAuth with skipBrowserRedirect + deep linking
-                console.log('📱 MOBILE: Using Supabase OAuth with skipBrowserRedirect');
-                await this.mobileSupabaseOAuth();
+                // 📱 MOBILE: Use NATIVE Google Sign-In + signInWithIdToken (CORRECT!)
+                console.log('📱 MOBILE: Using NATIVE Google Sign-In with signInWithIdToken');
+                await this.nativeGoogleSignIn();
             } else {
                 // 🌐 WEB: Use standard Supabase OAuth
                 console.log('🌐 WEB: Using standard Supabase OAuth');
@@ -3522,58 +3515,8 @@ class ChroniCompanion {
     }
 
     /**
-     * CORRECT MOBILE OAUTH: Supabase OAuth with skipBrowserRedirect + deep linking
-     * Based on official Supabase mobile documentation
-     */
-    async mobileSupabaseOAuth() {
-        try {
-            console.log('📱 MOBILE SUPABASE OAUTH: Starting correct mobile auth flow...');
-            
-            const { data, error } = await window.supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    // CRITICAL: Skip browser redirect for mobile
-                    skipBrowserRedirect: true,
-                    // Use deep link for callback
-                    redirectTo: 'chronicompanion://app/auth/callback'
-                }
-            });
-            
-            if (error) {
-                console.error('❌ Supabase OAuth error:', error);
-                window.app.showMessage(`OAuth error: ${error.message}`, 'error');
-                return;
-            }
-            
-            if (data?.url) {
-                console.log('✅ Got OAuth URL from Supabase:', data.url);
-                console.log('📱 Opening OAuth URL in system browser...');
-                
-                // Open OAuth URL in system browser (will redirect back via deep link)
-                if (window.Capacitor?.Plugins?.Browser) {
-                    await window.Capacitor.Plugins.Browser.open({ 
-                        url: data.url,
-                        // Don't present as modal - allow system browser
-                        presentationStyle: 'fullscreen'
-                    });
-                } else {
-                    console.log('⚠️ Browser plugin not available, opening in webview');
-                    window.location.href = data.url;
-                }
-            } else {
-                console.error('❌ No OAuth URL received from Supabase');
-                window.app.showMessage('No OAuth URL received', 'error');
-            }
-            
-        } catch (error) {
-            console.error('❌ Mobile Supabase OAuth failed:', error);
-            window.app.showMessage(`Mobile auth failed: ${error.message}`, 'error');
-        }
-    }
-
-    /**
-     * NATIVE Google Sign-In for mobile apps - SAFE with fallbacks
-     * NOTE: This is now replaced by mobileSupabaseOAuth above
+     * NATIVE Google Sign-In for mobile apps - THE CORRECT APPROACH!
+     * Uses signInWithIdToken which is the proper method for native mobile apps
      */
     async nativeGoogleSignIn() {
         try {
