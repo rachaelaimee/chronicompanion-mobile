@@ -1,4 +1,8 @@
 // ChroniCompanion Frontend JavaScript
+console.log('🚨 AGGRESSIVE CACHE CLEAR v31: JavaScript loading at', new Date());
+console.log('🚨 This should appear if new code is loading!');
+console.log('🚨 If you see this, the cache issue is resolved!');
+
 class ChroniCompanion {
     constructor() {
         this.apiBase = 'https://chronicompanion-mobile-production.up.railway.app'; // Backend API URL (will fallback to offline mode)
