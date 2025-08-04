@@ -1,7 +1,7 @@
 {
   "appId": "io.github.rachaelaimee.chronicompanion",
   "appName": "ChroniCompanion",
-  "webDir": "frontend",
+  "webDir": "dist",
   "server": {
     "androidScheme": "https"
   },
