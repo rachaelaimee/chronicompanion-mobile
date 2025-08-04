@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-NUCLEAR-MOBILE-CACHE-DESTROY-v15';
+const CACHE_NAME = 'chronicompanion-NATIVE-GOOGLE-CONFIGURED-v18';
 const urlsToCache = [
   '/',
   '/index.html',

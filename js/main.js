@@ -3474,19 +3474,13 @@ class ChroniCompanion {
      */
     async signInWithGoogle() {
         try {
-            console.log('🔥 ULTRA SIMPLE DEBUG: Starting Google Sign-In...');
-            console.log('🔍 Supabase client available:', !!window.supabase);
-            console.log('🔍 Capacitor available:', !!window.Capacitor);
-            console.log('🔍 Is native platform:', window.Capacitor?.isNativePlatform?.());
+            console.log('🔥 NATIVE OAUTH: Starting Google Sign-In...');
             
             if (!window.supabase) {
                 console.error('❌ Supabase client not available');
                 window.app.showMessage('Supabase client not available', 'error');
                 return;
             }
-            
-            // ULTRA SIMPLE: Just call signInWithOAuth with proper redirect
-            console.log('🔥 Calling signInWithOAuth with proper redirect...');
             
             // Detect mobile vs web environment
             const isCapacitorApp = window.Capacitor?.isNativePlatform?.() || false;
@@ -3495,37 +3489,135 @@ class ChroniCompanion {
             console.log('🔍 Is Capacitor mobile app:', isCapacitorApp);
             console.log('🔍 Is localhost:', isLocalhost);
             
-            let oauthOptions = {
-                provider: 'google'
-            };
-            
             if (isCapacitorApp) {
-                // Mobile app: Use deep link and open in system browser
-                console.log('📱 MOBILE: Using deep link redirect');
-                oauthOptions.options = {
-                    redirectTo: 'chronicompanion://app/auth/callback',
-                    skipBrowserRedirect: true
-                };
+                // 📱 MOBILE: Use NATIVE Google Sign-In (no browser needed!)
+                console.log('📱 MOBILE: Using NATIVE Google Sign-In - NO BROWSER REDIRECTS!');
+                await this.nativeGoogleSignIn();
             } else {
-                // Web app: Use appropriate domain
-                const redirectUrl = isLocalhost ? 'http://localhost:8080' : 'https://chronicompanion.app';
-                console.log('🌐 WEB: Redirecting to', redirectUrl);
-                oauthOptions.options = {
-                    redirectTo: redirectUrl
-                };
+                // 🌐 WEB: Use web-based OAuth
+                console.log('🌐 WEB: Using web-based OAuth');
+                await this.webGoogleSignIn(isLocalhost);
             }
             
-            const { data, error } = await window.supabase.auth.signInWithOAuth(oauthOptions);
+        } catch (error) {
+            console.error('❌ CATCH BLOCK - Sign-in failed:', error);
+            window.app.showMessage(`Sign-in failed: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * NATIVE Google Sign-In for mobile apps - SAFE with fallbacks
+     */
+    async nativeGoogleSignIn() {
+        try {
+            console.log('📱 NATIVE: Starting safe Google Auth...');
             
-            console.log('🔍 OAuth response data:', data);
-            console.log('🔍 OAuth response error:', error);
+            // SAFE CHECK: Is Capacitor available?
+            if (!window.Capacitor) {
+                console.log('⚠️ Capacitor not available, falling back to web OAuth');
+                return await this.webGoogleSignIn(false);
+            }
+
+            // SAFE CHECK: Is GoogleAuth plugin available?
+            if (!window.Capacitor.Plugins?.GoogleAuth) {
+                console.log('⚠️ GoogleAuth plugin not available, falling back to web OAuth');
+                return await this.webGoogleSignIn(false);
+            }
+
+            console.log('📱 NATIVE: GoogleAuth plugin detected, attempting native sign-in...');
+            window.app.showMessage('Opening Google Sign-In...', 'info');
+
+            // SAFE: Initialize GoogleAuth first
+            try {
+                console.log('📱 NATIVE: Initializing GoogleAuth...');
+                await window.Capacitor.Plugins.GoogleAuth.initialize({
+                    webClientId: '1042241139827-p3d1cnupjvjc8jmriiihfo9ujfqau4r.apps.googleusercontent.com',
+                    scopes: ['profile', 'email'],
+                    grantOfflineAccess: true
+                });
+                console.log('✅ GoogleAuth initialized successfully');
+            } catch (initError) {
+                console.error('❌ GoogleAuth initialization failed:', initError);
+                console.log('⚠️ Falling back to web OAuth');
+                return await this.webGoogleSignIn(false);
+            }
+
+            // SAFE: Attempt native sign-in
+            let googleUser;
+            try {
+                console.log('📱 NATIVE: Calling GoogleAuth.signIn()...');
+                googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
+                console.log('✅ NATIVE Google Sign-In successful!');
+                console.log('🔍 Google User received:', !!googleUser);
+            } catch (signInError) {
+                console.error('❌ Native Google Sign-In failed:', signInError);
+                
+                if (signInError.type === 'popup_closed_by_user' || signInError.message?.includes('cancelled')) {
+                    window.app.showMessage('Sign-in cancelled', 'info');
+                    return;
+                } else {
+                    console.log('⚠️ Native sign-in failed, falling back to web OAuth');
+                    return await this.webGoogleSignIn(false);
+                }
+            }
+
+            // SAFE: Process the result
+            if (googleUser?.authentication?.idToken) {
+                console.log('📱 NATIVE: Processing ID token with Supabase...');
+                
+                const { data, error } = await window.supabase.auth.signInWithIdToken({
+                    provider: 'google',
+                    token: googleUser.authentication.idToken,
+                });
+
+                if (error) {
+                    console.error('❌ Supabase ID token error:', error);
+                    window.app.showMessage(`Authentication failed: ${error.message}`, 'error');
+                    return;
+                }
+
+                console.log('✅ NATIVE: Supabase session created successfully!');
+                console.log('🔍 User:', data.user?.email);
+                
+                this.currentUser = data.user;
+                this.updateAuthUI(true, data.user);
+                window.app.showMessage(`Welcome ${data.user?.email}!`, 'success');
+                
+            } else {
+                console.error('❌ NATIVE: No ID token received from Google');
+                console.log('⚠️ No token received, falling back to web OAuth');
+                return await this.webGoogleSignIn(false);
+            }
+
+        } catch (error) {
+            console.error('❌ NATIVE Google Sign-In critical error:', error);
+            console.error('❌ Error stack:', error.stack);
+            
+            // ULTIMATE FALLBACK: Use web OAuth
+            console.log('⚠️ Critical error occurred, falling back to web OAuth');
+            return await this.webGoogleSignIn(false);
+        }
+    }
+
+    /**
+     * WEB Google Sign-In for web apps (uses web OAuth)
+     */
+    async webGoogleSignIn(isLocalhost) {
+        try {
+            console.log('🌐 WEB: Starting web OAuth flow...');
+            
+            const redirectUrl = isLocalhost ? 'http://localhost:8080' : 'https://chronicompanion.app';
+            console.log('🌐 WEB: Redirecting to', redirectUrl);
+            
+            const { data, error } = await window.supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: redirectUrl
+                }
+            });
             
             if (error) {
-                console.error('❌ OAuth Error Details:', {
-                    message: error.message,
-                    status: error.status,
-                    statusText: error.statusText
-                });
+                console.error('❌ Web OAuth error:', error);
                 window.app.showMessage(`OAuth Error: ${error.message}`, 'error');
                 return;
             }
@@ -3534,36 +3626,17 @@ class ChroniCompanion {
                 console.log('✅ OAuth URL received:', data.url);
                 window.app.showMessage('Redirecting to Google...', 'info');
                 
-                if (isCapacitorApp) {
-                    // Mobile: Open in system browser
-                    console.log('📱 MOBILE: Opening OAuth in system browser');
-                    console.log('🔍 Capacitor.Plugins.Browser available:', !!window.Capacitor?.Plugins?.Browser);
-                    console.log('🔍 OAuth URL to open:', data.url);
-                    
-                    if (window.Capacitor?.Plugins?.Browser) {
-                        console.log('✅ Using Capacitor Browser plugin');
-                        await window.Capacitor.Plugins.Browser.open({ url: data.url });
-                    } else {
-                        console.log('⚠️ FALLBACK: Using window.open');
-                        // Try using location.href instead of window.open
-                        window.location.href = data.url;
-                    }
-                } else {
-                    // Web: Normal redirect
-                    console.log('🌐 WEB: Redirecting to OAuth');
-                    setTimeout(() => {
-                        window.location.href = data.url;
-                    }, 1000);
-                }
+                setTimeout(() => {
+                    window.location.href = data.url;
+                }, 1000);
             } else {
                 console.error('❌ No OAuth URL received');
                 window.app.showMessage('No OAuth URL received', 'error');
             }
             
         } catch (error) {
-            console.error('❌ CATCH BLOCK - Sign-in failed:', error);
-            console.error('❌ Error stack:', error.stack);
-            window.app.showMessage(`Sign-in failed: ${error.message}`, 'error');
+            console.error('❌ Web OAuth error:', error);
+            window.app.showMessage(`Web OAuth failed: ${error.message}`, 'error');
         }
     }
 

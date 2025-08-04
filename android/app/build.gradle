@@ -45,7 +45,8 @@ dependencies {
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
 
-    // 🚀 No Firebase dependencies needed! Supabase uses pure JavaScript
+    // 🚀 Google Play Services for Native Google Auth
+    implementation 'com.google.android.gms:play-services-auth:21.2.0'
 }
 
 apply from: 'capacitor.build.gradle'

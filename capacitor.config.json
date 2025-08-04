@@ -6,7 +6,11 @@
     "androidScheme": "https"
   },
   "plugins": {
-    "// No complex native plugins needed with Supabase! ": "🚀"
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "1042241139827-p3d1cnupjvjc8jmriiihfo9ujfqau4r.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
   },
   "cordova": {
     "preferences": {
