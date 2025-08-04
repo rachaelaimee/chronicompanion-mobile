@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-NUCLEAR-CACHE-DESTRUCTION-v32';
+const CACHE_NAME = 'chronicompanion-ANDROID-CLIENT-ID-FIX-v33';
 const urlsToCache = [
   '/',
   '/index.html',
