@@ -3522,16 +3522,18 @@ class ChroniCompanion {
         try {
             console.log('📱 NATIVE: Starting safe Google Auth...');
             
-            // SAFE CHECK: Is Capacitor available?
+            // STRICT CHECK: Is Capacitor available?
             if (!window.Capacitor) {
-                console.log('⚠️ Capacitor not available, falling back to web OAuth');
-                return await this.webGoogleSignIn(false);
+                console.error('❌ Capacitor not available - this should not happen in mobile app');
+                window.app.showMessage('Capacitor not available', 'error');
+                return;
             }
 
-            // SAFE CHECK: Is GoogleAuth plugin available?
+            // STRICT CHECK: Is GoogleAuth plugin available?
             if (!window.Capacitor.Plugins?.GoogleAuth) {
-                console.log('⚠️ GoogleAuth plugin not available, falling back to web OAuth');
-                return await this.webGoogleSignIn(false);
+                console.error('❌ GoogleAuth plugin not available - plugin not installed correctly');
+                window.app.showMessage('GoogleAuth plugin not available', 'error');
+                return;
             }
 
             console.log('📱 NATIVE: GoogleAuth plugin detected, attempting native sign-in...');
@@ -3548,26 +3550,32 @@ class ChroniCompanion {
                 console.log('✅ GoogleAuth initialized successfully');
             } catch (initError) {
                 console.error('❌ GoogleAuth initialization failed:', initError);
-                console.log('⚠️ Falling back to web OAuth');
-                return await this.webGoogleSignIn(false);
+                console.error('❌ Init error type:', initError.type);
+                console.error('❌ Init error message:', initError.message);
+                window.app.showMessage(`GoogleAuth initialization failed: ${initError.message}`, 'error');
+                return;
             }
 
-            // SAFE: Attempt native sign-in
+            // NATIVE ONLY: Attempt native sign-in (NO FALLBACKS!)
             let googleUser;
             try {
                 console.log('📱 NATIVE: Calling GoogleAuth.signIn()...');
                 googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
                 console.log('✅ NATIVE Google Sign-In successful!');
-                console.log('🔍 Google User received:', !!googleUser);
+                console.log('🔍 Google User data:', JSON.stringify(googleUser, null, 2));
+                console.log('🔍 ID Token present:', !!googleUser?.authentication?.idToken);
+                console.log('🔍 Access Token present:', !!googleUser?.authentication?.accessToken);
             } catch (signInError) {
                 console.error('❌ Native Google Sign-In failed:', signInError);
+                console.error('❌ Error type:', signInError.type);
+                console.error('❌ Error message:', signInError.message);
                 
                 if (signInError.type === 'popup_closed_by_user' || signInError.message?.includes('cancelled')) {
                     window.app.showMessage('Sign-in cancelled', 'info');
                     return;
                 } else {
-                    console.log('⚠️ Native sign-in failed, falling back to web OAuth');
-                    return await this.webGoogleSignIn(false);
+                    window.app.showMessage(`Native sign-in failed: ${signInError.message}`, 'error');
+                    return;
                 }
             }
 
@@ -3595,17 +3603,16 @@ class ChroniCompanion {
                 
             } else {
                 console.error('❌ NATIVE: No ID token received from Google');
-                console.log('⚠️ No token received, falling back to web OAuth');
-                return await this.webGoogleSignIn(false);
+                console.error('❌ Google User object:', googleUser);
+                window.app.showMessage('No authentication token received from Google', 'error');
+                return;
             }
 
         } catch (error) {
             console.error('❌ NATIVE Google Sign-In critical error:', error);
             console.error('❌ Error stack:', error.stack);
-            
-            // ULTIMATE FALLBACK: Use web OAuth
-            console.log('⚠️ Critical error occurred, falling back to web OAuth');
-            return await this.webGoogleSignIn(false);
+            window.app.showMessage(`Critical authentication error: ${error.message}`, 'error');
+            return;
         }
     }
 
