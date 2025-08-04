@@ -3478,38 +3478,75 @@ class ChroniCompanion {
     }
 
     /**
-     * Sign in with Google (CORRECT NATIVE APPROACH)
-     * Research shows: Native mobile apps should use signInWithIdToken, NOT signInWithOAuth!
+     * SUPER SIMPLE Google Sign-In - NATIVE ONLY (No complexity!)
      */
     async signInWithGoogle() {
         try {
-            console.log('🚀 CORRECT NATIVE APPROACH: Starting Google Sign-In...');
+            console.log('🚀 SUPER SIMPLE: Starting Native Google Sign-In...');
             
             if (!window.supabase) {
-                console.error('❌ Supabase client not available');
-                window.app.showMessage('Supabase client not available', 'error');
+                console.error('❌ Supabase not available');
+                window.app.showMessage('Supabase not available', 'error');
                 return;
             }
-            
-            // Simple mobile detection
+
+            // For mobile: ONLY use native GoogleAuth plugin
             const isCapacitorApp = !!window.Capacitor;
-            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            console.log('🔍 Is mobile app:', isCapacitorApp);
             
-            console.log('🔍 Is Capacitor mobile app:', isCapacitorApp);
-            console.log('🔍 Is localhost:', isLocalhost);
-            
-            if (isCapacitorApp) {
-                // 📱 MOBILE: Use NATIVE Google Sign-In + signInWithIdToken (CORRECT!)
-                console.log('📱 MOBILE: Using NATIVE Google Sign-In with signInWithIdToken');
-                await this.nativeGoogleSignIn();
-            } else {
-                // 🌐 WEB: Use standard Supabase OAuth
-                console.log('🌐 WEB: Using standard Supabase OAuth');
-                await this.webGoogleSignIn(isLocalhost);
+            if (!isCapacitorApp) {
+                console.log('🌐 WEB: Using standard OAuth');
+                const { data, error } = await window.supabase.auth.signInWithOAuth({
+                    provider: 'google'
+                });
+                if (error) {
+                    console.error('❌ Web OAuth error:', error);
+                    window.app.showMessage(`Web sign-in failed: ${error.message}`, 'error');
+                }
+                return;
             }
+
+            // MOBILE: Simple native approach
+            console.log('📱 MOBILE: Using GoogleAuth plugin...');
+            
+            if (!window.Capacitor.Plugins?.GoogleAuth) {
+                console.error('❌ GoogleAuth plugin not found');
+                window.app.showMessage('GoogleAuth plugin not available', 'error');
+                return;
+            }
+
+            console.log('📱 NATIVE: Calling GoogleAuth.signIn()...');
+            window.app.showMessage('Opening native Google Sign-In...', 'info');
+
+            const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
+            console.log('✅ NATIVE: Google Sign-In completed!');
+            console.log('🔍 Google user:', googleUser);
+
+            if (!googleUser?.authentication?.idToken) {
+                console.error('❌ No ID token received');
+                window.app.showMessage('No authentication token received', 'error');
+                return;
+            }
+
+            console.log('📱 NATIVE: Sending ID token to Supabase...');
+            const { data, error } = await window.supabase.auth.signInWithIdToken({
+                provider: 'google',
+                token: googleUser.authentication.idToken,
+            });
+
+            if (error) {
+                console.error('❌ Supabase error:', error);
+                window.app.showMessage(`Authentication failed: ${error.message}`, 'error');
+                return;
+            }
+
+            console.log('✅ SUCCESS: User signed in!', data.user.email);
+            this.currentUser = data.user;
+            this.updateAuthUI(true, data.user);
+            window.app.showMessage(`Welcome ${data.user.email}!`, 'success');
             
         } catch (error) {
-            console.error('❌ CATCH BLOCK - Sign-in failed:', error);
+            console.error('❌ Sign-in error:', error);
             window.app.showMessage(`Sign-in failed: ${error.message}`, 'error');
         }
     }

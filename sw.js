@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-PURE-NATIVE-NO-FALLBACKS-v25';
+const CACHE_NAME = 'chronicompanion-SUPER-SIMPLE-NATIVE-v26';
 const urlsToCache = [
   '/',
   '/index.html',
