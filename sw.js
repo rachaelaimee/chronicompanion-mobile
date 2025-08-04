@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-CORRECT-NATIVE-FLOW-v28';
+const CACHE_NAME = 'chronicompanion-NATIVE-GOOGLEAUTH-BREAKTHROUGH-v30';
 const urlsToCache = [
   '/',
   '/index.html',
