@@ -3247,9 +3247,12 @@ class ChroniCompanion {
         // Listen for auth state changes
         window.supabase.auth.onAuthStateChange((event, session) => {
             console.log('🎯 Auth state changed:', event, session ? 'Session exists' : 'No session');
+            console.log('Auth event:', event);
+            console.log('Session:', session);
             
             if (event === 'SIGNED_IN' && session) {
                 console.log('✅ User signed in successfully!');
+                console.log('User details:', session.user);
                 this.currentUser = session.user;
                 this.updateAuthUI(true, session.user);
                 window.app.showMessage(`Welcome ${session.user.email}!`, 'success');

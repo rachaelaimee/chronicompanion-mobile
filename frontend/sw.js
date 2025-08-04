@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-MOBILE-OAUTH-FIX-v12';
+const CACHE_NAME = 'chronicompanion-MOBILE-OAUTH-CALLBACK-FIX-v13';
 const urlsToCache = [
   '/',
   '/index.html',

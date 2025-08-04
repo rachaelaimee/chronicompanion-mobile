@@ -1,13 +1,17 @@
 package io.github.rachaelaimee.chronicompanion;
 
+import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.Plugin;
 
 public class MainActivity extends BridgeActivity {
     @Override
-    public void onCreate(android.os.Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // No complex native plugins needed with Supabase! 🚀
-        // Supabase authentication works purely via JavaScript
+        // Required to allow Supabase to catch the redirect
+        this.getBridge().getWebView().post(() -> {
+            getBridge().handleAppUrlOpen(getIntent());
+        });
     }
 }
