@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-COMPREHENSIVE-DEBUG-v1015';
+const CACHE_NAME = 'chronicompanion-IMPORTANT-SYNTAX-FIX-v1016';
 const urlsToCache = [
   '/',
   '/index.html',

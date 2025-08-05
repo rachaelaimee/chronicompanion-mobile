@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 COMPREHENSIVE-DEBUG-v1015 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 IMPORTANT-SYNTAX-FIX-v1016 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -3537,21 +3537,24 @@ class ChroniCompanion {
             console.log('📧 FORCE UI: User is signed in - FORCING auth form to hide');
             
             if (authForm) {
-                authForm.style.display = 'none !important';
+                // PROPER !important syntax for JavaScript
+                authForm.style.setProperty('display', 'none', 'important');
                 authForm.style.visibility = 'hidden';
                 authForm.setAttribute('hidden', 'true');
                 console.log('📧 FORCE UI: Auth form FORCE HIDDEN, display =', authForm.style.display);
             }
             
             if (signedInControls) {
-                signedInControls.style.display = 'flex !important';
+                // PROPER !important syntax for JavaScript
+                signedInControls.style.setProperty('display', 'flex', 'important');
                 signedInControls.style.visibility = 'visible';
                 signedInControls.removeAttribute('hidden');
                 console.log('📧 FORCE UI: Signed-in controls FORCE SHOWN, display =', signedInControls.style.display);
             }
             
             if (userInfo) {
-                userInfo.style.display = 'block !important';
+                // PROPER !important syntax for JavaScript
+                userInfo.style.setProperty('display', 'block', 'important');
                 userInfo.style.visibility = 'visible';
                 userInfo.removeAttribute('hidden');
                 userInfo.innerHTML = `
@@ -3572,7 +3575,7 @@ class ChroniCompanion {
             // FORCE hide sign-in button specifically
             const signInBtn = document.getElementById('sign-in-btn');
             if (signInBtn) {
-                signInBtn.style.display = 'none !important';
+                signInBtn.style.setProperty('display', 'none', 'important');
                 signInBtn.style.visibility = 'hidden';
                 console.log('📧 FORCE UI: Sign-in button FORCE HIDDEN');
             }
@@ -3597,7 +3600,7 @@ class ChroniCompanion {
                 // NUCLEAR OPTION: Force with multiple methods
                 console.log('🚨 NUCLEAR OPTION: Forcing visibility with every method possible');
                 signedInControls.style.setProperty('display', 'flex', 'important');
-                signedInControls.style.display = 'flex !important';
+                signedInControls.style.display = 'flex'; // Removed invalid !important syntax
                 signedInControls.style.visibility = 'visible';
                 signedInControls.style.opacity = '1';
                 signedInControls.removeAttribute('hidden');
