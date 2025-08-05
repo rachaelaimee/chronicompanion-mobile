@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 IMPORTANT-SYNTAX-FIX-v1016 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 EMERGENCY-DEBUG-v1017 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -4541,9 +4541,66 @@ class ChroniCompanion {
     }
 }
 
+// EMERGENCY DEBUGGING: Check elements immediately
+function emergencyUIDebug() {
+    console.log('🚨 EMERGENCY DEBUG: Checking all auth elements...');
+    
+    const authForm = document.getElementById('auth-form');
+    const signedInControls = document.getElementById('signed-in-controls');
+    const userInfo = document.getElementById('user-info');
+    const signInBtn = document.getElementById('sign-in-btn');
+    const signOutBtn = document.getElementById('sign-out-btn');
+    
+    console.log('🚨 ELEMENT CHECK:', {
+        authForm: {
+            exists: !!authForm,
+            display: authForm?.style.display,
+            computed: authForm ? window.getComputedStyle(authForm).display : 'N/A',
+            visible: authForm ? (authForm.offsetWidth > 0 && authForm.offsetHeight > 0) : false
+        },
+        signedInControls: {
+            exists: !!signedInControls,
+            display: signedInControls?.style.display,
+            computed: signedInControls ? window.getComputedStyle(signedInControls).display : 'N/A',
+            visible: signedInControls ? (signedInControls.offsetWidth > 0 && signedInControls.offsetHeight > 0) : false
+        },
+        signInBtn: {
+            exists: !!signInBtn,
+            display: signInBtn?.style.display,
+            computed: signInBtn ? window.getComputedStyle(signInBtn).display : 'N/A',
+            visible: signInBtn ? (signInBtn.offsetWidth > 0 && signInBtn.offsetHeight > 0) : false
+        },
+        signOutBtn: {
+            exists: !!signOutBtn,
+            display: signOutBtn?.style.display,
+            computed: signOutBtn ? window.getComputedStyle(signOutBtn).display : 'N/A',
+            visible: signOutBtn ? (signOutBtn.offsetWidth > 0 && signOutBtn.offsetHeight > 0) : false
+        }
+    });
+    
+    // FORCE show sign-out button for testing
+    if (signedInControls) {
+        console.log('🚨 FORCING signed-in-controls to show...');
+        signedInControls.style.setProperty('display', 'flex', 'important');
+        signedInControls.style.visibility = 'visible';
+        signedInControls.style.opacity = '1';
+        signedInControls.removeAttribute('hidden');
+        console.log('🚨 After forcing:', {
+            display: signedInControls.style.display,
+            computed: window.getComputedStyle(signedInControls).display,
+            visible: signedInControls.offsetWidth > 0 && signedInControls.offsetHeight > 0
+        });
+    }
+}
+
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM LOADED - Creating app...');
+    
+    // Run emergency debug immediately
+    setTimeout(emergencyUIDebug, 100);
+    setTimeout(emergencyUIDebug, 1000);
+    setTimeout(emergencyUIDebug, 3000);
 
     try {
         window.app = new ChroniCompanion();
@@ -4560,9 +4617,38 @@ document.addEventListener('DOMContentLoaded', () => {
             return window.app.updateAuthUI(true, { email: 'test@example.com' });
         };
         
+        window.forceSignOut = () => {
+            console.log('🧪 GLOBAL TEST: Manually showing sign-out button...');
+            const signedInControls = document.getElementById('signed-in-controls');
+            const authForm = document.getElementById('auth-form');
+            
+            if (signedInControls) {
+                signedInControls.style.setProperty('display', 'flex', 'important');
+                signedInControls.style.visibility = 'visible';
+                signedInControls.style.opacity = '1';
+                signedInControls.removeAttribute('hidden');
+                // Add a bright red border so it's super obvious
+                signedInControls.style.border = '5px solid red';
+                signedInControls.style.backgroundColor = 'yellow';
+                console.log('🧪 Sign-out button FORCE shown with red border');
+            }
+            
+            if (authForm) {
+                authForm.style.setProperty('display', 'none', 'important');
+                console.log('🧪 Auth form FORCE hidden');
+            }
+            
+            return { signedInControls: !!signedInControls, authForm: !!authForm };
+        };
+        
+        // Make emergency debug available globally
+        window.emergencyUIDebug = emergencyUIDebug;
+        
         console.log('🧪 DEBUG FUNCTIONS AVAILABLE:');
         console.log('  - testUI() - Test if elements can be found and manipulated');
         console.log('  - forceSignIn() - Force the signed-in UI state');
+        console.log('  - forceSignOut() - Manually show sign-out button with red border');
+        console.log('  - emergencyUIDebug() - Check all auth elements status');
         
         // Add Enter key support for email authentication
         const emailInput = document.getElementById('email-input');
