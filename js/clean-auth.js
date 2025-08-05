@@ -161,6 +161,12 @@ class CleanAuth {
             }
         }
         
+        // ✅ ENSURE SIGN OUT BUTTON SAYS "Sign Out"
+        const signOutBtn = document.getElementById('sign-out-btn');
+        if (signOutBtn) {
+            signOutBtn.textContent = 'Sign Out';
+        }
+        
         console.log('✅ UI updated for signed-in state');
     }
     
