@@ -959,43 +959,13 @@
         </div>
     </div>
 
-                <script src="js/main.js?v=SESSION-PERSISTENCE-FIX-v1009"></script>
+                <script src="js/main.js?v=STORAGE-CLEARING-FIXED-v1010"></script>
             
-            <!-- MOBILE OAUTH FIX VERSION! -->
+            <!-- SESSION PERSISTENCE: Keep user sessions alive! -->
             <script>
-                console.log('🔥 MOBILE OAUTH FIX v12: Fixed mobile OAuth redirect at', new Date());
-                console.log('📱 Mobile apps now use deep links + system browser!');
-                console.log('🌐 Web apps use smart domain detection!');
-                
-                // NUCLEAR OPTION: Delete ALL caches
-                if ('caches' in window) {
-                    caches.keys().then(names => {
-                        console.log('💣 Found caches to destroy:', names);
-                        names.forEach(name => {
-                            caches.delete(name);
-                            console.log('💣 NUKED CACHE:', name);
-                        });
-                    });
-                }
-                
-                // Clear ALL storage
-                if (typeof(Storage) !== "undefined") {
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    console.log('💣 ALL STORAGE CLEARED');
-                }
-                
-                // Force reload service worker
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.getRegistrations().then(registrations => {
-                        registrations.forEach(registration => {
-                            registration.unregister();
-                            console.log('💣 SERVICE WORKER UNREGISTERED');
-                        });
-                    });
-                }
-                
-                console.log('💣 CACHE DESTRUCTION COMPLETE - SUPABASE SHOULD LOAD NOW!');
+                console.log('💾 SESSION PERSISTENCE: User sessions will now persist across page reloads');
+                console.log('✅ Supabase handles session storage automatically');
+                console.log('🔄 No more signing out on refresh!');
             </script>
     
     <!-- PWA Service Worker Registration -->

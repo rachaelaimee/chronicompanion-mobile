@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-SESSION-PERSISTENCE-FIX-v1009';
+const CACHE_NAME = 'chronicompanion-STORAGE-CLEARING-FIXED-v1010';
 const urlsToCache = [
   '/',
   '/index.html',
