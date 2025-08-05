@@ -27,7 +27,7 @@ class ChroniCompanionApp {
             this.auth = new CleanAuth(window.supabase);
             
             // Setup event listeners
-            this.setupEventListeners();
+        this.setupEventListeners();
             
             console.log('✅ ChroniCompanion initialized successfully');
             
@@ -61,7 +61,7 @@ class ChroniCompanionApp {
         const signOutBtn = document.getElementById('sign-out-btn');
         if (signOutBtn) {
             signOutBtn.addEventListener('click', (e) => {
-                e.preventDefault();
+            e.preventDefault();
                 this.handleSignOut();
             });
         }
@@ -82,13 +82,13 @@ class ChroniCompanionApp {
             
             if (password.length < 6) {
                 this.showMessage('Password must be at least 6 characters', 'error');
-                return;
+                    return;
             }
             
             console.log('🔐 Sign In button clicked - SIGNING IN ONLY');
             await this.auth.signIn(email, password);
             
-        } catch (error) {
+                    } catch (error) {
             console.error('❌ Sign in handler error:', error);
             this.showMessage('Sign in failed. Please try again.', 'error');
         }
@@ -107,13 +107,13 @@ class ChroniCompanionApp {
             
             if (password.length < 6) {
                 this.showMessage('Password must be at least 6 characters', 'error');
-                return;
-            }
-            
+            return;
+        }
+
             console.log('🔐 Sign Up button clicked - CREATING NEW ACCOUNT ONLY');
             await this.auth.signUp(email, password);
             
-        } catch (error) {
+                } catch (error) {
             console.error('❌ Sign up handler error:', error);
             this.showMessage('Sign up failed. Please try again.', 'error');
         }
@@ -141,7 +141,7 @@ class ChroniCompanionApp {
             messageEl.className = `message ${type === 'error' ? 'text-red-600' : 'text-green-600'}`;
             messageEl.style.display = 'block';
             
-            setTimeout(() => {
+        setTimeout(() => {
                 messageEl.style.display = 'none';
             }, 5000);
         }

@@ -61,7 +61,7 @@ class ChroniCompanionApp {
         const signOutBtn = document.getElementById('sign-out-btn');
         if (signOutBtn) {
             signOutBtn.addEventListener('click', (e) => {
-                e.preventDefault();
+            e.preventDefault();
                 this.handleSignOut();
             });
         }
@@ -77,7 +77,7 @@ class ChroniCompanionApp {
             
             if (!email || !password) {
                 this.showMessage('Please enter both email and password', 'error');
-                return;
+                    return;
             }
             
             if (password.length < 6) {
@@ -88,7 +88,7 @@ class ChroniCompanionApp {
             console.log('🔐 Sign In button clicked - SIGNING IN ONLY');
             await this.auth.signIn(email, password);
             
-        } catch (error) {
+                    } catch (error) {
             console.error('❌ Sign in handler error:', error);
             this.showMessage('Sign in failed. Please try again.', 'error');
         }
@@ -102,17 +102,17 @@ class ChroniCompanionApp {
             
             if (!email || !password) {
                 this.showMessage('Please enter both email and password', 'error');
-                return;
-            }
-            
+            return;
+        }
+
             if (password.length < 6) {
                 this.showMessage('Password must be at least 6 characters', 'error');
-                return;
+                    return;
             }
             
             console.log('🔐 Sign Up button clicked - CREATING NEW ACCOUNT ONLY');
             await this.auth.signUp(email, password);
-            
+
         } catch (error) {
             console.error('❌ Sign up handler error:', error);
             this.showMessage('Sign up failed. Please try again.', 'error');
