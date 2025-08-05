@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 DUPLICATE-FUNCTION-FIX-v1018 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 PRODUCTION-AUTH-v2000 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -3200,44 +3200,25 @@ class ChroniCompanion {
     // ========================================
 
     /**
-     * CLEAN SLATE: Initialize Authentication System
-     * Removed all old Firebase/Supabase code that was causing persistent errors
+     * ✅ PRODUCTION-READY AUTH INITIALIZATION
      */
     async initializeAuthentication() {
         try {
-            console.log('🧹 CLEAN SLATE: Authentication system reset');
-            console.log('🚀 All old Firebase authentication code removed');
-            console.log('✨ Ready for fresh authentication implementation');
+            console.log('🔐 Initializing production-ready authentication...');
             
-            // Initialize Supabase authentication properly
-            await this.setupAuthStateListener(); 
-            // Setup Credential Manager deep links for mobile OAuth
-            this.setupCredentialManagerDeepLinks();
-            await this.checkCurrentUser();
-            
-            // Force UI update after a delay to ensure DOM is ready
-            setTimeout(async () => {
-                console.log('🔄 FORCE UI UPDATE: Checking session on page load...');
-                await this.checkCurrentUser();
-                
-                // Double-check with explicit UI update
-                setTimeout(() => {
-                    console.log('🔄 FINAL UI UPDATE: Ensuring correct UI state...');
-                    if (this.currentUser) {
-                        console.log('📧 FINAL CHECK: User found, updating UI to signed-in state');
-                        this.updateAuthUI(true, this.currentUser);
-                    } else {
-                        console.log('📧 FINAL CHECK: No user found, updating UI to signed-out state');
-                        this.updateAuthUI(false, null);
-                    }
-                }, 500);
-            }, 1000);
+            if (!window.supabase) {
+                throw new Error('Supabase client not available');
+            }
+
+            // Import and initialize the clean AuthManager
+            const { AuthManager } = await import('./auth-fixes.js');
+            this.authManager = new AuthManager(window.supabase);
             
             this.authInitialized = true;
-            console.log('✅ Supabase authentication system initialized');
+            console.log('✅ Clean authentication system initialized');
 
         } catch (error) {
-            console.error('❌ Error in clean authentication setup:', error);
+            console.error('❌ Error initializing authentication:', error);
             this.authInitialized = false;
         }
     }
@@ -3643,47 +3624,24 @@ class ChroniCompanion {
     /**
      * Sign out the current user
      */
+    /**
+     * ✅ CLEAN SIGN-OUT - Uses AuthManager
+     */
     async signOut() {
         try {
-            console.log('🚪 Signing out user...');
-            
-            if (!window.supabase) {
-                throw new Error('Supabase client not available');
-            }
-            
-            const { error } = await window.supabase.auth.signOut();
-            
-            if (error) {
-                console.error('❌ Sign out error:', error);
-                window.app.showMessage(`Sign out failed: ${error.message}`, 'error');
-                throw error;
-            }
-            
-            console.log('✅ User signed out successfully');
-            window.app.showMessage('Signed out successfully', 'success');
-            
+            const result = await this.authManager.signOut();
+            this.showMessage(result.message, 'success');
         } catch (error) {
-            console.error('❌ Sign out failed:', error);
-            window.app.showMessage(`Sign out failed: ${error.message}`, 'error');
+            console.error('❌ Sign out error:', error);
+            // Error message already handled by AuthManager
         }
     }
 
     /**
-     * 📧 EMAIL AUTHENTICATION: Simple and reliable email/password authentication
-     * Replaces complex Google OAuth with straightforward email authentication
-     * Works identically on web and mobile with no configuration headaches
+     * ✅ CLEAN EMAIL SIGN-IN - Uses AuthManager
      */
     async signInWithEmail() {
-                try {
-            console.log('📧 EMAIL AUTH: Starting email authentication...');
-
-            if (!window.supabase) {
-                console.error('❌ Supabase not available');
-                this.showMessage('Supabase not available', 'error');
-                return;
-            }
-
-            // Get email and password from form
+        try {
             const email = document.getElementById('email-input')?.value?.trim();
             const password = document.getElementById('password-input')?.value;
 
@@ -3697,105 +3655,24 @@ class ChroniCompanion {
                 return;
             }
 
-            console.log('📧 EMAIL AUTH: Attempting sign in with:', email);
-            this.showMessage('Signing in...', 'info');
-
-            // Try to sign in with existing account
-            const { data, error } = await window.supabase.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
-
-            if (error) {
-                // If sign-in fails, try to sign up (create new account)
-                if (error.message.includes('Invalid login credentials') || error.message.includes('Email not confirmed')) {
-                    console.log('📧 EMAIL AUTH: Sign-in failed, trying sign-up...');
-                    this.showMessage('Creating new account...', 'info');
-                    
-                    const { data: signUpData, error: signUpError } = await window.supabase.auth.signUp({
-                        email: email,
-                        password: password
-                    });
-
-                    if (signUpError) {
-                        console.error('❌ Sign-up error:', signUpError);
-                        this.showMessage(`Account creation failed: ${signUpError.message}`, 'error');
-                        return;
-                    }
-
-                    if (signUpData?.user) {
-                        console.log('✅ EMAIL AUTH: Account created successfully');
-                        this.showMessage('Account created! Please check your email to verify your account.', 'success');
-                        // Don't update UI yet - user needs to verify email first
-                        return;
-                    }
+            // Try sign-in first
+            try {
+                await this.authManager.signIn(email, password);
+                this.showMessage(`Welcome back, ${email}!`, 'success');
+            } catch (signInError) {
+                // If sign-in fails with credentials error, try sign-up
+                if (signInError.message.includes('Invalid email or password')) {
+                    console.log('📧 Sign-in failed, attempting sign-up...');
+                    const result = await this.authManager.signUp(email, password);
+                    this.showMessage(result.message, 'success');
                 } else {
-                    console.error('❌ Sign-in error:', error);
-                    this.showMessage(`Sign-in failed: ${error.message}`, 'error');
-                    return;
+                    throw signInError;
                 }
-            }
-
-            if (data?.user) {
-                console.log('✅ DEBUGGING: Sign-in successful, checking session storage...');
-                console.log('🔍 DEBUGGING: User data:', {
-                    id: data.user.id,
-                    email: data.user.email,
-                    created_at: data.user.created_at
-                });
-                
-                // Check if session is being stored
-                setTimeout(async () => {
-                    console.log('🔍 DEBUGGING: Checking if session persisted after sign-in...');
-                    try {
-                        const { data: { session }, error } = await window.supabase.auth.getSession();
-                        console.log('🔍 DEBUGGING: Post-signin session check:', {
-                            hasSession: !!session,
-                            hasUser: !!(session?.user),
-                            userEmail: session?.user?.email,
-                            error: error
-                        });
-                        
-                        // Check localStorage again
-                        console.log('🔍 DEBUGGING: Post-signin localStorage check:');
-                        Object.keys(localStorage).forEach(key => {
-                            if (key.includes('supabase') || key.includes('auth')) {
-                                console.log('🔍 DEBUGGING: Auth key after signin:', key, 'length:', localStorage.getItem(key)?.length);
-                            }
-                        });
-                    } catch (e) {
-                        console.error('❌ DEBUGGING: Error checking post-signin session:', e);
-                    }
-                }, 1000);
-                
-                                    console.log('🔄 CRITICAL: About to call updateAuthUI with user:', data.user.email);
-                    this.currentUser = data.user;
-                    
-                    // FORCE CALL updateAuthUI immediately
-                    console.log('🔄 CRITICAL: Calling updateAuthUI(true, user)...');
-                    this.updateAuthUI(true, data.user);
-                    
-                    // DOUBLE-FORCE with timeout
-                    setTimeout(() => {
-                        console.log('🔄 CRITICAL: TIMEOUT updateAuthUI call...');
-                        this.updateAuthUI(true, data.user);
-                    }, 500);
-                    
-                    // TRIPLE-FORCE with longer timeout
-                    setTimeout(() => {
-                        console.log('🔄 CRITICAL: FINAL updateAuthUI call...');
-                        this.updateAuthUI(true, data.user);
-                    }, 1500);
-                    
-                    this.showMessage(`Welcome back, ${data.user.email}!`, 'success');
-            } else {
-                console.warn('⚠️ EMAIL AUTH: No user data returned');
-                this.showMessage('Sign-in failed - please try again', 'error');
             }
 
         } catch (error) {
             console.error('❌ Email authentication error:', error);
-            this.showMessage(`Authentication failed: ${error.message}`, 'error');
+            // Error message already handled by AuthManager
         }
     }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-DUPLICATE-FUNCTION-FIX-v1018';
+const CACHE_NAME = 'chronicompanion-PRODUCTION-AUTH-v2000';
 const urlsToCache = [
   '/',
   '/index.html',
