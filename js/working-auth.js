@@ -191,7 +191,22 @@ class WorkingAuth {
             if (authForm) authForm.style.display = 'none';
             if (signedInControls) signedInControls.style.display = 'block';
             if (userEmailDisplay) userEmailDisplay.textContent = user.email;
-            if (signOutBtn) signOutBtn.textContent = 'Sign Out';
+            
+            // 🔧 ROBUST SIGN-OUT BUTTON TEXT FIX
+            if (signOutBtn) {
+                signOutBtn.textContent = 'Sign Out';
+                signOutBtn.innerHTML = 'Sign Out'; // Extra insurance
+                console.log('🔧 Sign-out button text set to:', signOutBtn.textContent);
+                
+                // Extra insurance: Force correct text after a delay
+                setTimeout(() => {
+                    if (signOutBtn && signOutBtn.textContent !== 'Sign Out') {
+                        console.log('🔧 FIXING: Button text was wrong, correcting...');
+                        signOutBtn.textContent = 'Sign Out';
+                        signOutBtn.innerHTML = 'Sign Out';
+                    }
+                }, 100);
+            }
             
             console.log('✅ UI updated for signed-in state');
         } else {
