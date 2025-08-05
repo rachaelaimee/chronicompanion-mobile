@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 EMAIL-AUTH-UI-FIX-v1008 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 SESSION-PERSISTENCE-FIX-v1009 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -3215,6 +3215,24 @@ class ChroniCompanion {
             this.setupCredentialManagerDeepLinks();
             await this.checkCurrentUser();
             
+            // Force UI update after a delay to ensure DOM is ready
+            setTimeout(async () => {
+                console.log('🔄 FORCE UI UPDATE: Checking session on page load...');
+                await this.checkCurrentUser();
+                
+                // Double-check with explicit UI update
+                setTimeout(() => {
+                    console.log('🔄 FINAL UI UPDATE: Ensuring correct UI state...');
+                    if (this.currentUser) {
+                        console.log('📧 FINAL CHECK: User found, updating UI to signed-in state');
+                        this.updateAuthUI(true, this.currentUser);
+                    } else {
+                        console.log('📧 FINAL CHECK: No user found, updating UI to signed-out state');
+                        this.updateAuthUI(false, null);
+                    }
+                }, 500);
+            }, 1000);
+            
             this.authInitialized = true;
             console.log('✅ Supabase authentication system initialized');
 
@@ -3435,8 +3453,14 @@ class ChroniCompanion {
         if (isSignedIn && user) {
             // User is signed in - hide form, show signed-in controls
             console.log('📧 EMAIL AUTH: User is signed in - hiding auth form');
-            if (authForm) authForm.style.display = 'none';
-            if (signedInControls) signedInControls.style.display = 'flex';
+            if (authForm) {
+                authForm.style.display = 'none';
+                console.log('📧 EMAIL AUTH: Auth form hidden, display =', authForm.style.display);
+            }
+            if (signedInControls) {
+                signedInControls.style.display = 'flex';
+                console.log('📧 EMAIL AUTH: Signed-in controls shown, display =', signedInControls.style.display);
+            }
             if (userInfo) {
                 userInfo.style.display = 'block';
                 userInfo.innerHTML = `
@@ -3444,18 +3468,32 @@ class ChroniCompanion {
                         <p class="text-sm">✅ Signed in as: <strong>${user.email}</strong></p>
                     </div>
                 `;
+                console.log('📧 EMAIL AUTH: User info updated for:', user.email);
             }
+            
+            // Clear form inputs when signed in
+            const emailInput = document.getElementById('email-input');
+            const passwordInput = document.getElementById('password-input');
+            if (emailInput) emailInput.value = '';
+            if (passwordInput) passwordInput.value = '';
+            
         } else {
             // User is signed out - show form, hide signed-in controls
             console.log('📧 EMAIL AUTH: User is signed out - showing auth form');
             if (authForm) {
                 authForm.style.display = 'block';
-                console.log('📧 EMAIL AUTH: Auth form should now be visible');
+                console.log('📧 EMAIL AUTH: Auth form shown, display =', authForm.style.display);
             } else {
                 console.error('❌ EMAIL AUTH: Auth form element not found!');
             }
-            if (signedInControls) signedInControls.style.display = 'none';
-            if (userInfo) userInfo.style.display = 'none';
+            if (signedInControls) {
+                signedInControls.style.display = 'none';
+                console.log('📧 EMAIL AUTH: Signed-in controls hidden, display =', signedInControls.style.display);
+            }
+            if (userInfo) {
+                userInfo.style.display = 'none';
+                console.log('📧 EMAIL AUTH: User info hidden');
+            }
         }
         
         // Double-check button visibility
