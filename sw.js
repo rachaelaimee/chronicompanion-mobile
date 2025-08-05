@@ -1,7 +1,7 @@
 // 🧹 CLEAN SERVICE WORKER - No conflicts, clean authentication
 // Version: CLEAN-AUTH-v3000
 
-const CACHE_NAME = 'chronicompanion-CLEAN-AUTH-v3000';
+const CACHE_NAME = 'chronicompanion-FORCE-RELOAD-v4000';
 const urlsToCache = [
     '/',
     '/index.html',

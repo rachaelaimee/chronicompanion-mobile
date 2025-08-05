@@ -146,8 +146,21 @@
         console.log('✅ Supabase client initialized');
     </script>
     
+    <!-- 🚨 DISABLE SERVICE WORKER TEMPORARILY -->
+    <script>
+        // Unregister any existing service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+        console.log('🧹 Service worker disabled - forcing fresh load');
+    </script>
+    
     <!-- Clean Authentication -->
-    <script src="js/clean-auth.js?v=CLEAN-AUTH-v3000"></script>
-    <script src="js/main.js?v=CLEAN-AUTH-v3000"></script>
+    <script src="js/clean-auth.js?v=FORCE-RELOAD-v4000"></script>
+    <script src="js/main.js?v=FORCE-RELOAD-v4000"></script>
 </body>
 </html>
