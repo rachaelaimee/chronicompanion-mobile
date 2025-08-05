@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 SESSION-DEBUG-v1011 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 FORCE-UI-UPDATE-v1012 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -3371,7 +3371,17 @@ class ChroniCompanion {
                     user_id: session.user.id
                 });
                 this.currentUser = session.user;
+                
+                // FORCE UI UPDATE - critical for session restoration
+                console.log('🔄 FORCE UI UPDATE: Calling updateAuthUI for restored session');
                 this.updateAuthUI(true, session.user);
+                
+                // Double-force with timeout to ensure DOM is ready
+                setTimeout(() => {
+                    console.log('🔄 DOUBLE FORCE: Final UI update for restored session');
+                    this.updateAuthUI(true, session.user);
+                }, 100);
+                
             } else {
                 console.log('ℹ️ DEBUGGING: No existing user session found');
                 this.currentUser = null;
@@ -3475,24 +3485,34 @@ class ChroniCompanion {
         });
         
         if (isSignedIn && user) {
-            // User is signed in - hide form, show signed-in controls
-            console.log('📧 EMAIL AUTH: User is signed in - hiding auth form');
+            // User is signed in - FORCE hide form, show signed-in controls
+            console.log('📧 FORCE UI: User is signed in - FORCING auth form to hide');
+            
             if (authForm) {
-                authForm.style.display = 'none';
-                console.log('📧 EMAIL AUTH: Auth form hidden, display =', authForm.style.display);
+                authForm.style.display = 'none !important';
+                authForm.style.visibility = 'hidden';
+                authForm.setAttribute('hidden', 'true');
+                console.log('📧 FORCE UI: Auth form FORCE HIDDEN, display =', authForm.style.display);
             }
+            
             if (signedInControls) {
-                signedInControls.style.display = 'flex';
-                console.log('📧 EMAIL AUTH: Signed-in controls shown, display =', signedInControls.style.display);
+                signedInControls.style.display = 'flex !important';
+                signedInControls.style.visibility = 'visible';
+                signedInControls.removeAttribute('hidden');
+                console.log('📧 FORCE UI: Signed-in controls FORCE SHOWN, display =', signedInControls.style.display);
             }
+            
             if (userInfo) {
-                userInfo.style.display = 'block';
+                userInfo.style.display = 'block !important';
+                userInfo.style.visibility = 'visible';
+                userInfo.removeAttribute('hidden');
                 userInfo.innerHTML = `
                     <div class="text-center bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded">
                         <p class="text-sm">✅ Signed in as: <strong>${user.email}</strong></p>
+                        <p class="text-xs text-green-600">Session persisted successfully!</p>
                     </div>
                 `;
-                console.log('📧 EMAIL AUTH: User info updated for:', user.email);
+                console.log('📧 FORCE UI: User info FORCE UPDATED for:', user.email);
             }
             
             // Clear form inputs when signed in
@@ -3500,6 +3520,14 @@ class ChroniCompanion {
             const passwordInput = document.getElementById('password-input');
             if (emailInput) emailInput.value = '';
             if (passwordInput) passwordInput.value = '';
+            
+            // FORCE hide sign-in button specifically
+            const signInBtn = document.getElementById('sign-in-btn');
+            if (signInBtn) {
+                signInBtn.style.display = 'none !important';
+                signInBtn.style.visibility = 'hidden';
+                console.log('📧 FORCE UI: Sign-in button FORCE HIDDEN');
+            }
             
         } else {
             // User is signed out - show form, hide signed-in controls
