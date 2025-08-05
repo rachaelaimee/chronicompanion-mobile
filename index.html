@@ -312,25 +312,43 @@
             <div class="mt-4 text-sm text-sage-500" id="current-date"></div>
         </header>
 
-                    <!-- Authentication Section - PROPER SUPABASE GOOGLE AUTH! -->
+                    <!-- Authentication Section - SIMPLE EMAIL AUTH! -->
             <div class="mb-6">
-                <!-- User Authentication Controls -->
-                <div class="flex justify-center items-center space-x-4 mb-4">
-                    <!-- Sign In Button -->
+                <!-- Email Authentication Form -->
+                <div id="auth-form" class="max-w-sm mx-auto space-y-4">
+                    <div>
+                        <label for="email-input" class="block text-sm font-medium text-sage-700 mb-1">Email</label>
+                        <input type="email" 
+                               id="email-input" 
+                               placeholder="your@email.com"
+                               class="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label for="password-input" class="block text-sm font-medium text-sage-700 mb-1">Password</label>
+                        <input type="password" 
+                               id="password-input" 
+                               placeholder="At least 6 characters"
+                               class="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent">
+                    </div>
                     <button id="sign-in-btn" 
-                            onclick="app.signInWithGoogle()"
-                            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors duration-200 flex items-center">
-                        <i class="fab fa-google mr-2"></i>Sign In with Google (Supabase Configured!)
+                            onclick="app.signInWithEmail()"
+                            class="w-full bg-sage-600 hover:bg-sage-700 text-white px-6 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center">
+                        <i class="fas fa-envelope mr-2"></i>Sign In / Create Account
                     </button>
-                    
-                    <!-- Sign Out Button -->
+                    <p class="text-xs text-sage-500 text-center">
+                        Don't have an account? No worries - we'll create one for you!
+                    </p>
+                </div>
+                
+                <!-- Sign Out Button (hidden by default) -->
+                <div id="signed-in-controls" style="display: none;" class="flex justify-center">
                     <button id="sign-out-btn" 
                             onclick="app.signOut()"
-                            style="display: none;"
                             class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
                         <i class="fas fa-sign-out-alt mr-2"></i>Sign Out
                     </button>
                 </div>
+            </div>
                 
                 <!-- User Info Display -->
                 <div id="user-info" 
@@ -941,7 +959,7 @@
         </div>
     </div>
 
-                <script src="js/main.js?v=DUAL-CLIENT-ID-v34"></script>
+                <script src="js/main.js?v=EMAIL-AUTH-FIX-v1007"></script>
             
             <!-- MOBILE OAUTH FIX VERSION! -->
             <script>

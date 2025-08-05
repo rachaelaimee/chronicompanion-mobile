@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-DUAL-CLIENT-ID-v34';
+const CACHE_NAME = 'chronicompanion-EMAIL-AUTH-FIX-v1007';
 const urlsToCache = [
   '/',
   '/index.html',

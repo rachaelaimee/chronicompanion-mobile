@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 NUCLEAR CACHE DESTRUCTION v32 🔥🔥🔥');
+console.log('🔥🔥🔥 EMAIL-AUTH-FIX-v1007 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -3211,8 +3211,8 @@ class ChroniCompanion {
             
             // Initialize Supabase authentication properly
             await this.setupAuthStateListener(); 
-            // DISABLED: setupMobileDeepLinkListener (FIX #1: Interferes with native auth)
-            // await this.setupMobileDeepLinkListener();
+            // Setup Credential Manager deep links for mobile OAuth
+            this.setupCredentialManagerDeepLinks();
             await this.checkCurrentUser();
             
             this.authInitialized = true;
@@ -3410,23 +3410,23 @@ class ChroniCompanion {
      * Update authentication UI based on user state
      */
     updateAuthUI(isSignedIn, user) {
-        console.log('🔥 DEBUG: updateAuthUI called with:', { isSignedIn, userEmail: user?.email });
+        console.log('📧 EMAIL AUTH: updateAuthUI called with:', { isSignedIn, userEmail: user?.email });
         
-        const signInBtn = document.getElementById('sign-in-btn');
-        const signOutBtn = document.getElementById('sign-out-btn');
+        const authForm = document.getElementById('auth-form');
+        const signedInControls = document.getElementById('signed-in-controls');
         const userInfo = document.getElementById('user-info');
         
-        console.log('🔥 DEBUG: Found elements:', { 
-            signInBtn: !!signInBtn, 
-            signOutBtn: !!signOutBtn, 
+        console.log('📧 EMAIL AUTH: Found elements:', { 
+            authForm: !!authForm, 
+            signedInControls: !!signedInControls, 
             userInfo: !!userInfo 
         });
         
         if (isSignedIn && user) {
-            // User is signed in
-            console.log('🔥 DEBUG: User is signed in - hiding sign-in button');
-            if (signInBtn) signInBtn.style.display = 'none';
-            if (signOutBtn) signOutBtn.style.display = 'inline-flex';
+            // User is signed in - hide form, show signed-in controls
+            console.log('📧 EMAIL AUTH: User is signed in - hiding auth form');
+            if (authForm) authForm.style.display = 'none';
+            if (signedInControls) signedInControls.style.display = 'flex';
             if (userInfo) {
                 userInfo.style.display = 'block';
                 userInfo.innerHTML = `
@@ -3436,15 +3436,15 @@ class ChroniCompanion {
                 `;
             }
         } else {
-            // User is signed out
-            console.log('🔥 DEBUG: User is signed out - showing sign-in button');
-            if (signInBtn) {
-                signInBtn.style.display = 'inline-flex';
-                console.log('🔥 DEBUG: Sign-in button should now be visible');
+            // User is signed out - show form, hide signed-in controls
+            console.log('📧 EMAIL AUTH: User is signed out - showing auth form');
+            if (authForm) {
+                authForm.style.display = 'block';
+                console.log('📧 EMAIL AUTH: Auth form should now be visible');
             } else {
-                console.error('❌ DEBUG: Sign-in button element not found!');
+                console.error('❌ EMAIL AUTH: Auth form element not found!');
             }
-            if (signOutBtn) signOutBtn.style.display = 'none';
+            if (signedInControls) signedInControls.style.display = 'none';
             if (userInfo) userInfo.style.display = 'none';
         }
         
@@ -3490,124 +3490,252 @@ class ChroniCompanion {
     }
 
     /**
-     * SUPER SIMPLE Google Sign-In - NATIVE ONLY (No complexity!)
+     * 📧 EMAIL AUTHENTICATION: Simple and reliable email/password authentication
+     * Replaces complex Google OAuth with straightforward email authentication
+     * Works identically on web and mobile with no configuration headaches
      */
-    async signInWithGoogle() {
-        try {
-            console.log('🚀 FIXED NATIVE: Starting Google Sign-In with NO INTERRUPTIONS...');
-            
+    async signInWithEmail() {
+                try {
+            console.log('📧 EMAIL AUTH: Starting email authentication...');
+
             if (!window.supabase) {
                 console.error('❌ Supabase not available');
-                window.app.showMessage('Supabase not available', 'error');
+                this.showMessage('Supabase not available', 'error');
                 return;
             }
 
-            // WAIT for Capacitor to be ready (FIX #3: Timing Issue)
-            let capacitorReady = false;
-            let attempts = 0;
-            while (!capacitorReady && attempts < 10) {
-                if (window.Capacitor && window.Capacitor.Plugins) {
-                    capacitorReady = true;
-                    break;
-                }
-                console.log(`⏳ Waiting for Capacitor (attempt ${attempts + 1}/10)...`);
-                await new Promise(resolve => setTimeout(resolve, 100));
-                attempts++;
-            }
+            // Get email and password from form
+            const email = document.getElementById('email-input')?.value?.trim();
+            const password = document.getElementById('password-input')?.value;
 
-            const isCapacitorApp = capacitorReady && !!window.Capacitor;
-            console.log('🔍 Capacitor ready:', capacitorReady);
-            console.log('🔍 Is mobile app:', isCapacitorApp);
-            
-            if (!isCapacitorApp) {
-                console.log('🌐 WEB: Using standard OAuth');
-                const { data, error } = await window.supabase.auth.signInWithOAuth({
-                    provider: 'google'
-                });
-                if (error) {
-                    console.error('❌ Web OAuth error:', error);
-                    window.app.showMessage(`Web sign-in failed: ${error.message}`, 'error');
-                }
+            if (!email || !password) {
+                this.showMessage('Please enter both email and password', 'error');
                 return;
             }
 
-            // MOBILE: Pure native approach (FIX #1: No deep link interference)
-            console.log('📱 MOBILE: Using GoogleAuth plugin (NO DEEP LINKS)...');
-            
-            if (!window.Capacitor.Plugins?.GoogleAuth) {
-                console.error('❌ GoogleAuth plugin not found');
-                console.error('❌ Available plugins:', Object.keys(window.Capacitor.Plugins || {}));
-                window.app.showMessage('GoogleAuth plugin not available', 'error');
+            if (password.length < 6) {
+                this.showMessage('Password must be at least 6 characters', 'error');
                 return;
             }
 
-            // CRITICAL: Initialize GoogleAuth plugin if needed
-            try {
-                console.log('🔧 Initializing GoogleAuth plugin...');
-                // Some versions require explicit initialization
-                if (window.Capacitor.Plugins.GoogleAuth.initialize) {
-                    await window.Capacitor.Plugins.GoogleAuth.initialize();
-                    console.log('✅ GoogleAuth plugin initialized');
-                }
-            } catch (initError) {
-                console.error('❌ GoogleAuth initialization failed:', initError);
-                // Continue anyway - some versions don't need initialization
-            }
+            console.log('📧 EMAIL AUTH: Attempting sign in with:', email);
+            this.showMessage('Signing in...', 'info');
 
-            // FIX #2: Temporarily disable auth listener to prevent interruption
-            console.log('🔧 Temporarily disabling auth listener...');
-            this.authListenerDisabled = true;
-
-            console.log('📱 NATIVE: Calling GoogleAuth.signIn()...');
-            window.app.showMessage('Opening native Google Sign-In...', 'info');
-
-            const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
-            console.log('✅ NATIVE: Google Sign-In completed!');
-            console.log('🔍 Google user:', googleUser);
-
-            // ⚠️ CRITICAL: Check the actual structure of the response
-            console.log('🔍 Full Google user object:', JSON.stringify(googleUser, null, 2));
-            
-            // Try different possible token locations
-            const idToken = googleUser?.idToken || 
-                          googleUser?.authentication?.idToken || 
-                          googleUser?.credential?.idToken;
-            
-            if (!idToken) {
-                console.error('❌ No ID token found in:', googleUser);
-                window.app.showMessage('No authentication token received from Google', 'error');
-                this.authListenerDisabled = false; // Re-enable listener
-                return;
-            }
-
-            console.log('📱 NATIVE: Sending ID token to Supabase...');
-            console.log('🔍 Using token:', idToken.substring(0, 50) + '...');
-            
-            const { data, error } = await window.supabase.auth.signInWithIdToken({
-                provider: 'google',
-                token: idToken,
+            // Try to sign in with existing account
+            const { data, error } = await window.supabase.auth.signInWithPassword({
+                email: email,
+                password: password
             });
 
             if (error) {
-                console.error('❌ Supabase error:', error);
-                window.app.showMessage(`Authentication failed: ${error.message}`, 'error');
-                this.authListenerDisabled = false; // Re-enable listener
-                return;
+                // If sign-in fails, try to sign up (create new account)
+                if (error.message.includes('Invalid login credentials') || error.message.includes('Email not confirmed')) {
+                    console.log('📧 EMAIL AUTH: Sign-in failed, trying sign-up...');
+                    this.showMessage('Creating new account...', 'info');
+                    
+                    const { data: signUpData, error: signUpError } = await window.supabase.auth.signUp({
+                        email: email,
+                        password: password
+                    });
+
+                    if (signUpError) {
+                        console.error('❌ Sign-up error:', signUpError);
+                        this.showMessage(`Account creation failed: ${signUpError.message}`, 'error');
+                        return;
+                    }
+
+                    if (signUpData?.user) {
+                        console.log('✅ EMAIL AUTH: Account created successfully');
+                        this.showMessage('Account created! Please check your email to verify your account.', 'success');
+                        // Don't update UI yet - user needs to verify email first
+                        return;
+                    }
+                } else {
+                    console.error('❌ Sign-in error:', error);
+                    this.showMessage(`Sign-in failed: ${error.message}`, 'error');
+                    return;
+                }
             }
 
-            console.log('✅ SUCCESS: User signed in!', data.user.email);
-            this.currentUser = data.user;
-            this.updateAuthUI(true, data.user);
-            window.app.showMessage(`Welcome ${data.user.email}!`, 'success');
-            
-            // Re-enable auth listener
-            this.authListenerDisabled = false;
-            
+            if (data?.user) {
+                console.log('✅ EMAIL AUTH: Sign-in successful');
+                this.currentUser = data.user;
+                this.updateAuthUI(true, data.user);
+                this.showMessage(`Welcome back, ${data.user.email}!`, 'success');
+            } else {
+                console.warn('⚠️ EMAIL AUTH: No user data returned');
+                this.showMessage('Sign-in failed - please try again', 'error');
+            }
+
         } catch (error) {
-            console.error('❌ Sign-in error:', error);
-            window.app.showMessage(`Sign-in failed: ${error.message}`, 'error');
-            this.authListenerDisabled = false; // Always re-enable listener
+            console.error('❌ Email authentication error:', error);
+            this.showMessage(`Authentication failed: ${error.message}`, 'error');
         }
+    }
+
+    /**
+     * 🔗 Setup deep link handling for Credential Manager OAuth flow
+     * This handles the callback from Google OAuth and completes the sign-in
+     */
+    setupCredentialManagerDeepLinks() {
+        console.log('🔗 Setting up Credential Manager deep link listener...');
+        
+        if (!window.Capacitor?.Plugins?.App) {
+            console.error('❌ Capacitor App plugin not available');
+            return;
+        }
+
+        // Listen for app URL opens (OAuth callbacks)
+        window.Capacitor.Plugins.App.addListener('appUrlOpen', async (event) => {
+            console.log('🔗 CREDENTIAL MANAGER: Deep link received:', event.url);
+            
+            // Check for any chronicompanion:// URL (OAuth callback)
+            if (event.url && event.url.includes('chronicompanion://')) {
+                console.log('🔗 CREDENTIAL MANAGER: OAuth callback detected, processing...');
+                
+                // Close browser immediately to prevent user confusion
+                if (window.Capacitor?.Plugins?.Browser) {
+                    try {
+                        await window.Capacitor.Plugins.Browser.close();
+                        console.log('✅ Browser closed');
+                    } catch (e) {
+                        console.log('ℹ️ Browser already closed or not available');
+                    }
+                }
+                
+                try {
+                    // Give OAuth process time to complete before checking session
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    let sessionData = null;
+                    let sessionError = null;
+                    let attempts = 0;
+                    const maxAttempts = 5;
+                    
+                    // Retry mechanism for session extraction
+                    while (!sessionData?.session && attempts < maxAttempts) {
+                        attempts++;
+                        console.log(`🔗 Session extraction attempt ${attempts}/${maxAttempts}`);
+                        
+                        // Method 1: Check current Supabase session (primary method for PKCE)
+                        try {
+                            console.log('🔗 Checking current Supabase session...');
+                            const { data, error } = await window.supabase.auth.getSession();
+                            if (data?.session) {
+                                console.log('✅ Found existing session!');
+                                sessionData = data;
+                                sessionError = error;
+                                break;
+                            } else if (error) {
+                                console.log('🔗 Session check error:', error);
+                                sessionError = error;
+                            }
+                        } catch (e) {
+                            console.log('🔗 Session check failed:', e);
+                        }
+                        
+                        // Method 2: Try URL session extraction (fallback)
+                        if (!sessionData?.session && attempts === 1) {
+                            try {
+                                console.log('🔗 Trying getSessionFromUrl...');
+                                const result = await window.supabase.auth.getSessionFromUrl({ 
+                                    url: event.url,
+                                    storeSession: true 
+                                });
+                                if (result.data?.session) {
+                                    sessionData = result.data;
+                                    sessionError = result.error;
+                                    console.log('✅ Session extracted from URL');
+                                    break;
+                                }
+                            } catch (e) {
+                                console.log('🔗 getSessionFromUrl failed:', e);
+                            }
+                        }
+                        
+                        // Method 3: Manual token extraction (last resort)
+                        if (!sessionData?.session && attempts === 2 && event.url.includes('access_token')) {
+                            try {
+                                console.log('🔗 Trying manual token extraction...');
+                                const urlParams = new URLSearchParams(event.url.split('#')[1] || event.url.split('?')[1]);
+                                const accessToken = urlParams.get('access_token');
+                                const refreshToken = urlParams.get('refresh_token');
+                                
+                                if (accessToken) {
+                                    console.log('🔗 Found access token, setting session...');
+                                    const { data, error } = await window.supabase.auth.setSession({
+                                        access_token: accessToken,
+                                        refresh_token: refreshToken
+                                    });
+                                    sessionData = data;
+                                    sessionError = error;
+                                    if (sessionData?.session) {
+                                        console.log('✅ Session set from manual extraction');
+                                        break;
+                                    }
+                                }
+                            } catch (e) {
+                                console.log('🔗 Manual token extraction failed:', e);
+                            }
+                        }
+                        
+                        // Wait before next attempt
+                        if (attempts < maxAttempts) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    }
+
+                    if (sessionError && !sessionData?.session) {
+                        console.error('❌ CREDENTIAL MANAGER: Session extraction error:', sessionError);
+                        window.app.showMessage(`Authentication failed: ${sessionError.message}`, 'error');
+                        return;
+                    }
+
+                    if (sessionData?.session && sessionData?.session.user) {
+                        console.log('✅ CREDENTIAL MANAGER SUCCESS: User signed in!', sessionData.session.user.email);
+                        this.currentUser = sessionData.session.user;
+                        this.updateAuthUI(true, sessionData.session.user);
+                        window.app.showMessage(`Welcome ${sessionData.session.user.email}! 🎉`, 'success');
+                        
+                        // Refresh the page data now that user is authenticated
+                        if (typeof this.refreshData === 'function') {
+                            await this.refreshData();
+                        }
+                    } else {
+                        console.error('❌ CREDENTIAL MANAGER: No session after all attempts');
+                        console.error('❌ Final session data:', sessionData);
+                        console.error('❌ URL received:', event.url);
+                        
+                        // Check if this might be an error callback
+                        if (event.url.includes('error=')) {
+                            const urlParams = new URLSearchParams(event.url.split('?')[1] || '');
+                            const error = urlParams.get('error');
+                            const errorDescription = urlParams.get('error_description') || 'Unknown error';
+                            console.error('❌ OAuth error callback:', error, errorDescription);
+                            window.app.showMessage(`Authentication failed: ${errorDescription}`, 'error');
+                        } else {
+                            window.app.showMessage('Authentication failed - no session received after multiple attempts', 'error');
+                        }
+                    }
+                } catch (callbackError) {
+                    console.error('❌ CREDENTIAL MANAGER: Callback processing error:', callbackError);
+                    window.app.showMessage(`Authentication failed: ${callbackError.message}`, 'error');
+                } finally {
+                    // Ensure browser is closed
+                    if (window.Capacitor?.Plugins?.Browser) {
+                        try {
+                            await window.Capacitor.Plugins.Browser.close();
+                        } catch (e) {
+                            // Ignore errors - browser might already be closed
+                        }
+                    }
+                }
+            } else {
+                console.log('🔗 CREDENTIAL MANAGER: Non-auth deep link, ignoring:', event.url);
+            }
+        });
+        
+        console.log('✅ Credential Manager deep link listener ready');
     }
 
     /**
@@ -3683,8 +3811,8 @@ class ChroniCompanion {
                     provider: 'google',
                     token: googleUser.authentication.idToken,
                 });
-
-                if (error) {
+            
+            if (error) {
                     console.error('❌ Supabase ID token error:', error);
                     window.app.showMessage(`Authentication failed: ${error.message}`, 'error');
                     return;
@@ -3739,9 +3867,9 @@ class ChroniCompanion {
                 console.log('✅ OAuth URL received:', data.url);
                 window.app.showMessage('Redirecting to Google...', 'info');
                 
-                setTimeout(() => {
-                    window.location.href = data.url;
-                }, 1000);
+                    setTimeout(() => {
+                        window.location.href = data.url;
+                    }, 1000);
             } else {
                 console.error('❌ No OAuth URL received');
                 window.app.showMessage('No OAuth URL received', 'error');
@@ -4194,6 +4322,23 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         window.app = new ChroniCompanion();
         console.log('✅ App created successfully');
+        
+        // Add Enter key support for email authentication
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        
+        const handleEnterKey = (event) => {
+            if (event.key === 'Enter') {
+                console.log('📧 EMAIL AUTH: Enter key pressed, signing in...');
+                window.app.signInWithEmail();
+            }
+        };
+        
+        if (emailInput) emailInput.addEventListener('keypress', handleEnterKey);
+        if (passwordInput) passwordInput.addEventListener('keypress', handleEnterKey);
+        
+        console.log('✅ Enter key support added for email authentication');
+        
     } catch (error) {
         console.error('❌ Failed to create app:', error);
         alert(`❌ Failed to create app: ${error.message}`);
