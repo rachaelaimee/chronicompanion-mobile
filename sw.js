@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-BUTTON-TEXT-FIXED-v2003';
+const CACHE_NAME = 'chronicompanion-SEPARATE-SIGNIN-SIGNUP-v2004';
 const urlsToCache = [
   '/',
   '/index.html',

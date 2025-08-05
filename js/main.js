@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 BUTTON-TEXT-FIXED-v2003 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 SEPARATE-SIGNIN-SIGNUP-v2004 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -3669,7 +3669,7 @@ class ChroniCompanion {
     }
 
     /**
-     * ✅ CLEAN EMAIL SIGN-IN - Uses AuthManager
+     * ✅ CLEAN EMAIL SIGN-IN - Uses AuthManager (SIGN-IN ONLY)
      */
     async signInWithEmail() {
         try {
@@ -3686,23 +3686,40 @@ class ChroniCompanion {
                 return;
             }
 
-            // Try sign-in first
-            try {
-                await this.authManager.signIn(email, password);
-                this.showMessage(`Welcome back, ${email}!`, 'success');
-            } catch (signInError) {
-                // If sign-in fails with credentials error, try sign-up
-                if (signInError.message.includes('Invalid email or password')) {
-                    console.log('📧 Sign-in failed, attempting sign-up...');
-                    const result = await this.authManager.signUp(email, password);
-                    this.showMessage(result.message, 'success');
-                } else {
-                    throw signInError;
-                }
-            }
+            // ✅ ONLY try sign-in (no automatic signup)
+            await this.authManager.signIn(email, password);
+            this.showMessage(`Welcome back, ${email}!`, 'success');
 
         } catch (error) {
             console.error('❌ Email authentication error:', error);
+            // Error message already handled by AuthManager
+        }
+    }
+
+    /**
+     * ✅ SEPARATE SIGN-UP FUNCTION - For creating new accounts
+     */
+    async signUpWithEmail() {
+        try {
+            const email = document.getElementById('email-input')?.value?.trim();
+            const password = document.getElementById('password-input')?.value;
+
+            if (!email || !password) {
+                this.showMessage('Please enter both email and password', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                this.showMessage('Password must be at least 6 characters', 'error');
+                return;
+            }
+
+            // ✅ ONLY try sign-up
+            const result = await this.authManager.signUp(email, password);
+            this.showMessage(result.message, 'success');
+
+        } catch (error) {
+            console.error('❌ Email sign-up error:', error);
             // Error message already handled by AuthManager
         }
     }
