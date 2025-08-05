@@ -216,25 +216,42 @@ class AuthManager {
         }
     }
 
-    // ✅ PROPER LOADING UI
+    // ✅ PROPER LOADING UI - Fixed button text restoration
     updateLoadingUI(isLoading) {
         const signInBtn = document.getElementById('sign-in-btn');
         const signUpBtn = document.getElementById('sign-up-btn');
         const signOutBtn = document.getElementById('sign-out-btn');
 
-        const buttons = [signInBtn, signUpBtn, signOutBtn].filter(btn => btn);
-
-        buttons.forEach(btn => {
+        // Handle each button individually to avoid text confusion
+        if (signInBtn) {
             if (isLoading) {
-                btn.disabled = true;
-                btn.textContent = btn.textContent.includes('Sign out') ? 'Signing out...' : 
-                                  btn.textContent.includes('Sign up') ? 'Creating account...' : 'Signing in...';
+                signInBtn.disabled = true;
+                signInBtn.textContent = 'Signing in...';
             } else {
-                btn.disabled = false;
-                btn.textContent = btn.textContent.includes('Signing out') ? 'Sign Out' :
-                                  btn.textContent.includes('Creating') ? 'Sign Up' : 'Sign In';
+                signInBtn.disabled = false;
+                signInBtn.textContent = 'Sign In';
             }
-        });
+        }
+
+        if (signUpBtn) {
+            if (isLoading) {
+                signUpBtn.disabled = true;
+                signUpBtn.textContent = 'Creating account...';
+            } else {
+                signUpBtn.disabled = false;
+                signUpBtn.textContent = 'Sign Up';
+            }
+        }
+
+        if (signOutBtn) {
+            if (isLoading) {
+                signOutBtn.disabled = true;
+                signOutBtn.textContent = 'Signing out...';
+            } else {
+                signOutBtn.disabled = false;
+                signOutBtn.textContent = 'Sign Out';  // ✅ Always "Sign Out" for sign-out button
+            }
+        }
     }
 
     // ✅ PROPER ERROR UI
