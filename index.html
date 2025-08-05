@@ -343,11 +343,45 @@
                 <!-- Sign Out Button (hidden by default) -->
                 <div id="signed-in-controls" style="display: none;" class="flex justify-center">
                     <button id="sign-out-btn" 
-                            onclick="app.signOut()"
+                            onclick="handleSignOut()"
                             class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
                         <i class="fas fa-sign-out-alt mr-2"></i>Sign Out
                     </button>
                 </div>
+                
+                <script>
+                // 🎯 ROBUST SIGN-OUT HANDLER
+                async function handleSignOut() {
+                    try {
+                        console.log('🚪 Sign-out button clicked');
+                        
+                        // Try new AuthManager method first
+                        if (window.app && window.app.authManager) {
+                            console.log('✅ Using new AuthManager');
+                            await window.app.authManager.signOut();
+                            alert('✅ Signed out successfully!');
+                        } 
+                        // Fallback to old method
+                        else if (window.app && window.app.signOut) {
+                            console.log('⚠️ Using fallback signOut method');
+                            await window.app.signOut();
+                        }
+                        // Direct Supabase call as last resort
+                        else if (window.supabase) {
+                            console.log('🆘 Direct Supabase signOut');
+                            const { error } = await window.supabase.auth.signOut();
+                            if (error) throw error;
+                            alert('✅ Signed out successfully!');
+                            location.reload(); // Force page reload to reset UI
+                        } else {
+                            throw new Error('No sign-out method available');
+                        }
+                    } catch (error) {
+                        console.error('❌ Sign-out failed:', error);
+                        alert(`❌ Sign-out failed: ${error.message}`);
+                    }
+                }
+                </script>
             </div>
                 
                 <!-- User Info Display -->
@@ -959,7 +993,7 @@
         </div>
     </div>
 
-                <script src="js/main.js?v=PRODUCTION-AUTH-v2000"></script>
+                <script src="js/main.js?v=GOOGLE-AUTH-DISABLED-v2002"></script>
             
             <!-- SESSION PERSISTENCE: Keep user sessions alive! -->
             <script>

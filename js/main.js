@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 PRODUCTION-AUTH-v2000 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 GOOGLE-AUTH-DISABLED-v2002 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -3589,7 +3589,7 @@ class ChroniCompanion {
                 signedInControls.setAttribute('data-force-visible', 'true');
             }
             
-        } else {
+            } else {
             // User is signed out - show form, hide signed-in controls
             console.log('📧 FORCE UI: User is signed out - showing auth form');
             if (authForm) {
@@ -3625,15 +3625,46 @@ class ChroniCompanion {
      * Sign out the current user
      */
     /**
-     * ✅ CLEAN SIGN-OUT - Uses AuthManager
+     * ✅ ROBUST SIGN-OUT - Works with both old and new systems
      */
     async signOut() {
         try {
-            const result = await this.authManager.signOut();
-            this.showMessage(result.message, 'success');
+            console.log('🚪 App signOut called');
+            
+            // Try new AuthManager first
+            if (this.authManager && this.authManager.signOut) {
+                console.log('✅ Using AuthManager.signOut()');
+                const result = await this.authManager.signOut();
+                this.showMessage(result.message, 'success');
+                return;
+            }
+            
+            // Fallback to direct Supabase call
+            console.log('⚠️ Fallback: Direct Supabase signOut');
+            if (!window.supabase) {
+                throw new Error('Supabase client not available');
+            }
+            
+            const { error } = await window.supabase.auth.signOut();
+            
+            if (error) {
+                console.error('❌ Sign out error:', error);
+                this.showMessage(`Sign out failed: ${error.message}`, 'error');
+                throw error;
+            }
+            
+            // Manual cleanup for fallback
+            this.currentUser = null;
+            if (this.updateAuthUI) {
+                this.updateAuthUI(false, null);
+            }
+            
+            console.log('✅ User signed out successfully (fallback)');
+            this.showMessage('Signed out successfully', 'success');
+            
         } catch (error) {
-            console.error('❌ Sign out error:', error);
-            // Error message already handled by AuthManager
+            console.error('❌ Sign out failed:', error);
+            this.showMessage(`Sign out failed: ${error.message}`, 'error');
         }
     }
 
@@ -3649,7 +3680,7 @@ class ChroniCompanion {
                 this.showMessage('Please enter both email and password', 'error');
                 return;
             }
-
+            
             if (password.length < 6) {
                 this.showMessage('Password must be at least 6 characters', 'error');
                 return;
@@ -3804,7 +3835,7 @@ class ChroniCompanion {
                         if (typeof this.refreshData === 'function') {
                             await this.refreshData();
                         }
-                    } else {
+            } else {
                         console.error('❌ CREDENTIAL MANAGER: No session after all attempts');
                         console.error('❌ Final session data:', sessionData);
                         console.error('❌ URL received:', event.url);
@@ -3842,167 +3873,26 @@ class ChroniCompanion {
     }
 
     /**
-     * NATIVE Google Sign-In for mobile apps - THE CORRECT APPROACH!
-     * Uses signInWithIdToken which is the proper method for native mobile apps
+     * ❌ DISABLED: Google Sign-In (removed to prevent conflicts with email auth)
+     * Using email authentication only for simplified, reliable auth flow
      */
     async nativeGoogleSignIn() {
-        try {
-            console.log('📱 NATIVE: Starting safe Google Auth...');
-            
-            // STRICT CHECK: Is Capacitor available?
-            if (!window.Capacitor) {
-                console.error('❌ Capacitor not available - this should not happen in mobile app');
-                window.app.showMessage('Capacitor not available', 'error');
-                return;
-            }
-
-            // STRICT CHECK: Is GoogleAuth plugin available?
-            if (!window.Capacitor.Plugins?.GoogleAuth) {
-                console.error('❌ GoogleAuth plugin not available - plugin not installed correctly');
-                window.app.showMessage('GoogleAuth plugin not available', 'error');
-                return;
-            }
-
-            console.log('📱 NATIVE: GoogleAuth plugin detected, attempting native sign-in...');
-            window.app.showMessage('Opening Google Sign-In...', 'info');
-
-            // SAFE: Initialize GoogleAuth first
-            try {
-                console.log('📱 NATIVE: Initializing GoogleAuth...');
-                await window.Capacitor.Plugins.GoogleAuth.initialize({
-                    webClientId: '1042241139827-p3d1cnupjvjc8jmriiihfo9ujfqau4r.apps.googleusercontent.com',
-                    scopes: ['profile', 'email'],
-                    grantOfflineAccess: true
-                });
-                console.log('✅ GoogleAuth initialized successfully');
-            } catch (initError) {
-                console.error('❌ GoogleAuth initialization failed:', initError);
-                console.error('❌ Init error type:', initError.type);
-                console.error('❌ Init error message:', initError.message);
-                window.app.showMessage(`GoogleAuth initialization failed: ${initError.message}`, 'error');
-                return;
-            }
-
-            // NATIVE ONLY: Attempt native sign-in (NO FALLBACKS!)
-            let googleUser;
-            try {
-                console.log('📱 NATIVE: Calling GoogleAuth.signIn()...');
-                googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
-                console.log('✅ NATIVE Google Sign-In successful!');
-                console.log('🔍 Google User data:', JSON.stringify(googleUser, null, 2));
-                console.log('🔍 ID Token present:', !!googleUser?.authentication?.idToken);
-                console.log('🔍 Access Token present:', !!googleUser?.authentication?.accessToken);
-            } catch (signInError) {
-                console.error('❌ Native Google Sign-In failed:', signInError);
-                console.error('❌ Error type:', signInError.type);
-                console.error('❌ Error message:', signInError.message);
-                
-                if (signInError.type === 'popup_closed_by_user' || signInError.message?.includes('cancelled')) {
-                    window.app.showMessage('Sign-in cancelled', 'info');
-                    return;
-                } else {
-                    window.app.showMessage(`Native sign-in failed: ${signInError.message}`, 'error');
-                    return;
-                }
-            }
-
-            // SAFE: Process the result
-            if (googleUser?.authentication?.idToken) {
-                console.log('📱 NATIVE: Processing ID token with Supabase...');
-                
-                const { data, error } = await window.supabase.auth.signInWithIdToken({
-                    provider: 'google',
-                    token: googleUser.authentication.idToken,
-                });
-            
-            if (error) {
-                    console.error('❌ Supabase ID token error:', error);
-                    window.app.showMessage(`Authentication failed: ${error.message}`, 'error');
-                    return;
-                }
-
-                console.log('✅ NATIVE: Supabase session created successfully!');
-                console.log('🔍 User:', data.user?.email);
-                
-                this.currentUser = data.user;
-                this.updateAuthUI(true, data.user);
-                window.app.showMessage(`Welcome ${data.user?.email}!`, 'success');
-                
-            } else {
-                console.error('❌ NATIVE: No ID token received from Google');
-                console.error('❌ Google User object:', googleUser);
-                window.app.showMessage('No authentication token received from Google', 'error');
-                return;
-            }
-
-        } catch (error) {
-            console.error('❌ NATIVE Google Sign-In critical error:', error);
-            console.error('❌ Error stack:', error.stack);
-            window.app.showMessage(`Critical authentication error: ${error.message}`, 'error');
-            return;
-        }
+        console.log('❌ Google Sign-In disabled - using email authentication only');
+        this.showMessage('Google Sign-In is currently disabled. Please use email authentication.', 'info');
+        return;
     }
 
     /**
-     * WEB Google Sign-In for web apps (uses web OAuth)
+     * ❌ DISABLED: WEB Google Sign-In (removed to prevent conflicts with email auth)
      */
     async webGoogleSignIn(isLocalhost) {
-        try {
-            console.log('🌐 WEB: Starting web OAuth flow...');
-            
-            const redirectUrl = isLocalhost ? 'http://localhost:8080' : 'https://chronicompanion.app';
-            console.log('🌐 WEB: Redirecting to', redirectUrl);
-            
-            const { data, error } = await window.supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: redirectUrl
-                }
-            });
-            
-            if (error) {
-                console.error('❌ Web OAuth error:', error);
-                window.app.showMessage(`OAuth Error: ${error.message}`, 'error');
-                return;
-            }
-            
-            if (data?.url) {
-                console.log('✅ OAuth URL received:', data.url);
-                window.app.showMessage('Redirecting to Google...', 'info');
-                
-                    setTimeout(() => {
-                        window.location.href = data.url;
-                    }, 1000);
-            } else {
-                console.error('❌ No OAuth URL received');
-                window.app.showMessage('No OAuth URL received', 'error');
-            }
-            
-        } catch (error) {
-            console.error('❌ Web OAuth error:', error);
-            window.app.showMessage(`Web OAuth failed: ${error.message}`, 'error');
-        }
+        console.log('❌ Web Google Sign-In disabled - using email authentication only');
+        this.showMessage('Google Sign-In is currently disabled. Please use email authentication.', 'info');
+        return;
     }
 
-    /**
-     * Sign out the current user
-     */
-    async signOut() {
-        try {
-            console.log('🚀 Signing out user from Supabase...');
-            window.app.showMessage('Signing out...', 'info');
-
-            await this.SupabaseAuth.signOut();
-            console.log('✅ User signed out from Supabase successfully');
-            
-            window.app.showMessage('Signed out successfully', 'success');
-
-        } catch (error) {
-            console.error('❌ Sign-out failed:', error);
-            window.app.showMessage('Sign-out failed. Please try again.', 'error');
-            throw error;
-        }
-    }
+    // ❌ REMOVED: Old conflicting signOut method that was causing errors
+    // Using the robust signOut method defined earlier in the file
 
     /**
      * Initialize Firestore for user-specific data storage

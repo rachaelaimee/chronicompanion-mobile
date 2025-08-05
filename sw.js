@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-PRODUCTION-AUTH-v2000';
+const CACHE_NAME = 'chronicompanion-GOOGLE-AUTH-DISABLED-v2002';
 const urlsToCache = [
   '/',
   '/index.html',
