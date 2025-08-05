@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 STORAGE-CLEARING-FIXED-v1010 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 SESSION-DEBUG-v1011 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -3326,37 +3326,61 @@ class ChroniCompanion {
      * Clean slate approach - no current user checking
      */
     async checkCurrentUser() {
-        console.log('🎯 Checking current Supabase user...');
+        console.log('🎯 DEBUGGING: Checking current Supabase user...');
+        console.log('🔍 DEBUGGING: Window.supabase exists:', !!window.supabase);
         
         if (!window.supabase) {
-            console.error('❌ Supabase not available for user check');
+            console.error('❌ DEBUGGING: Supabase not available for user check');
             this.currentUser = null;
             return;
         }
         
+        // Debug: Check what's in localStorage
+        console.log('🔍 DEBUGGING: Checking localStorage keys:', Object.keys(localStorage));
+        console.log('🔍 DEBUGGING: Looking for supabase auth keys...');
+        Object.keys(localStorage).forEach(key => {
+            if (key.includes('supabase') || key.includes('auth')) {
+                console.log('🔍 DEBUGGING: Found auth key:', key, '=', localStorage.getItem(key)?.substring(0, 100) + '...');
+            }
+        });
+        
         try {
+            console.log('🔍 DEBUGGING: Calling supabase.auth.getSession()...');
             const { data: { session }, error } = await window.supabase.auth.getSession();
             
+            console.log('🔍 DEBUGGING: getSession result:', { 
+                hasSession: !!session, 
+                hasUser: !!(session?.user),
+                userEmail: session?.user?.email,
+                error: error 
+            });
+            
             if (error) {
-                console.error('❌ Error checking user session:', error);
+                console.error('❌ DEBUGGING: Error checking user session:', error);
                 this.currentUser = null;
-                this.updateAuthUI(false, null); // ← FIX: Show sign-in button on error
+                this.updateAuthUI(false, null);
                 return;
             }
             
             if (session && session.user) {
-                console.log('✅ Found existing user session:', session.user.email);
+                console.log('✅ DEBUGGING: Found existing user session:', session.user.email);
+                console.log('🔍 DEBUGGING: Session details:', {
+                    access_token: session.access_token ? 'present' : 'missing',
+                    refresh_token: session.refresh_token ? 'present' : 'missing',
+                    expires_at: session.expires_at,
+                    user_id: session.user.id
+                });
                 this.currentUser = session.user;
                 this.updateAuthUI(true, session.user);
             } else {
-                console.log('ℹ️ No existing user session');
+                console.log('ℹ️ DEBUGGING: No existing user session found');
                 this.currentUser = null;
                 this.updateAuthUI(false, null);
             }
         } catch (error) {
-            console.error('❌ Error in checkCurrentUser:', error);
+            console.error('❌ DEBUGGING: Error in checkCurrentUser:', error);
             this.currentUser = null;
-            this.updateAuthUI(false, null); // ← FIX: Always show sign-in button on error
+            this.updateAuthUI(false, null);
         }
     }
 
@@ -3606,7 +3630,37 @@ class ChroniCompanion {
             }
 
             if (data?.user) {
-                console.log('✅ EMAIL AUTH: Sign-in successful');
+                console.log('✅ DEBUGGING: Sign-in successful, checking session storage...');
+                console.log('🔍 DEBUGGING: User data:', {
+                    id: data.user.id,
+                    email: data.user.email,
+                    created_at: data.user.created_at
+                });
+                
+                // Check if session is being stored
+                setTimeout(async () => {
+                    console.log('🔍 DEBUGGING: Checking if session persisted after sign-in...');
+                    try {
+                        const { data: { session }, error } = await window.supabase.auth.getSession();
+                        console.log('🔍 DEBUGGING: Post-signin session check:', {
+                            hasSession: !!session,
+                            hasUser: !!(session?.user),
+                            userEmail: session?.user?.email,
+                            error: error
+                        });
+                        
+                        // Check localStorage again
+                        console.log('🔍 DEBUGGING: Post-signin localStorage check:');
+                        Object.keys(localStorage).forEach(key => {
+                            if (key.includes('supabase') || key.includes('auth')) {
+                                console.log('🔍 DEBUGGING: Auth key after signin:', key, 'length:', localStorage.getItem(key)?.length);
+                            }
+                        });
+                    } catch (e) {
+                        console.error('❌ DEBUGGING: Error checking post-signin session:', e);
+                    }
+                }, 1000);
+                
                 this.currentUser = data.user;
                 this.updateAuthUI(true, data.user);
                 this.showMessage(`Welcome back, ${data.user.email}!`, 'success');
