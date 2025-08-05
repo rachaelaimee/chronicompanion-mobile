@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 EMAIL-AUTH-FIX-v1007 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 EMAIL-AUTH-UI-FIX-v1008 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -3273,6 +3273,16 @@ class ChroniCompanion {
                 this.currentUser = null;
                 this.updateAuthUI(false, null);
             }
+            
+            // Force UI update for any auth state change
+            setTimeout(() => {
+                console.log('🔄 Force updating UI after auth state change...');
+                if (session && session.user) {
+                    this.updateAuthUI(true, session.user);
+                } else {
+                    this.updateAuthUI(false, null);
+                }
+            }, 500);
         });
     }
 
