@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 RACE-CONDITION-FIX-v1014 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 COMPREHENSIVE-DEBUG-v1015 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -3463,11 +3463,41 @@ class ChroniCompanion {
     }
 
     /**
+     * DEBUGGING: Test function to manually check UI elements
+     */
+    testUIElements() {
+        console.log('🧪 TESTING UI ELEMENTS...');
+        const authForm = document.getElementById('auth-form');
+        const signedInControls = document.getElementById('signed-in-controls');
+        const userInfo = document.getElementById('user-info');
+        
+        console.log('🧪 Elements found:', {
+            authForm: !!authForm,
+            signedInControls: !!signedInControls,
+            userInfo: !!userInfo
+        });
+        
+        if (signedInControls) {
+            console.log('🧪 MANUAL TEST: Forcing signed-in-controls to show...');
+            signedInControls.style.display = 'flex';
+            signedInControls.style.visibility = 'visible';
+            console.log('🧪 After manual change:', signedInControls.style.display);
+        }
+        
+        return { authForm, signedInControls, userInfo };
+    }
+
+    /**
      * Update authentication UI based on user state
      */
     updateAuthUI(isSignedIn, user) {
         console.log('🔥🔥🔥 UPDATEAUTHUI CALLED 🔥🔥🔥');
         console.log('📧 FORCE UI: updateAuthUI called with:', { isSignedIn, userEmail: user?.email });
+        
+        // CRITICAL DEBUG: Log the EXACT DOM state
+        console.log('🔍 CRITICAL DEBUG: Full DOM check...');
+        console.log('🔍 document.readyState:', document.readyState);
+        console.log('🔍 document.body exists:', !!document.body);
         
         const authForm = document.getElementById('auth-form');
         const signedInControls = document.getElementById('signed-in-controls');
@@ -3479,11 +3509,28 @@ class ChroniCompanion {
             userInfo: !!userInfo 
         });
         
+        if (!authForm) console.error('❌ CRITICAL: auth-form element NOT FOUND!');
+        if (!signedInControls) console.error('❌ CRITICAL: signed-in-controls element NOT FOUND!');
+        if (!userInfo) console.error('❌ CRITICAL: user-info element NOT FOUND!');
+        
         console.log('📧 FORCE UI: Current display states BEFORE changes:', {
             authForm: authForm?.style.display,
             signedInControls: signedInControls?.style.display,
             userInfo: userInfo?.style.display
         });
+        
+        // CRITICAL DEBUG: Check computed styles too
+        if (signedInControls) {
+            const computedStyle = window.getComputedStyle(signedInControls);
+            console.log('🔍 CRITICAL: signed-in-controls computed display:', computedStyle.display);
+            console.log('🔍 CRITICAL: signed-in-controls all styles:', {
+                display: computedStyle.display,
+                visibility: computedStyle.visibility,
+                opacity: computedStyle.opacity,
+                height: computedStyle.height,
+                width: computedStyle.width
+            });
+        }
         
         if (isSignedIn && user) {
             // User is signed in - FORCE hide form, show signed-in controls
@@ -3535,6 +3582,28 @@ class ChroniCompanion {
                 signedInControls: signedInControls?.style.display,
                 userInfo: userInfo?.style.display
             });
+            
+            // CRITICAL DEBUG: Check if changes actually took effect
+            if (signedInControls) {
+                const finalComputedStyle = window.getComputedStyle(signedInControls);
+                console.log('🔍 FINAL CHECK: signed-in-controls after changes:', {
+                    styleDisplay: signedInControls.style.display,
+                    computedDisplay: finalComputedStyle.display,
+                    isVisible: signedInControls.offsetWidth > 0 && signedInControls.offsetHeight > 0,
+                    offsetWidth: signedInControls.offsetWidth,
+                    offsetHeight: signedInControls.offsetHeight
+                });
+                
+                // NUCLEAR OPTION: Force with multiple methods
+                console.log('🚨 NUCLEAR OPTION: Forcing visibility with every method possible');
+                signedInControls.style.setProperty('display', 'flex', 'important');
+                signedInControls.style.display = 'flex !important';
+                signedInControls.style.visibility = 'visible';
+                signedInControls.style.opacity = '1';
+                signedInControls.removeAttribute('hidden');
+                signedInControls.classList.remove('hidden');
+                signedInControls.setAttribute('data-force-visible', 'true');
+            }
             
         } else {
             // User is signed out - show form, hide signed-in controls
@@ -4476,6 +4545,21 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         window.app = new ChroniCompanion();
         console.log('✅ App created successfully');
+        
+        // DEBUGGING: Make test functions available globally
+        window.testUI = () => {
+            console.log('🧪 GLOBAL TEST: Running UI element test...');
+            return window.app.testUIElements();
+        };
+        
+        window.forceSignIn = () => {
+            console.log('🧪 GLOBAL TEST: Forcing sign-in UI state...');
+            return window.app.updateAuthUI(true, { email: 'test@example.com' });
+        };
+        
+        console.log('🧪 DEBUG FUNCTIONS AVAILABLE:');
+        console.log('  - testUI() - Test if elements can be found and manipulated');
+        console.log('  - forceSignIn() - Force the signed-in UI state');
         
         // Add Enter key support for email authentication
         const emailInput = document.getElementById('email-input');
