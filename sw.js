@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-SEPARATE-SIGNIN-SIGNUP-v2004';
+const CACHE_NAME = 'chronicompanion-ROBUST-FALLBACK-AUTH-v2005';
 const urlsToCache = [
   '/',
   '/index.html',

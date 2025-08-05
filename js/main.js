@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 SEPARATE-SIGNIN-SIGNUP-v2004 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 ROBUST-FALLBACK-AUTH-v2005 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -3204,22 +3204,64 @@ class ChroniCompanion {
      */
     async initializeAuthentication() {
         try {
-            console.log('🔐 Initializing production-ready authentication...');
+            console.log('🔐 Initializing FIXED authentication...');
             
             if (!window.supabase) {
                 throw new Error('Supabase client not available');
             }
 
             // Import and initialize the clean AuthManager
-            const { AuthManager } = await import('./auth-fixes.js');
-            this.authManager = new AuthManager(window.supabase);
+            try {
+                const { AuthManager } = await import('./auth-fixes.js');
+                this.authManager = new AuthManager(window.supabase);
+                console.log('✅ AuthManager initialized');
+            } catch (importError) {
+                console.error('❌ Failed to import AuthManager:', importError);
+                // Fallback - use basic auth without AuthManager
+                this.authManager = null;
+            }
+            
+            // Check for existing session
+            await this.checkExistingSession();
             
             this.authInitialized = true;
-            console.log('✅ Clean authentication system initialized');
+            console.log('✅ Authentication system initialized');
 
         } catch (error) {
             console.error('❌ Error initializing authentication:', error);
             this.authInitialized = false;
+            // Ensure UI is in signed-out state on error
+            this.updateAuthUI(false, null);
+        }
+    }
+
+    /**
+     * ✅ CHECK EXISTING SESSION
+     */
+    async checkExistingSession() {
+        try {
+            console.log('🔍 Checking for existing session...');
+            
+            const { data: { session }, error } = await window.supabase.auth.getSession();
+            
+            if (error) {
+                console.error('❌ Session check error:', error);
+                this.updateAuthUI(false, null);
+                return;
+            }
+            
+            if (session?.user) {
+                console.log('✅ Found existing session:', session.user.email);
+                this.currentUser = session.user;
+                this.updateAuthUI(true, session.user);
+            } else {
+                console.log('ℹ️ No existing session');
+                this.currentUser = null;
+                this.updateAuthUI(false, null);
+            }
+        } catch (error) {
+            console.error('❌ Error checking session:', error);
+            this.updateAuthUI(false, null);
         }
     }
 
@@ -3669,7 +3711,7 @@ class ChroniCompanion {
     }
 
     /**
-     * ✅ CLEAN EMAIL SIGN-IN - Uses AuthManager (SIGN-IN ONLY)
+     * ✅ ROBUST EMAIL SIGN-IN - Works with or without AuthManager
      */
     async signInWithEmail() {
         try {
@@ -3686,18 +3728,46 @@ class ChroniCompanion {
                 return;
             }
 
-            // ✅ ONLY try sign-in (no automatic signup)
-            await this.authManager.signIn(email, password);
-            this.showMessage(`Welcome back, ${email}!`, 'success');
+            // Try AuthManager first, fallback to direct Supabase
+            if (this.authManager && this.authManager.signIn) {
+                console.log('📧 Using AuthManager for sign-in');
+                await this.authManager.signIn(email, password);
+                this.showMessage(`Welcome back, ${email}!`, 'success');
+            } else {
+                console.log('📧 Using direct Supabase for sign-in');
+                await this.directSignIn(email, password);
+            }
 
         } catch (error) {
             console.error('❌ Email authentication error:', error);
-            // Error message already handled by AuthManager
+            this.showMessage(`Sign-in failed: ${error.message}`, 'error');
         }
     }
 
     /**
-     * ✅ SEPARATE SIGN-UP FUNCTION - For creating new accounts
+     * ✅ DIRECT SUPABASE SIGN-IN (Fallback)
+     */
+    async directSignIn(email, password) {
+        const { data, error } = await window.supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        if (data?.user) {
+            this.currentUser = data.user;
+            this.updateAuthUI(true, data.user);
+            this.showMessage(`Welcome back, ${email}!`, 'success');
+        } else {
+            throw new Error('No user data returned');
+        }
+    }
+
+    /**
+     * ✅ ROBUST SIGN-UP FUNCTION - Works with or without AuthManager
      */
     async signUpWithEmail() {
         try {
@@ -3714,13 +3784,45 @@ class ChroniCompanion {
                 return;
             }
 
-            // ✅ ONLY try sign-up
-            const result = await this.authManager.signUp(email, password);
-            this.showMessage(result.message, 'success');
+            // Try AuthManager first, fallback to direct Supabase
+            if (this.authManager && this.authManager.signUp) {
+                console.log('📧 Using AuthManager for sign-up');
+                const result = await this.authManager.signUp(email, password);
+                this.showMessage(result.message, 'success');
+            } else {
+                console.log('📧 Using direct Supabase for sign-up');
+                await this.directSignUp(email, password);
+            }
 
         } catch (error) {
             console.error('❌ Email sign-up error:', error);
-            // Error message already handled by AuthManager
+            this.showMessage(`Sign-up failed: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * ✅ DIRECT SUPABASE SIGN-UP (Fallback)
+     */
+    async directSignUp(email, password) {
+        const { data, error } = await window.supabase.auth.signUp({
+            email: email,
+            password: password
+        });
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        if (data?.user) {
+            if (!data.session) {
+                this.showMessage('Account created! Please check your email to confirm your account.', 'success');
+            } else {
+                this.currentUser = data.user;
+                this.updateAuthUI(true, data.user);
+                this.showMessage('Account created successfully!', 'success');
+            }
+        } else {
+            throw new Error('No user data returned');
         }
     }
 
