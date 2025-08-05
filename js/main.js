@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 FORCE-UI-UPDATE-v1012 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 RACE-CONDITION-FIX-v1014 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -3292,15 +3292,9 @@ class ChroniCompanion {
                 this.updateAuthUI(false, null);
             }
             
-            // Force UI update for any auth state change
-            setTimeout(() => {
-                console.log('🔄 Force updating UI after auth state change...');
-                if (session && session.user) {
-                    this.updateAuthUI(true, session.user);
-                } else {
-                    this.updateAuthUI(false, null);
-                }
-            }, 500);
+            // REMOVED: Problematic setTimeout that was causing race condition
+            // This was calling updateAuthUI(false, null) 500ms after sign-in success
+            console.log('🔧 RACE CONDITION FIX: Removed problematic setTimeout that hid sign-out button');
         });
     }
 
@@ -3472,16 +3466,23 @@ class ChroniCompanion {
      * Update authentication UI based on user state
      */
     updateAuthUI(isSignedIn, user) {
-        console.log('📧 EMAIL AUTH: updateAuthUI called with:', { isSignedIn, userEmail: user?.email });
+        console.log('🔥🔥🔥 UPDATEAUTHUI CALLED 🔥🔥🔥');
+        console.log('📧 FORCE UI: updateAuthUI called with:', { isSignedIn, userEmail: user?.email });
         
         const authForm = document.getElementById('auth-form');
         const signedInControls = document.getElementById('signed-in-controls');
         const userInfo = document.getElementById('user-info');
         
-        console.log('📧 EMAIL AUTH: Found elements:', { 
+        console.log('📧 FORCE UI: Found elements:', { 
             authForm: !!authForm, 
             signedInControls: !!signedInControls, 
             userInfo: !!userInfo 
+        });
+        
+        console.log('📧 FORCE UI: Current display states BEFORE changes:', {
+            authForm: authForm?.style.display,
+            signedInControls: signedInControls?.style.display,
+            userInfo: userInfo?.style.display
         });
         
         if (isSignedIn && user) {
@@ -3529,9 +3530,15 @@ class ChroniCompanion {
                 console.log('📧 FORCE UI: Sign-in button FORCE HIDDEN');
             }
             
+            console.log('📧 FORCE UI: AFTER SIGNED-IN changes:', {
+                authForm: authForm?.style.display,
+                signedInControls: signedInControls?.style.display,
+                userInfo: userInfo?.style.display
+            });
+            
         } else {
             // User is signed out - show form, hide signed-in controls
-            console.log('📧 EMAIL AUTH: User is signed out - showing auth form');
+            console.log('📧 FORCE UI: User is signed out - showing auth form');
             if (authForm) {
                 authForm.style.display = 'block';
                 console.log('📧 EMAIL AUTH: Auth form shown, display =', authForm.style.display);
@@ -3689,9 +3696,26 @@ class ChroniCompanion {
                     }
                 }, 1000);
                 
-                this.currentUser = data.user;
-                this.updateAuthUI(true, data.user);
-                this.showMessage(`Welcome back, ${data.user.email}!`, 'success');
+                                    console.log('🔄 CRITICAL: About to call updateAuthUI with user:', data.user.email);
+                    this.currentUser = data.user;
+                    
+                    // FORCE CALL updateAuthUI immediately
+                    console.log('🔄 CRITICAL: Calling updateAuthUI(true, user)...');
+                    this.updateAuthUI(true, data.user);
+                    
+                    // DOUBLE-FORCE with timeout
+                    setTimeout(() => {
+                        console.log('🔄 CRITICAL: TIMEOUT updateAuthUI call...');
+                        this.updateAuthUI(true, data.user);
+                    }, 500);
+                    
+                    // TRIPLE-FORCE with longer timeout
+                    setTimeout(() => {
+                        console.log('🔄 CRITICAL: FINAL updateAuthUI call...');
+                        this.updateAuthUI(true, data.user);
+                    }, 1500);
+                    
+                    this.showMessage(`Welcome back, ${data.user.email}!`, 'success');
             } else {
                 console.warn('⚠️ EMAIL AUTH: No user data returned');
                 this.showMessage('Sign-in failed - please try again', 'error');

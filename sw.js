@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chronicompanion-FORCE-UI-UPDATE-v1012';
+const CACHE_NAME = 'chronicompanion-RACE-CONDITION-FIX-v1014';
 const urlsToCache = [
   '/',
   '/index.html',
