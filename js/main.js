@@ -1,5 +1,5 @@
 // ChroniCompanion Frontend JavaScript
-console.log('🔥🔥🔥 EMERGENCY-DEBUG-v1017 LOADING! 🔥🔥🔥');
+console.log('🔥🔥🔥 DUPLICATE-FUNCTION-FIX-v1018 LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 NEW JAVASCRIPT CODE IS LOADING! 🔥🔥🔥');
 console.log('🔥🔥🔥 IF YOU SEE THIS, CACHE IS FIXED! 🔥🔥🔥');
 console.log('🔥🔥🔥 Time:', new Date(), '🔥🔥🔥');
@@ -4428,45 +4428,8 @@ class ChroniCompanion {
         }
     }
 
-    /**
-     * Update authentication UI
-     */
-    updateAuthUI() {
-        try {
-            // Update sign-in/sign-out buttons
-            const signInBtn = document.getElementById('sign-in-btn');
-            const signOutBtn = document.getElementById('sign-out-btn');
-            const userInfo = document.getElementById('user-info');
-
-            if (this.currentUser) {
-                // User is signed in
-                if (signInBtn) signInBtn.style.display = 'none';
-                if (signOutBtn) signOutBtn.style.display = 'block';
-                
-                if (userInfo) {
-                    userInfo.innerHTML = `
-                        <div class="flex items-center space-x-3">
-                            <img src="${this.currentUser.photoUrl || '/frontend/icons/icon-192x192.png'}" 
-                                 alt="Profile" class="w-8 h-8 rounded-full">
-                            <div>
-                                <div class="font-medium text-gray-800">${this.currentUser.displayName || 'User'}</div>
-                                <div class="text-sm text-gray-500">${this.currentUser.email}</div>
-                            </div>
-                        </div>
-                    `;
-                    userInfo.style.display = 'block';
-                }
-            } else {
-                // User is signed out
-                if (signInBtn) signInBtn.style.display = 'block';
-                if (signOutBtn) signOutBtn.style.display = 'none';
-                if (userInfo) userInfo.style.display = 'none';
-            }
-
-        } catch (error) {
-            console.error('❌ Failed to update auth UI:', error);
-        }
-    }
+    // REMOVED: Duplicate updateAuthUI function that was overriding the correct one
+    // The correct updateAuthUI(isSignedIn, user) function at line 3492 will now work properly
 
     /**
      * Show sign-in required message
