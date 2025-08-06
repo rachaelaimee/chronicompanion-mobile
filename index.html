@@ -60,6 +60,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Chart.js for beautiful graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-sage-50 text-sage-900 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-7xl">
@@ -358,6 +360,10 @@
                         <button onclick="exportToJSON()" 
                                 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
                             <i class="fas fa-file-code mr-2"></i>Export to JSON
+                        </button>
+                        <button onclick="exportToPDF()" 
+                                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                            <i class="fas fa-file-pdf mr-2"></i>Export to PDF
                         </button>
                         <button onclick="printReport()" 
                                 class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
@@ -1154,6 +1160,153 @@
             printWindow.print();
             
             console.log('✅ Print report opened');
+        }
+        
+        // PDF Export Function (based on old export_service.py)
+        function exportToPDF() {
+            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
+            
+            if (entries.length === 0) {
+                alert('No entries to export!');
+                return;
+            }
+            
+            // Initialize jsPDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Colors (matching old service)
+            const sageGreen = [90, 110, 90];
+            const lightGray = [246, 247, 246];
+            
+            let yPosition = 20;
+            
+            // Title
+            doc.setFontSize(24);
+            doc.setTextColor(...sageGreen);
+            doc.text('ChroniCompanion', 105, yPosition, { align: 'center' });
+            yPosition += 15;
+            
+            doc.setFontSize(18);
+            doc.text('Health Journal Report', 105, yPosition, { align: 'center' });
+            yPosition += 20;
+            
+            // Report metadata
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Report Generated: ${new Date().toLocaleDateString()}`, 20, yPosition);
+            yPosition += 8;
+            doc.text(`Total Entries: ${entries.length}`, 20, yPosition);
+            yPosition += 8;
+            
+            if (entries.length > 0) {
+                const sortedEntries = entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+                const dateRange = sortedEntries.length === 1 
+                    ? sortedEntries[0].date 
+                    : `${sortedEntries[0].date} to ${sortedEntries[sortedEntries.length - 1].date}`;
+                doc.text(`Date Range: ${dateRange}`, 20, yPosition);
+                yPosition += 15;
+            }
+            
+            // Summary Statistics
+            doc.setFontSize(16);
+            doc.setTextColor(...sageGreen);
+            doc.text('Summary Statistics', 20, yPosition);
+            yPosition += 10;
+            
+            if (entries.length > 0) {
+                const avgMood = (entries.reduce((sum, entry) => sum + (entry.mood || 0), 0) / entries.length).toFixed(1);
+                const avgEnergy = (entries.reduce((sum, entry) => sum + (entry.energy || 0), 0) / entries.length).toFixed(1);
+                const avgPain = (entries.reduce((sum, entry) => sum + (entry.pain || 0), 0) / entries.length).toFixed(1);
+                
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Average Mood Level: ${avgMood}/10`, 20, yPosition);
+                yPosition += 6;
+                doc.text(`Average Energy Level: ${avgEnergy}/10`, 20, yPosition);
+                yPosition += 6;
+                doc.text(`Average Pain Level: ${avgPain}/10`, 20, yPosition);
+                yPosition += 15;
+            }
+            
+            // Recent Entries (limit to first 10 to fit in PDF)
+            doc.setFontSize(16);
+            doc.setTextColor(...sageGreen);
+            doc.text('Recent Entries', 20, yPosition);
+            yPosition += 10;
+            
+            const recentEntries = entries.slice(0, 10);
+            
+            recentEntries.forEach((entry, index) => {
+                // Check if we need a new page
+                if (yPosition > 250) {
+                    doc.addPage();
+                    yPosition = 20;
+                }
+                
+                // Entry header
+                doc.setFontSize(14);
+                doc.setTextColor(...sageGreen);
+                doc.text(`${new Date(entry.date).toLocaleDateString()}`, 20, yPosition);
+                yPosition += 8;
+                
+                // Entry content
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                
+                // Ratings
+                const ratings = [];
+                if (entry.mood !== undefined) ratings.push(`Mood: ${entry.mood}/10`);
+                if (entry.energy !== undefined) ratings.push(`Energy: ${entry.energy}/10`);
+                if (entry.pain !== undefined) ratings.push(`Pain: ${entry.pain}/10`);
+                if (entry.sleep !== undefined) ratings.push(`Sleep: ${entry.sleep}/10`);
+                
+                if (ratings.length > 0) {
+                    doc.text(`Ratings: ${ratings.join(' | ')}`, 25, yPosition);
+                    yPosition += 6;
+                }
+                
+                // Symptoms
+                if (entry.symptoms && entry.symptoms.length > 0) {
+                    doc.text(`Symptoms: ${entry.symptoms.join(', ')}`, 25, yPosition);
+                    yPosition += 6;
+                }
+                
+                // Medications
+                if (entry.medications) {
+                    const medicationsText = doc.splitTextToSize(`Medications: ${entry.medications}`, 170);
+                    doc.text(medicationsText, 25, yPosition);
+                    yPosition += medicationsText.length * 4;
+                }
+                
+                // Activities
+                if (entry.activities) {
+                    const activitiesText = doc.splitTextToSize(`Activities: ${entry.activities}`, 170);
+                    doc.text(activitiesText, 25, yPosition);
+                    yPosition += activitiesText.length * 4;
+                }
+                
+                // Weather
+                if (entry.weather) {
+                    doc.text(`Weather: ${entry.weather}`, 25, yPosition);
+                    yPosition += 6;
+                }
+                
+                // Notes
+                if (entry.notes) {
+                    const notesText = doc.splitTextToSize(`Notes: ${entry.notes}`, 170);
+                    doc.text(notesText, 25, yPosition);
+                    yPosition += notesText.length * 4;
+                }
+                
+                yPosition += 8; // Space between entries
+            });
+            
+            // Save the PDF
+            const fileName = `chronicompanion-report-${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(fileName);
+            
+            console.log('✅ PDF export completed');
         }
     </script>
 </body>
