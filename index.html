@@ -42,7 +42,7 @@
                     autoRefreshToken: true,
                     persistSession: true,
                     detectSessionInUrl: !isMobile, // Mobile apps should NOT detect URL sessions
-                    flowType: 'pkce'
+                    flowType: isMobile ? 'pkce' : 'implicit' // CRITICAL: Mobile needs PKCE, web uses implicit
                 }
             };
             

@@ -104,10 +104,46 @@ class WorkingAuth {
 
             // Try to sign in with existing account FIRST
             console.log('📧 EMAIL AUTH: Attempting sign-in for existing account...');
+            
+            // 🔍 DEBUG: Log exact request details (without password for security)
+            console.log('🔍 DEBUG REQUEST:');
+            console.log('  - email:', email);
+            console.log('  - emailLength:', email.length);
+            console.log('  - emailTrimmed:', email.trim());
+            console.log('  - passwordLength:', password.length);
+            console.log('  - passwordType:', typeof password);
+            console.log('  - emailLowerCase:', email.toLowerCase());
+            console.log('  - hasSpecialChars:', /[^a-zA-Z0-9@._-]/.test(email));
+            console.log('  - platform:', window.Capacitor?.getPlatform() || 'web');
+            console.log('  - supabaseClient:', !!this.supabase);
+            console.log('  - authMethod:', !!this.supabase?.auth?.signInWithPassword);
+            
+            // 🚨 CRITICAL: Do NOT modify email case - use exactly as provided
+            console.log('📧 EMAIL AUTH: Using email EXACTLY as provided:', email);
+            
+            // 📱 MOBILE: Extra debugging for mobile platform
+            if (window.Capacitor?.getPlatform() !== 'web') {
+                console.log('📱 MOBILE AUTH DEBUG: About to call signInWithPassword');
+                console.log('📱 MOBILE AUTH DEBUG: Supabase URL:', this.supabase?.supabaseUrl);
+                console.log('📱 MOBILE AUTH DEBUG: Auth client exists:', !!this.supabase?.auth);
+            }
+            
             const { data, error } = await this.supabase.auth.signInWithPassword({
-                email: email,
+                email: email, // Use email EXACTLY as provided
                 password: password
             });
+            
+            // 📱 MOBILE: Log response details
+            if (window.Capacitor?.getPlatform() !== 'web') {
+                console.log('📱 MOBILE AUTH RESPONSE:');
+                console.log('  - hasData:', !!data);
+                console.log('  - hasError:', !!error);
+                console.log('  - errorMessage:', error?.message);
+                console.log('  - errorStatus:', error?.status);
+                console.log('  - errorCode:', error?.code);
+                console.log('  - dataUser:', data?.user?.email);
+                console.log('  - Full error object:', JSON.stringify(error, null, 2));
+            }
 
             if (error) {
                 console.log('📧 EMAIL AUTH: Sign-in failed:', error.message);
