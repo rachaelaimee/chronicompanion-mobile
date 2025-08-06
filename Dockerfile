@@ -1,29 +1,20 @@
-# Use Python 3.11 slim image
-FROM python:3.11-slim
+# Use official Node.js runtime as base image
+FROM node:18-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies for Python packages
-RUN apt-get update && apt-get install -y \
-    gcc \
-    pkg-config \
-    libpq-dev \
-    libffi-dev \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Copy package files
+COPY package*.json ./
 
-# Copy requirements first for better Docker layer caching
-COPY requirements.txt .
+# Install dependencies
+RUN npm ci --only=production
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy application code (only what we need for the API)
+COPY api/ ./api/
 
-# Copy application code
-COPY . .
+# Expose port
+EXPOSE 3000
 
-# Expose port (Railway will override this with PORT env var)
-EXPOSE 8000
-
-# Run the application
-CMD ["python", "main.py"]
+# Start the application
+CMD ["node", "api/ai-coach.js"]
