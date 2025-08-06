@@ -112,9 +112,39 @@ class WorkingAuth {
             if (error) {
                 console.log('📧 EMAIL AUTH: Sign-in failed:', error.message);
                 
+                // Enhanced error logging for mobile debugging
+                console.error('❌ Sign-in error details:', {
+                    message: error.message,
+                    status: error.status,
+                    statusCode: error.status,
+                    name: error.name,
+                    cause: error.cause,
+                    details: error
+                });
+                
+                // Check for mobile-specific issues
+                const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+                if (isMobile) {
+                    console.log('📱 MOBILE AUTH ERROR - Additional context:', {
+                        platform: window.Capacitor.getPlatform(),
+                        storageAvailable: !!window.mobileStorage,
+                        supabaseConfigured: !!window.supabase,
+                        storageType: window.mobileStorage ? 'mobile-aware' : 'default'
+                    });
+                    
+                    // Test storage if available
+                    if (window.mobileStorage) {
+                        try {
+                            const storageTest = await window.mobileStorage.checkStorageHealth();
+                            console.log('📱 Mobile storage health during auth error:', storageTest);
+                        } catch (storageError) {
+                            console.error('📱 Mobile storage test failed:', storageError);
+                        }
+                    }
+                }
+                
                 // Don't auto-create accounts - just show the error
                 // This prevents "account created" messages for existing users
-                console.error('❌ Sign-in error:', error);
                 this.showMessage(`Sign-in failed: ${error.message}. Please check your email and password.`, 'error');
                 return;
             }

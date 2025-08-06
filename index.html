@@ -15,16 +15,28 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
     <link rel="shortcut icon" href="/icons/icon-192x192.png">
     
+    <!-- Mobile Storage Implementation -->
+    <script src="js/mobile-storage.js"></script>
+    
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Check if we're running on mobile (Capacitor)
-        const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
-        
-        window.supabase = window.supabase.createClient(
-            'https://wiriwyzrrbjmydbnjpei.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indpcml3eXpycmJqbXlkYm5qcGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxNzk5MTYsImV4cCI6MjA2OTc1NTkxNn0.S_AaAv2jL4ZN-7zPF-J0a12drcrVNdU-MfFXS8h65fw',
-            {
+        // Initialize Supabase with proper mobile storage
+        async function initializeSupabase() {
+            // Check if we're running on mobile (Capacitor)
+            const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+            
+            // Wait for mobile storage to be ready
+            if (isMobile && window.mobileStorage) {
+                // Test storage health before using it
+                const storageHealthy = await window.mobileStorage.checkStorageHealth();
+                if (!storageHealthy) {
+                    console.error('❌ Mobile storage health check failed!');
+                }
+            }
+            
+            // Create Supabase client with proper storage
+            const supabaseConfig = {
                 auth: {
                     storageKey: 'supabase.auth.token',
                     autoRefreshToken: true,
@@ -32,9 +44,29 @@
                     detectSessionInUrl: !isMobile, // Mobile apps should NOT detect URL sessions
                     flowType: 'pkce'
                 }
+            };
+            
+            // Add mobile-aware storage if available
+            if (window.mobileStorage) {
+                supabaseConfig.auth.storage = window.mobileStorage;
+                console.log('✅ Using mobile-aware storage');
             }
-        );
-        console.log('✅ Supabase client initialized for', isMobile ? 'mobile' : 'web');
+            
+            window.supabase = window.supabase.createClient(
+                'https://wiriwyzrrbjmydbnjpei.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indpcml3eXpycmJqbXlkYm5qcGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxNzk5MTYsImV4cCI6MjA2OTc1NTkxNn0.S_AaAv2jL4ZN-7zPF-J0a12drcrVNdU-MfFXS8h65fw',
+                supabaseConfig
+            );
+            
+            console.log('✅ Supabase client initialized for', isMobile ? 'mobile' : 'web', 'with', window.mobileStorage ? 'mobile storage' : 'default storage');
+        }
+        
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeSupabase);
+        } else {
+            initializeSupabase();
+        }
     </script>
     
     <script src="https://cdn.tailwindcss.com"></script>
