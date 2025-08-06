@@ -169,12 +169,114 @@
                         </div>
                     </div>
                     
+                    <!-- Pain Level Slider -->
+                    <div>
+                        <label for="pain-slider" class="block text-sm font-medium text-sage-700 mb-1">
+                            Pain Level: <span id="pain-value" class="font-semibold text-sage-600">0</span>/10
+                        </label>
+                        <input type="range" 
+                               id="pain-slider" 
+                               min="0" 
+                               max="10" 
+                               value="0"
+                               class="w-full h-2 bg-sage-200 rounded-lg appearance-none cursor-pointer slider">
+                        <div class="flex justify-between text-xs text-sage-500 mt-1">
+                            <span>😌 None</span>
+                            <span>😐 Moderate</span>
+                            <span>😣 Severe</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Sleep Quality -->
+                    <div>
+                        <label for="sleep-slider" class="block text-sm font-medium text-sage-700 mb-1">
+                            Sleep Quality: <span id="sleep-value" class="font-semibold text-sage-600">5</span>/10
+                        </label>
+                        <input type="range" 
+                               id="sleep-slider" 
+                               min="1" 
+                               max="10" 
+                               value="5"
+                               class="w-full h-2 bg-sage-200 rounded-lg appearance-none cursor-pointer slider">
+                        <div class="flex justify-between text-xs text-sage-500 mt-1">
+                            <span>😴 Poor</span>
+                            <span>😐 Average</span>
+                            <span>😊 Excellent</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Symptoms -->
+                    <div>
+                        <label class="block text-sm font-medium text-sage-700 mb-2">Symptoms (check all that apply)</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="symptom-headache" class="mr-2 text-sage-600">
+                                <span class="text-sm">🤕 Headache</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="symptom-fatigue" class="mr-2 text-sage-600">
+                                <span class="text-sm">😴 Fatigue</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="symptom-nausea" class="mr-2 text-sage-600">
+                                <span class="text-sm">🤢 Nausea</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="symptom-dizziness" class="mr-2 text-sage-600">
+                                <span class="text-sm">💫 Dizziness</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="symptom-anxiety" class="mr-2 text-sage-600">
+                                <span class="text-sm">😰 Anxiety</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="symptom-brain-fog" class="mr-2 text-sage-600">
+                                <span class="text-sm">🧠 Brain Fog</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Medications -->
+                    <div>
+                        <label for="medications" class="block text-sm font-medium text-sage-700 mb-1">Medications Taken</label>
+                        <textarea id="medications" 
+                                  rows="2"
+                                  placeholder="List any medications, supplements, or treatments..."
+                                  class="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent resize-none"></textarea>
+                    </div>
+                    
+                    <!-- Activities -->
+                    <div>
+                        <label for="activities" class="block text-sm font-medium text-sage-700 mb-1">Activities & Exercise</label>
+                        <textarea id="activities" 
+                                  rows="2"
+                                  placeholder="What activities did you do today? Exercise, work, hobbies..."
+                                  class="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent resize-none"></textarea>
+                    </div>
+                    
+                    <!-- Weather -->
+                    <div>
+                        <label for="weather" class="block text-sm font-medium text-sage-700 mb-1">Weather/Environment</label>
+                        <select id="weather" class="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent">
+                            <option value="">Select weather...</option>
+                            <option value="sunny">☀️ Sunny</option>
+                            <option value="cloudy">☁️ Cloudy</option>
+                            <option value="rainy">🌧️ Rainy</option>
+                            <option value="stormy">⛈️ Stormy</option>
+                            <option value="snowy">❄️ Snowy</option>
+                            <option value="windy">💨 Windy</option>
+                            <option value="humid">💧 Humid</option>
+                            <option value="cold">🥶 Cold</option>
+                            <option value="hot">🥵 Hot</option>
+                        </select>
+                    </div>
+                    
                     <!-- Notes -->
                     <div>
-                        <label for="entry-notes" class="block text-sm font-medium text-sage-700 mb-1">Notes</label>
+                        <label for="entry-notes" class="block text-sm font-medium text-sage-700 mb-1">Additional Notes</label>
                         <textarea id="entry-notes" 
                                   rows="4"
-                                  placeholder="How are you feeling today? Any thoughts, symptoms, or observations..."
+                                  placeholder="How are you feeling today? Any thoughts, patterns, or observations..."
                                   class="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent resize-none"></textarea>
                     </div>
                     
@@ -214,22 +316,23 @@
             if (passwordInput) passwordInput.addEventListener('keypress', handleEnterKey);
             
             // Slider Functionality
-            const moodSlider = document.getElementById('mood-slider');
-            const moodValue = document.getElementById('mood-value');
-            const energySlider = document.getElementById('energy-slider');
-            const energyValue = document.getElementById('energy-value');
+            const sliders = [
+                { slider: 'mood-slider', value: 'mood-value' },
+                { slider: 'energy-slider', value: 'energy-value' },
+                { slider: 'pain-slider', value: 'pain-value' },
+                { slider: 'sleep-slider', value: 'sleep-value' }
+            ];
             
-            if (moodSlider && moodValue) {
-                moodSlider.addEventListener('input', (e) => {
-                    moodValue.textContent = e.target.value;
-                });
-            }
-            
-            if (energySlider && energyValue) {
-                energySlider.addEventListener('input', (e) => {
-                    energyValue.textContent = e.target.value;
-                });
-            }
+            sliders.forEach(({ slider, value }) => {
+                const sliderEl = document.getElementById(slider);
+                const valueEl = document.getElementById(value);
+                
+                if (sliderEl && valueEl) {
+                    sliderEl.addEventListener('input', (e) => {
+                        valueEl.textContent = e.target.value;
+                    });
+                }
+            });
             
             // Set today's date as default
             const entryDate = document.getElementById('entry-date');
@@ -255,7 +358,22 @@
             const date = document.getElementById('entry-date').value;
             const mood = document.getElementById('mood-slider').value;
             const energy = document.getElementById('energy-slider').value;
+            const pain = document.getElementById('pain-slider').value;
+            const sleep = document.getElementById('sleep-slider').value;
             const notes = document.getElementById('entry-notes').value;
+            const medications = document.getElementById('medications').value;
+            const activities = document.getElementById('activities').value;
+            const weather = document.getElementById('weather').value;
+            
+            // Get checked symptoms
+            const symptoms = [];
+            const symptomIds = ['headache', 'fatigue', 'nausea', 'dizziness', 'anxiety', 'brain-fog'];
+            symptomIds.forEach(symptom => {
+                const checkbox = document.getElementById(`symptom-${symptom}`);
+                if (checkbox && checkbox.checked) {
+                    symptoms.push(symptom);
+                }
+            });
             
             if (!date) {
                 alert('Please select a date for your entry.');
@@ -267,6 +385,12 @@
                 date: date,
                 mood: parseInt(mood),
                 energy: parseInt(energy),
+                pain: parseInt(pain),
+                sleep: parseInt(sleep),
+                symptoms: symptoms,
+                medications: medications.trim(),
+                activities: activities.trim(),
+                weather: weather,
                 notes: notes.trim(),
                 created_at: new Date().toISOString()
             };
@@ -286,6 +410,8 @@
             document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('mood-value').textContent = '5';
             document.getElementById('energy-value').textContent = '5';
+            document.getElementById('pain-value').textContent = '0';
+            document.getElementById('sleep-value').textContent = '5';
             
             // Refresh entries list (we'll implement this next)
             loadEntries();
@@ -310,12 +436,14 @@
             
             entriesList.innerHTML = entries.map(entry => `
                 <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-sage-500">
-                    <div class="flex justify-between items-start mb-2">
+                    <div class="flex justify-between items-start mb-3">
                         <h3 class="font-semibold text-sage-800">${new Date(entry.date).toLocaleDateString()}</h3>
                         <div class="text-sm text-sage-500">
                             ${new Date(entry.created_at).toLocaleTimeString()}
                         </div>
                     </div>
+                    
+                    <!-- Main metrics -->
                     <div class="grid grid-cols-2 gap-4 mb-3">
                         <div class="flex items-center">
                             <span class="text-sm text-sage-600 mr-2">Mood:</span>
@@ -331,8 +459,73 @@
                                 <div class="ml-2 text-lg">${getEnergyEmoji(entry.energy)}</div>
                             </div>
                         </div>
+                        ${entry.pain !== undefined ? `
+                        <div class="flex items-center">
+                            <span class="text-sm text-sage-600 mr-2">Pain:</span>
+                            <div class="flex items-center">
+                                <span class="font-semibold text-sage-800">${entry.pain}/10</span>
+                                <div class="ml-2 text-lg">${getPainEmoji(entry.pain)}</div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${entry.sleep !== undefined ? `
+                        <div class="flex items-center">
+                            <span class="text-sm text-sage-600 mr-2">Sleep:</span>
+                            <div class="flex items-center">
+                                <span class="font-semibold text-sage-800">${entry.sleep}/10</span>
+                                <div class="ml-2 text-lg">${getSleepEmoji(entry.sleep)}</div>
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
-                    ${entry.notes ? `<p class="text-sage-700 text-sm bg-sage-50 p-3 rounded">${entry.notes}</p>` : ''}
+                    
+                    <!-- Symptoms -->
+                    ${entry.symptoms && entry.symptoms.length > 0 ? `
+                    <div class="mb-3">
+                        <span class="text-sm text-sage-600 font-medium">Symptoms:</span>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            ${entry.symptoms.map(symptom => `
+                                <span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded">
+                                    ${getSymptomDisplay(symptom)}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Weather -->
+                    ${entry.weather ? `
+                    <div class="mb-3">
+                        <span class="text-sm text-sage-600 mr-2">Weather:</span>
+                        <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                            ${getWeatherDisplay(entry.weather)}
+                        </span>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Medications -->
+                    ${entry.medications ? `
+                    <div class="mb-3">
+                        <span class="text-sm text-sage-600 font-medium">Medications:</span>
+                        <p class="text-sage-700 text-sm bg-green-50 p-2 rounded mt-1">${entry.medications}</p>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Activities -->
+                    ${entry.activities ? `
+                    <div class="mb-3">
+                        <span class="text-sm text-sage-600 font-medium">Activities:</span>
+                        <p class="text-sage-700 text-sm bg-purple-50 p-2 rounded mt-1">${entry.activities}</p>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Notes -->
+                    ${entry.notes ? `
+                    <div class="mb-3">
+                        <span class="text-sm text-sage-600 font-medium">Notes:</span>
+                        <p class="text-sage-700 text-sm bg-sage-50 p-2 rounded mt-1">${entry.notes}</p>
+                    </div>
+                    ` : ''}
                 </div>
             `).join('');
         }
@@ -349,6 +542,46 @@
             if (energy <= 3) return '⚡';
             if (energy <= 7) return '🔋';
             return '🚀';
+        }
+        
+        function getPainEmoji(pain) {
+            if (pain === 0) return '😌';
+            if (pain <= 3) return '😐';
+            if (pain <= 6) return '😣';
+            return '😖';
+        }
+        
+        function getSleepEmoji(sleep) {
+            if (sleep <= 3) return '😴';
+            if (sleep <= 7) return '😐';
+            return '😊';
+        }
+        
+        function getSymptomDisplay(symptom) {
+            const symptoms = {
+                'headache': '🤕 Headache',
+                'fatigue': '😴 Fatigue',
+                'nausea': '🤢 Nausea',
+                'dizziness': '💫 Dizziness',
+                'anxiety': '😰 Anxiety',
+                'brain-fog': '🧠 Brain Fog'
+            };
+            return symptoms[symptom] || symptom;
+        }
+        
+        function getWeatherDisplay(weather) {
+            const weatherOptions = {
+                'sunny': '☀️ Sunny',
+                'cloudy': '☁️ Cloudy',
+                'rainy': '🌧️ Rainy',
+                'stormy': '⛈️ Stormy',
+                'snowy': '❄️ Snowy',
+                'windy': '💨 Windy',
+                'humid': '💧 Humid',
+                'cold': '🥶 Cold',
+                'hot': '🥵 Hot'
+            };
+            return weatherOptions[weather] || weather;
         }
     </script>
 </body>
