@@ -112,37 +112,11 @@ class WorkingAuth {
             if (error) {
                 console.log('📧 EMAIL AUTH: Sign-in failed:', error.message);
                 
-                // Only create new account if it's specifically an invalid credentials error
-                // AND not a wrong password error
-                if (error.message.includes('Invalid login credentials') && 
-                    !error.message.includes('Invalid email or password')) {
-                    
-                    console.log('📧 EMAIL AUTH: Account not found, creating new account...');
-                    this.showMessage('Account not found. Creating new account...', 'info');
-                    
-                    const { data: signUpData, error: signUpError } = await this.supabase.auth.signUp({
-                        email: email,
-                        password: password
-                    });
-
-                    if (signUpError) {
-                        console.error('❌ Sign-up error:', signUpError);
-                        this.showMessage(`Account creation failed: ${signUpError.message}`, 'error');
-                        return;
-                    }
-
-                    if (signUpData?.user) {
-                        console.log('✅ EMAIL AUTH: Account created successfully');
-                        this.showMessage('Account created! Please check your email to verify your account.', 'success');
-                        // Don't update UI yet - user needs to verify email first
-                        return;
-                    }
-                } else {
-                    // For wrong password or other errors, don't try to create account
-                    console.error('❌ Sign-in error (not creating new account):', error);
-                    this.showMessage(`Sign-in failed: ${error.message}`, 'error');
-                    return;
-                }
+                // Don't auto-create accounts - just show the error
+                // This prevents "account created" messages for existing users
+                console.error('❌ Sign-in error:', error);
+                this.showMessage(`Sign-in failed: ${error.message}. Please check your email and password.`, 'error');
+                return;
             }
 
             if (data?.user) {
