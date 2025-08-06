@@ -185,11 +185,13 @@ class WorkingAuth {
         const signedInControls = document.getElementById('signed-in-controls');
         const userEmailDisplay = document.getElementById('user-email');
         const signOutBtn = document.getElementById('sign-out-btn');
+        const appContent = document.getElementById('app-content');
 
         if (isSignedIn && user) {
             // Show signed-in state
             if (authForm) authForm.style.display = 'none';
             if (signedInControls) signedInControls.style.display = 'block';
+            if (appContent) appContent.style.display = 'block';
             if (userEmailDisplay) userEmailDisplay.textContent = user.email;
             
             // 🔧 ROBUST SIGN-OUT BUTTON TEXT FIX
@@ -208,11 +210,19 @@ class WorkingAuth {
                 }, 100);
             }
             
+            // Load entries when user signs in
+            setTimeout(() => {
+                if (typeof loadEntries === 'function') {
+                    loadEntries();
+                }
+            }, 100);
+            
             console.log('✅ UI updated for signed-in state');
         } else {
             // Show signed-out state
             if (authForm) authForm.style.display = 'block';
             if (signedInControls) signedInControls.style.display = 'none';
+            if (appContent) appContent.style.display = 'none';
             if (userEmailDisplay) userEmailDisplay.textContent = '';
             
             console.log('✅ UI updated for signed-out state');

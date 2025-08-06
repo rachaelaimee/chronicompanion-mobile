@@ -117,9 +117,78 @@
 
         <!-- App Content (Hidden until signed in) -->
         <div id="app-content" style="display: none;">
-            <div class="text-center">
-                <h2 class="text-xl font-semibold text-sage-800 mb-4">Welcome to ChroniCompanion!</h2>
-                <p class="text-sage-600">Your authenticated experience starts here.</p>
+            <!-- New Entry Form -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-plus-circle text-2xl text-sage-600 mr-3"></i>
+                    <h2 class="text-xl font-semibold text-sage-800">New Entry</h2>
+                </div>
+                
+                <form id="new-entry-form" class="space-y-4">
+                    <!-- Date -->
+                    <div>
+                        <label for="entry-date" class="block text-sm font-medium text-sage-700 mb-1">Date</label>
+                        <input type="date" 
+                               id="entry-date" 
+                               class="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent">
+                    </div>
+                    
+                    <!-- Mood Slider -->
+                    <div>
+                        <label for="mood-slider" class="block text-sm font-medium text-sage-700 mb-1">
+                            Overall Mood: <span id="mood-value" class="font-semibold text-sage-600">5</span>/10
+                        </label>
+                        <input type="range" 
+                               id="mood-slider" 
+                               min="1" 
+                               max="10" 
+                               value="5"
+                               class="w-full h-2 bg-sage-200 rounded-lg appearance-none cursor-pointer slider">
+                        <div class="flex justify-between text-xs text-sage-500 mt-1">
+                            <span>😢 Low</span>
+                            <span>😐 Neutral</span>
+                            <span>😊 High</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Energy Slider -->
+                    <div>
+                        <label for="energy-slider" class="block text-sm font-medium text-sage-700 mb-1">
+                            Energy Level: <span id="energy-value" class="font-semibold text-sage-600">5</span>/10
+                        </label>
+                        <input type="range" 
+                               id="energy-slider" 
+                               min="1" 
+                               max="10" 
+                               value="5"
+                               class="w-full h-2 bg-sage-200 rounded-lg appearance-none cursor-pointer slider">
+                        <div class="flex justify-between text-xs text-sage-500 mt-1">
+                            <span>⚡ Low</span>
+                            <span>🔋 Moderate</span>
+                            <span>🚀 High</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Notes -->
+                    <div>
+                        <label for="entry-notes" class="block text-sm font-medium text-sage-700 mb-1">Notes</label>
+                        <textarea id="entry-notes" 
+                                  rows="4"
+                                  placeholder="How are you feeling today? Any thoughts, symptoms, or observations..."
+                                  class="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent resize-none"></textarea>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <button type="submit" 
+                            class="w-full bg-sage-600 hover:bg-sage-700 text-white px-6 py-3 rounded-lg transition-colors duration-200 flex items-center justify-center">
+                        <i class="fas fa-save mr-2"></i>Save Entry
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Future: Entries list will go here -->
+            <div id="entries-list" class="space-y-4">
+                <!-- Entries will be loaded here -->
             </div>
         </div>
     </div>
@@ -127,9 +196,10 @@
     <!-- Working Authentication Script -->
     <script src="js/working-auth.js?v=NUCLEAR-RAILWAY-CACHE-CLEAR-v20000-1754439163"></script>
     
-    <!-- Enter Key Support -->
+    <!-- App Functionality -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Enter Key Support for Authentication
             const emailInput = document.getElementById('email-input');
             const passwordInput = document.getElementById('password-input');
             
@@ -143,8 +213,143 @@
             if (emailInput) emailInput.addEventListener('keypress', handleEnterKey);
             if (passwordInput) passwordInput.addEventListener('keypress', handleEnterKey);
             
-            console.log('✅ Enter key support added for email authentication');
+            // Slider Functionality
+            const moodSlider = document.getElementById('mood-slider');
+            const moodValue = document.getElementById('mood-value');
+            const energySlider = document.getElementById('energy-slider');
+            const energyValue = document.getElementById('energy-value');
+            
+            if (moodSlider && moodValue) {
+                moodSlider.addEventListener('input', (e) => {
+                    moodValue.textContent = e.target.value;
+                });
+            }
+            
+            if (energySlider && energyValue) {
+                energySlider.addEventListener('input', (e) => {
+                    energyValue.textContent = e.target.value;
+                });
+            }
+            
+            // Set today's date as default
+            const entryDate = document.getElementById('entry-date');
+            if (entryDate) {
+                const today = new Date().toISOString().split('T')[0];
+                entryDate.value = today;
+            }
+            
+            // New Entry Form Submission
+            const newEntryForm = document.getElementById('new-entry-form');
+            if (newEntryForm) {
+                newEntryForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    saveNewEntry();
+                });
+            }
+            
+            console.log('✅ App functionality initialized');
         });
+        
+        // Save New Entry Function
+        function saveNewEntry() {
+            const date = document.getElementById('entry-date').value;
+            const mood = document.getElementById('mood-slider').value;
+            const energy = document.getElementById('energy-slider').value;
+            const notes = document.getElementById('entry-notes').value;
+            
+            if (!date) {
+                alert('Please select a date for your entry.');
+                return;
+            }
+            
+            const entry = {
+                id: Date.now(), // Simple ID for now
+                date: date,
+                mood: parseInt(mood),
+                energy: parseInt(energy),
+                notes: notes.trim(),
+                created_at: new Date().toISOString()
+            };
+            
+            console.log('💾 Saving entry:', entry);
+            
+            // For now, just save to localStorage (we'll add Supabase storage later)
+            let entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
+            entries.unshift(entry); // Add to beginning of array
+            localStorage.setItem('chronicompanion_entries', JSON.stringify(entries));
+            
+            // Show success message
+            alert('✅ Entry saved successfully!');
+            
+            // Reset form
+            document.getElementById('new-entry-form').reset();
+            document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('mood-value').textContent = '5';
+            document.getElementById('energy-value').textContent = '5';
+            
+            // Refresh entries list (we'll implement this next)
+            loadEntries();
+        }
+        
+        // Load and display entries
+        function loadEntries() {
+            const entriesList = document.getElementById('entries-list');
+            if (!entriesList) return;
+            
+            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
+            
+            if (entries.length === 0) {
+                entriesList.innerHTML = `
+                    <div class="text-center py-8 text-sage-500">
+                        <i class="fas fa-journal-whills text-4xl mb-4"></i>
+                        <p>No entries yet. Create your first entry above!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            entriesList.innerHTML = entries.map(entry => `
+                <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-sage-500">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-semibold text-sage-800">${new Date(entry.date).toLocaleDateString()}</h3>
+                        <div class="text-sm text-sage-500">
+                            ${new Date(entry.created_at).toLocaleTimeString()}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-3">
+                        <div class="flex items-center">
+                            <span class="text-sm text-sage-600 mr-2">Mood:</span>
+                            <div class="flex items-center">
+                                <span class="font-semibold text-sage-800">${entry.mood}/10</span>
+                                <div class="ml-2 text-lg">${getMoodEmoji(entry.mood)}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-sm text-sage-600 mr-2">Energy:</span>
+                            <div class="flex items-center">
+                                <span class="font-semibold text-sage-800">${entry.energy}/10</span>
+                                <div class="ml-2 text-lg">${getEnergyEmoji(entry.energy)}</div>
+                            </div>
+                        </div>
+                    </div>
+                    ${entry.notes ? `<p class="text-sage-700 text-sm bg-sage-50 p-3 rounded">${entry.notes}</p>` : ''}
+                </div>
+            `).join('');
+        }
+        
+        // Helper functions for emojis
+        function getMoodEmoji(mood) {
+            if (mood <= 3) return '😢';
+            if (mood <= 5) return '😐';
+            if (mood <= 7) return '🙂';
+            return '😊';
+        }
+        
+        function getEnergyEmoji(energy) {
+            if (energy <= 3) return '⚡';
+            if (energy <= 7) return '🔋';
+            return '🚀';
+        }
     </script>
 </body>
 </html>
