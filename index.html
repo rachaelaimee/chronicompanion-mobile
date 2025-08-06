@@ -18,6 +18,9 @@
     <!-- Mobile Storage Implementation -->
     <script src="js/mobile-storage.js"></script>
     
+    <!-- AI Health Coach -->
+    <script src="js/ai-coach.js"></script>
+    
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -171,17 +174,21 @@
         <!-- App Content (Hidden until signed in) -->
         <div id="app-content" style="display: none;">
             <!-- Navigation Tabs -->
-            <div class="flex mb-6 bg-white rounded-lg shadow-lg p-2">
-                <button id="tab-entry" class="flex-1 py-2 px-4 rounded-lg bg-sage-600 text-white font-medium transition-colors">
-                    <i class="fas fa-plus-circle mr-2"></i>New Entry
-                        </button>
-                <button id="tab-dashboard" class="flex-1 py-2 px-4 rounded-lg text-sage-600 hover:bg-sage-100 font-medium transition-colors ml-2">
-                    <i class="fas fa-chart-line mr-2"></i>Dashboard
-                            </button>
-                <button id="tab-entries" class="flex-1 py-2 px-4 rounded-lg text-sage-600 hover:bg-sage-100 font-medium transition-colors ml-2">
-                    <i class="fas fa-list mr-2"></i>All Entries
-                            </button>
-                        </div>
+            <div class="flex mb-4 md:mb-6 bg-white rounded-lg shadow-lg p-2">
+                <button id="tab-entry" class="flex-1 py-2 px-2 md:px-4 rounded-lg bg-sage-600 text-white font-medium transition-colors text-xs md:text-sm">
+                    <i class="fas fa-plus-circle mr-1 md:mr-2"></i><span class="hidden sm:inline">New Entry</span><span class="sm:hidden">New</span>
+                </button>
+                <button id="tab-dashboard" class="flex-1 py-2 px-2 md:px-4 rounded-lg text-sage-600 hover:bg-sage-100 font-medium transition-colors ml-2 text-xs md:text-sm">
+                    <i class="fas fa-chart-line mr-1 md:mr-2"></i><span class="hidden sm:inline">Dashboard</span><span class="sm:hidden">Stats</span>
+                </button>
+                <button id="tab-entries" class="flex-1 py-2 px-2 md:px-4 rounded-lg text-sage-600 hover:bg-sage-100 font-medium transition-colors ml-2 text-xs md:text-sm">
+                    <i class="fas fa-list mr-1 md:mr-2"></i><span class="hidden sm:inline">All Entries</span><span class="sm:hidden">All</span>
+                </button>
+                <button id="tab-ai-coach" class="flex-1 py-2 px-2 md:px-4 rounded-lg text-sage-600 hover:bg-sage-100 font-medium transition-colors ml-2 text-xs md:text-sm">
+                    <i class="fas fa-robot mr-1 md:mr-2"></i><span class="hidden sm:inline">AI Coach</span><span class="sm:hidden">AI</span>
+                    <span id="ai-premium-badge" class="ml-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1 md:px-2 py-0.5 rounded-full">Premium</span>
+                </button>
+            </div>
                         
             <!-- New Entry Tab -->
             <div id="content-entry" class="tab-content">
@@ -440,11 +447,77 @@
                     </h3>
                     <div id="all-entries-list" class="space-y-4">
                         <!-- All entries will be loaded here -->
-                            </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- AI Coach Tab -->
+            <div id="content-ai-coach" class="tab-content" style="display: none;">
+                <div class="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-4 md:mb-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 space-y-2 md:space-y-0">
+                        <h3 class="text-base md:text-lg font-semibold text-sage-800">
+                            <i class="fas fa-robot mr-2 text-purple-600"></i>Meet Chroni, Your AI Health Coach
+                        </h3>
+                        <div id="ai-usage-display" class="text-xs md:text-sm text-gray-600">
+                            <!-- Usage will be shown here -->
+                        </div>
+                    </div>
+                    
+                    <!-- AI Chat Interface -->
+                    <div id="ai-chat-container" class="border rounded-lg p-3 md:p-4 mb-3 md:mb-4 max-h-80 md:max-h-96 overflow-y-auto bg-gray-50">
+                        <div id="ai-welcome-message" class="text-center text-gray-600 py-4 md:py-8">
+                            <div class="text-3xl md:text-4xl mb-2">🤖</div>
+                            <p class="mb-2 text-sm md:text-base">Hi! I'm Chroni, your AI health companion.</p>
+                            <p class="text-xs md:text-sm">Ask me anything about your health patterns, symptoms, or how you're feeling today!</p>
+                        </div>
+                        <div id="ai-chat-messages" class="space-y-2 md:space-y-4">
+                            <!-- AI conversation will appear here -->
+                        </div>
+                    </div>
+
+                    <!-- AI Input Area -->
+                    <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
+                        <input type="text" id="ai-question-input" 
+                               placeholder="Ask me about your health..."
+                               class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm md:text-base"
+                               maxlength="200">
+                        <button id="ai-ask-btn" 
+                                class="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 md:px-6 py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 font-medium transition-all duration-200 shadow-lg hover:shadow-xl text-sm md:text-base">
+                            <i class="fas fa-paper-plane mr-1 md:mr-2"></i>Ask Chroni
+                        </button>
+                    </div>
+                    
+                    <!-- Premium Upgrade Prompt -->
+                    <div id="ai-premium-prompt" class="mt-3 md:mt-4 p-3 md:p-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg border border-purple-200" style="display: none;">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
+                            <div>
+                                <h4 class="font-semibold text-purple-800 mb-1 text-sm md:text-base">Unlock Unlimited AI Coaching</h4>
+                                <p class="text-xs md:text-sm text-purple-700">Get unlimited daily insights and advanced health analytics!</p>
+                            </div>
+                            <button class="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium hover:from-purple-700 hover:to-pink-700 w-full md:w-auto">
+                                Upgrade - $9.99/mo
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Health Insights -->
+                    <div class="mt-4 md:mt-6 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+                        <button class="ai-quick-question p-3 text-left border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors" data-question="How am I doing overall?">
+                            <div class="text-xs md:text-sm font-medium text-gray-800">📊 Overall Health</div>
+                            <div class="text-xs text-gray-600 mt-1">How am I doing overall?</div>
+                        </button>
+                        <button class="ai-quick-question p-3 text-left border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors" data-question="What patterns do you see in my data?">
+                            <div class="text-xs md:text-sm font-medium text-gray-800">🔍 Pattern Analysis</div>
+                            <div class="text-xs text-gray-600 mt-1">What patterns do you see?</div>
+                        </button>
+                        <button class="ai-quick-question p-3 text-left border border-gray-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors" data-question="Any suggestions for today?">
+                            <div class="text-xs md:text-sm font-medium text-gray-800">💡 Daily Tips</div>
+                            <div class="text-xs text-gray-600 mt-1">Suggestions for today?</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     <!-- Working Authentication Script -->
     <script src="js/working-auth.js?v=NUCLEAR-RAILWAY-CACHE-CLEAR-v20000-1754439163"></script>
@@ -778,6 +851,8 @@
                 }, 100);
             } else if (tabName === 'entries') {
                 loadAllEntries();
+            } else if (tabName === 'ai-coach') {
+                initializeAICoach();
             }
         }
         
@@ -1356,6 +1431,254 @@
             doc.save(fileName);
             
             console.log('✅ PDF export completed');
+        }
+
+        // ========================================
+        // AI HEALTH COACH FUNCTIONALITY
+        // ========================================
+        
+        let aiCoach = null;
+        let isAIInitialized = false;
+        
+        // Initialize AI Coach
+        async function initializeAICoach() {
+            if (isAIInitialized) {
+                updateAIUsageDisplay();
+                return;
+            }
+            
+            try {
+                aiCoach = new window.AIHealthCoach();
+                
+                // Initialize with API key (set via environment variable for security)
+                const apiKey = 'YOUR_OPENAI_API_KEY_HERE'; // Replace with your actual API key
+                const success = await aiCoach.initialize({ 
+                    apiKey: apiKey,
+                    dailyLimit: 5  // Free tier limit
+                });
+                
+                if (success) {
+                    displayAIWelcomeMessage();
+                } else {
+                    displayAISetupMessage();
+                }
+                
+                // Set up event handlers
+                setupAIEventHandlers();
+                
+                isAIInitialized = true;
+                console.log('✅ AI Coach initialized');
+            } catch (error) {
+                console.error('❌ AI Coach initialization error:', error);
+                displayAIError('Failed to initialize AI Coach');
+            }
+        }
+        
+        // Display welcome message when AI is ready
+        function displayAIWelcomeMessage() {
+            const chatContainer = document.getElementById('ai-chat-messages');
+            chatContainer.innerHTML = `
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-start space-x-3">
+                        <div class="text-2xl">🤖</div>
+                        <div>
+                            <h4 class="font-semibold text-green-800 mb-2">Chroni is Ready!</h4>
+                            <p class="text-green-700 text-sm mb-2">Your AI health coach is now active and ready to help you understand your health patterns!</p>
+                            <p class="text-xs text-green-600">Ask me anything about your symptoms, mood, or health trends.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Hide welcome message
+            document.getElementById('ai-welcome-message').style.display = 'none';
+            
+            // Update usage display
+            updateAIUsageDisplay();
+        }
+
+        // Display setup message when API key is needed
+        function displayAISetupMessage() {
+            const chatContainer = document.getElementById('ai-chat-messages');
+            chatContainer.innerHTML = `
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-start space-x-3">
+                        <div class="text-2xl">🔧</div>
+                        <div>
+                            <h4 class="font-semibold text-blue-800 mb-2">AI Coach Setup Required</h4>
+                            <p class="text-blue-700 text-sm mb-3">To activate your AI health coach, you'll need to add your OpenAI API key.</p>
+                            <div class="bg-blue-100 rounded p-2 text-xs font-mono text-blue-800 mb-2">
+                                Add your API key to the configuration
+                            </div>
+                            <p class="text-xs text-blue-600">Get your API key at <a href="https://platform.openai.com/api-keys" target="_blank" class="underline">platform.openai.com</a></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Hide welcome message
+            document.getElementById('ai-welcome-message').style.display = 'none';
+            
+            // Update usage display
+            document.getElementById('ai-usage-display').innerHTML = 
+                '<span class="text-orange-600">⚙️ Setup Required</span>';
+        }
+        
+        // Set up AI event handlers
+        function setupAIEventHandlers() {
+            // Ask button
+            const askBtn = document.getElementById('ai-ask-btn');
+            const questionInput = document.getElementById('ai-question-input');
+            
+            askBtn.addEventListener('click', handleAIQuestion);
+            
+            // Enter key support
+            questionInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleAIQuestion();
+                }
+            });
+            
+            // Quick question buttons
+            document.querySelectorAll('.ai-quick-question').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const question = btn.dataset.question;
+                    document.getElementById('ai-question-input').value = question;
+                    handleAIQuestion();
+                });
+            });
+        }
+        
+        // Handle AI question
+        async function handleAIQuestion() {
+            const questionInput = document.getElementById('ai-question-input');
+            const question = questionInput.value.trim();
+            
+            if (!question) return;
+            
+            // Show user message
+            addAIMessage(question, 'user');
+            questionInput.value = '';
+            
+            // Show thinking indicator
+            const thinkingId = addAIMessage('🤔 Analyzing your health data...', 'ai', true);
+            
+            try {
+                if (!aiCoach || !aiCoach.isInitialized) {
+                    throw new Error('AI Coach not initialized');
+                }
+                
+                // Get recent health entries for context (from localStorage for now)
+                const recentEntries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]').slice(0, 7);
+                
+                // Get AI insight
+                const result = await aiCoach.getHealthInsight(question, {
+                    recentEntries: recentEntries || []
+                });
+                
+                // Remove thinking indicator
+                removeAIMessage(thinkingId);
+                
+                if (result.success) {
+                    // Add AI response
+                    addAIMessage(result.insight, 'ai');
+                    
+                    // Update usage display
+                    document.getElementById('ai-usage-display').innerHTML = 
+                        `<span class="text-green-600">${result.usage}/${result.limit} questions today</span>`;
+                    
+                    // Show premium prompt if limit reached
+                    if (result.usage >= result.limit) {
+                        document.getElementById('ai-premium-prompt').style.display = 'block';
+                    }
+                } else {
+                    // Handle errors (like daily limit reached)
+                    addAIMessage(result.error, 'ai');
+                    
+                    // Show premium prompt for limit errors
+                    if (result.error.includes('daily limit') || result.error.includes('Daily AI limit')) {
+                        document.getElementById('ai-premium-prompt').style.display = 'block';
+                    }
+                }
+                
+            } catch (error) {
+                removeAIMessage(thinkingId);
+                addAIMessage('Sorry, I encountered an error. Please try again later. 🤖💔', 'ai');
+                console.error('❌ AI Question Error:', error);
+            }
+        }
+        
+        // Add message to AI chat
+        function addAIMessage(message, sender, isTemporary = false) {
+            const chatMessages = document.getElementById('ai-chat-messages');
+            const messageId = 'msg-' + Date.now();
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.id = messageId;
+            messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            const bubbleClass = sender === 'user' 
+                ? 'bg-purple-600 text-white' 
+                : 'bg-gray-200 text-gray-800';
+            
+            messageDiv.innerHTML = `
+                <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${bubbleClass}">
+                    ${sender === 'ai' ? '<i class="fas fa-robot mr-2"></i>' : ''}
+                    ${message}
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            const chatContainer = document.getElementById('ai-chat-container');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // Hide welcome message on first interaction
+            if (chatMessages.children.length === 1) {
+                document.getElementById('ai-welcome-message').style.display = 'none';
+            }
+            
+            return messageId;
+        }
+        
+        // Remove AI message (for temporary messages)
+        function removeAIMessage(messageId) {
+            const message = document.getElementById(messageId);
+            if (message) {
+                message.remove();
+            }
+        }
+        
+        // Update AI usage display
+        async function updateAIUsageDisplay() {
+            if (!aiCoach || !aiCoach.isInitialized) {
+                document.getElementById('ai-usage-display').innerHTML = 
+                    '<span class="text-orange-600">⚙️ Setup Required</span>';
+                return;
+            }
+            
+            try {
+                const usage = await aiCoach.getTodayUsage();
+                const limit = aiCoach.dailyLimit;
+                
+                if (usage >= limit) {
+                    document.getElementById('ai-usage-display').innerHTML = 
+                        `<span class="text-red-600">⚠️ ${usage}/${limit} - Limit Reached</span>`;
+                } else {
+                    document.getElementById('ai-usage-display').innerHTML = 
+                        `<span class="text-green-600">✅ ${usage}/${limit} questions today</span>`;
+                }
+            } catch (error) {
+                console.error('Error updating usage display:', error);
+                document.getElementById('ai-usage-display').innerHTML = 
+                    '<span class="text-gray-600">Usage: Unknown</span>';
+            }
+        }
+        
+        // Display AI error
+        function displayAIError(errorMessage) {
+            addAIMessage(`❌ Error: ${errorMessage}`, 'ai');
         }
     </script>
 </body>
