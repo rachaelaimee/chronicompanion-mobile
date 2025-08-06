@@ -19,7 +19,7 @@
     <script src="js/mobile-storage.js"></script>
     
     <!-- AI Health Coach -->
-    <script src="js/ai-coach.js"></script>
+    <script src="js/ai-coach-secure.js"></script>
     
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1448,14 +1448,13 @@
             }
             
             try {
-                aiCoach = new window.AIHealthCoach();
+                aiCoach = new window.AIHealthCoachSecure();
                 
-                // Initialize with API key (set via environment variable for security)
-                const apiKey = 'YOUR_OPENAI_API_KEY_HERE'; // Replace with your actual API key
-                const success = await aiCoach.initialize({ 
-                    apiKey: apiKey,
-                    dailyLimit: 5  // Free tier limit
-                });
+                                    // Initialize secure AI Coach (no API key needed on frontend)
+                    const success = await aiCoach.initialize({ 
+                        backendUrl: 'https://your-railway-backend-url.railway.app', // This will be updated after deployment
+                        dailyLimit: 5  // Free tier limit
+                    });
                 
                 if (success) {
                     displayAIWelcomeMessage();

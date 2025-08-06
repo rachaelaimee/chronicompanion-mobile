@@ -1,0 +1,226 @@
+/**
+ * ChroniCompanion AI Coach Backend API
+ * 
+ * Secure backend endpoint for AI health coaching
+ * Handles OpenAI API calls with environment variables
+ * Includes premium user authentication and rate limiting
+ */
+
+const express = require('express');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const { createClient } = require('@supabase/supabase-js');
+
+const app = express();
+const port = process.env.PORT || 3001;
+
+// Middleware
+app.use(cors({
+    origin: ['https://chronicompanion.app', 'http://localhost:8080'],
+    credentials: true
+}));
+app.use(express.json());
+
+// Rate limiting
+const aiRateLimit = rateLimit({
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: (req) => {
+        // Premium users get unlimited, free users get 5
+        return req.user?.isPremium ? 1000 : 5;
+    },
+    message: {
+        error: "Daily AI limit reached. Upgrade to Premium for unlimited access!"
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Environment variables
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+// Initialize Supabase client
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+// Middleware to verify user authentication
+async function verifyUser(req, res, next) {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'No valid authorization token' });
+        }
+
+        const token = authHeader.substring(7);
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        
+        if (error || !user) {
+            return res.status(401).json({ error: 'Invalid authentication token' });
+        }
+
+        // Check if user has premium access (you'll implement this logic)
+        req.user = {
+            id: user.id,
+            email: user.email,
+            isPremium: await checkPremiumStatus(user.id)
+        };
+
+        next();
+    } catch (error) {
+        console.error('Auth verification error:', error);
+        res.status(401).json({ error: 'Authentication failed' });
+    }
+}
+
+// Check premium status (implement your payment logic here)
+async function checkPremiumStatus(userId) {
+    // TODO: Implement premium user check
+    // For now, return false (all users are free tier)
+    // Later: check payment status, subscription, etc.
+    return false;
+}
+
+// AI Coach endpoint
+app.post('/api/ai-coach/ask', verifyUser, aiRateLimit, async (req, res) => {
+    try {
+        const { question, healthContext } = req.body;
+        
+        if (!question || question.trim().length === 0) {
+            return res.status(400).json({ error: 'Question is required' });
+        }
+
+        if (!OPENAI_API_KEY) {
+            return res.status(500).json({ error: 'AI service not configured' });
+        }
+
+        // Build health-focused prompt
+        const prompt = buildHealthPrompt(question, healthContext || {});
+        
+        // Call OpenAI API
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                    {
+                        role: 'system',
+                        content: prompt
+                    }
+                ],
+                max_tokens: 500,
+                temperature: 0.7
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`OpenAI API error: ${response.status} ${errorData.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        const aiResponse = data.choices[0]?.message?.content || 'No response generated';
+
+        // Log usage for analytics (optional)
+        await logAIUsage(req.user.id, question, aiResponse);
+
+        res.json({
+            success: true,
+            insight: aiResponse,
+            isPremium: req.user.isPremium,
+            remainingQuestions: req.user.isPremium ? 'unlimited' : (5 - (req.rateLimit?.current || 0))
+        });
+
+    } catch (error) {
+        console.error('AI Coach error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'AI service temporarily unavailable'
+        });
+    }
+});
+
+// Build health-focused prompt
+function buildHealthPrompt(userQuestion, healthContext) {
+    const { recentEntries = [] } = healthContext;
+    
+    let healthData = "No recent health entries available.";
+    if (recentEntries.length > 0) {
+        healthData = `Recent entries (last ${recentEntries.length} days):\n` + 
+            recentEntries.slice(0, 7).map(entry => {
+                return `Date: ${entry.date || entry.entry_date}
+- Mood: ${entry.mood}/10
+- Energy: ${entry.energy}/10  
+- Pain: ${entry.pain || 0}/10
+- Sleep: ${entry.sleep}/10
+${entry.symptoms && entry.symptoms.length > 0 ? `- Symptoms: ${entry.symptoms.join(', ')}` : ''}
+${entry.notes ? `- Notes: ${entry.notes}` : ''}`;
+            }).join('\n\n');
+    }
+
+    return `You are Chroni, an AI health companion for ChroniCompanion app users. You provide personalized, empathetic health insights based on user data.
+
+IMPORTANT GUIDELINES:
+- Be supportive, empathetic, and encouraging
+- Focus on patterns, trends, and actionable insights
+- Never provide medical diagnoses or replace professional medical advice
+- Always recommend consulting healthcare providers for serious concerns
+- Use emojis sparingly and appropriately
+- Keep responses concise but informative (under 300 words)
+- Reference specific data points when available
+
+USER'S RECENT HEALTH DATA:
+${healthData}
+
+USER QUESTION: "${userQuestion}"
+
+Provide a helpful, personalized response based on their health patterns and question.`;
+}
+
+// Log AI usage for analytics
+async function logAIUsage(userId, question, response) {
+    try {
+        await supabase
+            .from('ai_usage_logs')
+            .insert([
+                {
+                    user_id: userId,
+                    question: question.substring(0, 500), // Limit length
+                    response_length: response.length,
+                    created_at: new Date().toISOString()
+                }
+            ]);
+    } catch (error) {
+        console.error('Failed to log AI usage:', error);
+        // Don't fail the request if logging fails
+    }
+}
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'healthy', 
+        service: 'ChroniCompanion AI Coach API',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Premium upgrade endpoint (placeholder)
+app.post('/api/premium/upgrade', verifyUser, async (req, res) => {
+    // TODO: Implement payment processing
+    res.json({ 
+        message: 'Premium upgrade coming soon!',
+        upgradeUrl: 'https://chronicompanion.app/premium'
+    });
+});
+
+app.listen(port, () => {
+    console.log(`🤖 ChroniCompanion AI Coach API running on port ${port}`);
+    console.log(`🔐 OpenAI API Key: ${OPENAI_API_KEY ? 'Configured' : 'Missing'}`);
+    console.log(`🗄️  Supabase: ${SUPABASE_URL ? 'Connected' : 'Not configured'}`);
+});
+
+module.exports = app;
