@@ -89,7 +89,7 @@
                            class="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent">
                 </div>
                 <button id="sign-in-btn" 
-                        onclick="window.workingAuth?.signInWithEmail()"
+                        onclick="if(window.workingAuth && window.workingAuth.signInWithEmail) { window.workingAuth.signInWithEmail(); } else { console.error('❌ workingAuth not ready yet'); }"
                         class="w-full bg-sage-600 hover:bg-sage-700 text-white px-6 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center">
                     <i class="fas fa-envelope mr-2"></i>Sign In / Create Account
                 </button>
@@ -107,7 +107,7 @@
                     <p class="text-sage-700 mb-2">Signed in as:</p>
                     <p id="user-email" class="font-medium text-sage-800 mb-4"></p>
                     <button id="sign-out-btn" 
-                            onclick="window.workingAuth?.signOut()"
+                            onclick="if(window.workingAuth && window.workingAuth.signOut) { window.workingAuth.signOut(); } else { console.error('❌ workingAuth not ready yet'); }"
                             class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors duration-200">
                         Sign Out
                     </button>
@@ -125,7 +125,7 @@
     </div>
 
     <!-- Working Authentication Script -->
-    <script src="js/working-auth.js?v=RAILWAY-DEPLOY-FORCE-v11000"></script>
+    <script src="js/working-auth.js?v=NUCLEAR-RAILWAY-CACHE-CLEAR-v20000-1754439163"></script>
     
     <!-- Enter Key Support -->
     <script>
