@@ -103,16 +103,22 @@ class WorkingAuth {
             this.showMessage('Signing in...', 'info');
 
             // Try to sign in with existing account FIRST
+            console.log('📧 EMAIL AUTH: Attempting sign-in for existing account...');
             const { data, error } = await this.supabase.auth.signInWithPassword({
                 email: email,
                 password: password
             });
 
             if (error) {
-                // If sign-in fails, try to sign up (create new account)
-                if (error.message.includes('Invalid login credentials') || error.message.includes('Email not confirmed')) {
-                    console.log('📧 EMAIL AUTH: Sign-in failed, trying sign-up...');
-                    this.showMessage('Creating new account...', 'info');
+                console.log('📧 EMAIL AUTH: Sign-in failed:', error.message);
+                
+                // Only create new account if it's specifically an invalid credentials error
+                // AND not a wrong password error
+                if (error.message.includes('Invalid login credentials') && 
+                    !error.message.includes('Invalid email or password')) {
+                    
+                    console.log('📧 EMAIL AUTH: Account not found, creating new account...');
+                    this.showMessage('Account not found. Creating new account...', 'info');
                     
                     const { data: signUpData, error: signUpError } = await this.supabase.auth.signUp({
                         email: email,
@@ -132,7 +138,8 @@ class WorkingAuth {
                         return;
                     }
                 } else {
-                    console.error('❌ Sign-in error:', error);
+                    // For wrong password or other errors, don't try to create account
+                    console.error('❌ Sign-in error (not creating new account):', error);
                     this.showMessage(`Sign-in failed: ${error.message}`, 'error');
                     return;
                 }
@@ -210,10 +217,13 @@ class WorkingAuth {
                 }, 100);
             }
             
-            // Load entries when user signs in
+            // Load entries and dashboard when user signs in
             setTimeout(() => {
                 if (typeof loadEntries === 'function') {
                     loadEntries();
+                }
+                if (typeof updateDashboard === 'function') {
+                    updateDashboard();
                 }
             }, 100);
             
