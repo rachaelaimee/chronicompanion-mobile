@@ -270,13 +270,33 @@ class WorkingAuth {
     }
 }
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    if (window.supabase) {
-        window.workingAuth = new WorkingAuth(window.supabase);
-        window.workingAuth.init();
-        console.log('✅ Working authentication initialized and ready!');
-    } else {
-        console.error('❌ Supabase not available for working auth');
+// Initialize when DOM is ready AND Supabase is properly initialized
+async function initializeWorkingAuth() {
+    console.log('🔄 Waiting for Supabase to be properly initialized...');
+    
+    // Wait for Supabase to be available (up to 10 seconds)
+    let attempts = 0;
+    const maxAttempts = 100; // 10 seconds with 100ms intervals
+    
+    while ((!window.supabase || !window.supabase.auth) && attempts < maxAttempts) {
+        console.log(`⏳ Attempt ${attempts + 1}/${maxAttempts}: Waiting for Supabase...`);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
     }
+    
+    if (!window.supabase || !window.supabase.auth) {
+        console.error('❌ CRITICAL: Supabase failed to initialize after 10 seconds');
+        console.error('❌ Available globals:', Object.keys(window).filter(key => key.includes('supabase') || key.includes('mobile')));
+        return;
+    }
+    
+    console.log('✅ Supabase is ready! Initializing WorkingAuth...');
+    window.workingAuth = new WorkingAuth(window.supabase);
+    await window.workingAuth.init();
+    console.log('✅ Working authentication fully initialized and ready!');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Give a small delay to ensure all scripts are loaded
+    setTimeout(initializeWorkingAuth, 100);
 });

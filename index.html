@@ -58,7 +58,21 @@
                 supabaseConfig
             );
             
-            console.log('✅ Supabase client initialized for', isMobile ? 'mobile' : 'web', 'with', window.mobileStorage ? 'mobile storage' : 'default storage');
+            // Verify Supabase client is properly initialized
+            if (!window.supabase || !window.supabase.auth) {
+                console.error('❌ CRITICAL: Supabase client initialization failed!', {
+                    supabaseExists: !!window.supabase,
+                    authExists: !!window.supabase?.auth,
+                    supabaseLib: !!window.supabase
+                });
+            } else {
+                console.log('✅ Supabase client initialized for', isMobile ? 'mobile' : 'web', 'with', window.mobileStorage ? 'mobile storage' : 'default storage');
+                console.log('✅ Supabase auth methods available:', {
+                    signInWithPassword: !!window.supabase.auth.signInWithPassword,
+                    signUp: !!window.supabase.auth.signUp,
+                    signOut: !!window.supabase.auth.signOut
+                });
+            }
         }
         
         // Initialize when DOM is ready
