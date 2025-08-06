@@ -58,9 +58,11 @@
         }
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Chart.js for beautiful graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-sage-50 text-sage-900 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-md">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
         <!-- Header -->
         <div class="text-center mb-8">
             <div class="mb-4">
@@ -337,16 +339,33 @@
                         <h3 class="text-lg font-semibold text-sage-800 mb-4">
                             <i class="fas fa-trending-up mr-2"></i>Recent Trends
                         </h3>
-                        <div id="trends-chart" class="h-48 flex items-center justify-center text-sage-400">
-                            <div class="text-center">
-                                <i class="fas fa-chart-line text-4xl mb-2"></i>
-                                <p>Charts coming soon!</p>
-                                <p class="text-sm">Add more entries to see trends</p>
-                            </div>
-                            </div>
+                                                <div id="trends-chart" class="h-48">
+                            <canvas id="trendsCanvas" width="400" height="200"></canvas>
+                        </div>
                         </div>
                     </div>
 
+                                <!-- Export Section -->
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-sage-800 mb-4">
+                        <i class="fas fa-download mr-2"></i>Export Your Data
+                    </h3>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="exportToCSV()" 
+                                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                            <i class="fas fa-file-csv mr-2"></i>Export to CSV
+                        </button>
+                        <button onclick="exportToJSON()" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                            <i class="fas fa-file-code mr-2"></i>Export to JSON
+                        </button>
+                        <button onclick="printReport()" 
+                                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                            <i class="fas fa-print mr-2"></i>Print Report
+                        </button>
+                    </div>
+                </div>
+                
                 <!-- Recent Entries Summary -->
                 <div class="bg-white rounded-lg shadow-lg p-6">
                     <h3 class="text-lg font-semibold text-sage-800 mb-4">
@@ -354,8 +373,8 @@
                     </h3>
                     <div id="recent-entries" class="space-y-3">
                         <!-- Recent entries will be loaded here -->
-                            </div>
-                        </div>
+                    </div>
+                </div>
                     </div>
 
             <!-- All Entries Tab -->
@@ -504,6 +523,11 @@
             // Refresh entries list and dashboard
             loadEntries();
             updateDashboard();
+            
+            // Update chart after saving
+            setTimeout(() => {
+                createTrendsChart();
+            }, 100);
         }
         
         // Load and display entries
@@ -694,6 +718,9 @@
             // Load content based on tab
             if (tabName === 'dashboard') {
                 updateDashboard();
+                setTimeout(() => {
+                    createTrendsChart();
+                }, 100);
             } else if (tabName === 'entries') {
                 loadAllEntries();
             }
@@ -849,6 +876,284 @@
                     ` : ''}
                 </div>
             `).join('');
+        }
+        
+        // Global chart variable to track existing chart
+        let trendsChart = null;
+        
+        // Create Trends Chart
+        function createTrendsChart() {
+            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
+            const canvas = document.getElementById('trendsCanvas');
+            
+            if (!canvas) {
+                console.log('Canvas not found');
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (trendsChart) {
+                trendsChart.destroy();
+            }
+            
+            if (entries.length === 0) {
+                // Show "no data" message
+                ctx.fillStyle = '#9CA3AF';
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('No entries yet - create your first entry!', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+            
+            // Sort entries by date
+            entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            // Prepare data
+            const labels = entries.map(entry => {
+                const date = new Date(entry.date);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            
+            const moodData = entries.map(entry => entry.mood || null);
+            const energyData = entries.map(entry => entry.energy || null);
+            const painData = entries.map(entry => entry.pain || null);
+            
+            // Create the chart
+            trendsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Mood',
+                            data: moodData,
+                            borderColor: '#5a6e5a',
+                            backgroundColor: 'rgba(90, 110, 90, 0.1)',
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Energy',
+                            data: energyData,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Pain',
+                            data: painData,
+                            borderColor: '#dc2626',
+                            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1
+                            },
+                            title: {
+                                display: true,
+                                text: 'Rating (0-10)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Health Trends Over Time'
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+        
+        // Export Functions
+        function exportToCSV() {
+            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
+            
+            if (entries.length === 0) {
+                alert('No entries to export!');
+                return;
+            }
+            
+            // CSV headers
+            const headers = ['Date', 'Mood', 'Energy', 'Pain', 'Sleep', 'Symptoms', 'Medications', 'Activities', 'Weather', 'Notes'];
+            
+            // Convert entries to CSV format
+            const csvData = entries.map(entry => {
+                return [
+                    entry.date || '',
+                    entry.mood || '',
+                    entry.energy || '',
+                    entry.pain || '',
+                    entry.sleep || '',
+                    (entry.symptoms || []).join('; '),
+                    entry.medications || '',
+                    entry.activities || '',
+                    entry.weather || '',
+                    entry.notes || ''
+                ].map(field => `"${field}"`).join(',');
+            });
+            
+            // Combine headers and data
+            const csv = [headers.join(','), ...csvData].join('\n');
+            
+            // Create and download file
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chronicompanion-entries-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            console.log('✅ CSV export completed');
+        }
+        
+        function exportToJSON() {
+            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
+            
+            if (entries.length === 0) {
+                alert('No entries to export!');
+                return;
+            }
+            
+            // Create export object with metadata
+            const exportData = {
+                exported_at: new Date().toISOString(),
+                app_version: 'ChroniCompanion v1.3',
+                total_entries: entries.length,
+                entries: entries
+            };
+            
+            // Create and download file
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chronicompanion-entries-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            console.log('✅ JSON export completed');
+        }
+        
+        function printReport() {
+            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
+            
+            if (entries.length === 0) {
+                alert('No entries to print!');
+                return;
+            }
+            
+            // Calculate statistics
+            const totalEntries = entries.length;
+            const avgMood = entries.length > 0 ? (entries.reduce((sum, entry) => sum + (entry.mood || 0), 0) / entries.length).toFixed(1) : 'N/A';
+            const avgEnergy = entries.length > 0 ? (entries.reduce((sum, entry) => sum + (entry.energy || 0), 0) / entries.length).toFixed(1) : 'N/A';
+            const avgPain = entries.length > 0 ? (entries.reduce((sum, entry) => sum + (entry.pain || 0), 0) / entries.length).toFixed(1) : 'N/A';
+            
+            // Create printable HTML
+            const printContent = `
+                <html>
+                <head>
+                    <title>ChroniCompanion Health Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+                        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #5a6e5a; padding-bottom: 20px; }
+                        .stats { display: flex; justify-content: space-around; margin: 20px 0; }
+                        .stat-box { text-align: center; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+                        .entry { margin: 20px 0; padding: 15px; border: 1px solid #eee; border-left: 4px solid #5a6e5a; }
+                        .entry-date { font-weight: bold; color: #5a6e5a; margin-bottom: 10px; }
+                        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 10px 0; }
+                        .metric { padding: 5px; background: #f9f9f9; border-radius: 3px; }
+                        .notes { margin-top: 10px; padding: 10px; background: #f6f7f6; border-radius: 5px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>🌱 ChroniCompanion Health Report</h1>
+                        <p>Generated on ${new Date().toLocaleDateString()}</p>
+                        <p>Total Entries: ${totalEntries}</p>
+                    </div>
+                    
+                    <div class="stats">
+                        <div class="stat-box">
+                            <h3>Average Mood</h3>
+                            <p>${avgMood}/10</p>
+                        </div>
+                        <div class="stat-box">
+                            <h3>Average Energy</h3>
+                            <p>${avgEnergy}/10</p>
+                        </div>
+                        <div class="stat-box">
+                            <h3>Average Pain</h3>
+                            <p>${avgPain}/10</p>
+                        </div>
+                    </div>
+                    
+                    <h2>Recent Entries</h2>
+                    ${entries.slice(0, 10).map(entry => `
+                        <div class="entry">
+                            <div class="entry-date">${new Date(entry.date).toLocaleDateString()}</div>
+                            <div class="metrics">
+                                <div class="metric">Mood: ${entry.mood}/10 ${getMoodEmoji(entry.mood)}</div>
+                                <div class="metric">Energy: ${entry.energy}/10 ${getEnergyEmoji(entry.energy)}</div>
+                                ${entry.pain !== undefined ? `<div class="metric">Pain: ${entry.pain}/10 ${getPainEmoji(entry.pain)}</div>` : ''}
+                                ${entry.sleep !== undefined ? `<div class="metric">Sleep: ${entry.sleep}/10 ${getSleepEmoji(entry.sleep)}</div>` : ''}
+                            </div>
+                            ${entry.symptoms && entry.symptoms.length > 0 ? `<div><strong>Symptoms:</strong> ${entry.symptoms.join(', ')}</div>` : ''}
+                            ${entry.medications ? `<div><strong>Medications:</strong> ${entry.medications}</div>` : ''}
+                            ${entry.activities ? `<div><strong>Activities:</strong> ${entry.activities}</div>` : ''}
+                            ${entry.weather ? `<div><strong>Weather:</strong> ${entry.weather}</div>` : ''}
+                            ${entry.notes ? `<div class="notes"><strong>Notes:</strong> ${entry.notes}</div>` : ''}
+                        </div>
+                    `).join('')}
+                </body>
+                </html>
+            `;
+            
+            // Open print dialog
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.print();
+            
+            console.log('✅ Print report opened');
         }
     </script>
 </body>
