@@ -1,0 +1,20 @@
+# Ignore old Python backend files
+backend/
+run_app.py
+run_frontend.py
+start_app.py
+*.py
+
+# Ignore development files
+node_modules/
+.env
+.env.local
+*.log
+.DS_Store
+
+# Ignore mobile build files
+android/
+ios/
+
+# Ignore dist files (frontend only)
+dist/
