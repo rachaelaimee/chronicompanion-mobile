@@ -16,14 +16,32 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Initialize OpenAI
+// Initialize OpenAI with error checking
+if (!process.env.OPENAI_API_KEY) {
+    console.error('❌ OPENAI_API_KEY environment variable is required');
+    process.exit(1);
+}
+
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Initialize Supabase
+// Initialize Supabase with error checking
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+console.log('🔍 Environment Check:');
+console.log('- OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '✅ Set' : '❌ Missing');
+console.log('- SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ Set' : '❌ Missing');
+console.log('- SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? '✅ Set' : '❌ Missing');
+
+if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('❌ Missing Supabase environment variables');
+    console.error('- SUPABASE_URL:', supabaseUrl ? 'OK' : 'MISSING');
+    console.error('- SUPABASE_SERVICE_KEY:', supabaseServiceKey ? 'OK' : 'MISSING');
+    process.exit(1);
+}
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Helper function to build health-focused prompts
