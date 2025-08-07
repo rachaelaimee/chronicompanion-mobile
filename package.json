@@ -4,7 +4,8 @@
   "description": "ChroniCompanion AI Health Coach Backend API",
   "main": "api/ai-coach.js",
   "scripts": {
-    "start": "node api/ai-coach.js",
+    "start": "node api/simple-test.js",
+    "start-full": "node api/ai-coach.js",
     "dev": "nodemon api/ai-coach.js",
     "build": "echo 'No build step required'",
     "test": "echo 'Tests coming soon'"
