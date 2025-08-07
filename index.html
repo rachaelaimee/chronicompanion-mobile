@@ -26,16 +26,37 @@
     <script>
         // Initialize Supabase with proper mobile storage
         async function initializeSupabase() {
-            // Check if we're running on mobile (Capacitor)
-            const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+            // Check if we're running in Capacitor mobile app (not mobile browser)
+            const isCapacitorMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+            console.log('🔍 Platform detection:', {
+                hasCapacitor: !!window.Capacitor,
+                platform: window.Capacitor?.getPlatform?.(),
+                isCapacitorMobile: isCapacitorMobile,
+                userAgent: navigator.userAgent
+            });
             
-            // Wait for mobile storage to be ready
-            if (isMobile && window.mobileStorage) {
+            // Wait for mobile storage to be ready (only for Capacitor apps)
+            if (isCapacitorMobile && window.mobileStorage) {
                 // Test storage health before using it
+                console.log('🔍 MOBILE DEBUG: Testing storage health...');
                 const storageHealthy = await window.mobileStorage.checkStorageHealth();
+                console.log('🔍 MOBILE DEBUG: Storage health result:', storageHealthy);
                 if (!storageHealthy) {
                     console.error('❌ Mobile storage health check failed!');
+                    // Try to fix storage issues
+                    try {
+                        await window.mobileStorage.clear();
+                        console.log('🔧 Cleared mobile storage, retesting...');
+                        const retestResult = await window.mobileStorage.checkStorageHealth();
+                        console.log('🔍 MOBILE DEBUG: Storage retest result:', retestResult);
+                    } catch (clearError) {
+                        console.error('❌ Failed to clear mobile storage:', clearError);
+                    }
+                } else {
+                    console.log('✅ Mobile storage is healthy!');
                 }
+            } else {
+                console.log('🔍 PLATFORM DEBUG: isCapacitorMobile =', isCapacitorMobile, 'mobileStorage =', !!window.mobileStorage);
             }
             
             // Create Supabase client with proper storage
@@ -44,15 +65,17 @@
                     storageKey: 'supabase.auth.token',
                     autoRefreshToken: true,
                     persistSession: true,
-                    detectSessionInUrl: !isMobile, // Mobile apps should NOT detect URL sessions
-                    flowType: isMobile ? 'pkce' : 'implicit' // CRITICAL: Mobile needs PKCE, web uses implicit
+                    detectSessionInUrl: !isCapacitorMobile, // Only Capacitor apps should NOT detect URL sessions
+                    flowType: isCapacitorMobile ? 'pkce' : 'implicit' // CRITICAL: Capacitor apps need PKCE, browsers use implicit
                 }
             };
             
-            // Add mobile-aware storage if available
-            if (window.mobileStorage) {
+            // Add mobile-aware storage if available (only for Capacitor apps)
+            if (isCapacitorMobile && window.mobileStorage) {
                 supabaseConfig.auth.storage = window.mobileStorage;
-                console.log('✅ Using mobile-aware storage');
+                console.log('✅ Using Capacitor mobile storage');
+            } else {
+                console.log('✅ Using standard browser storage');
             }
             
             window.supabase = window.supabase.createClient(
@@ -69,7 +92,7 @@
                     supabaseLib: !!window.supabase
                 });
             } else {
-                console.log('✅ Supabase client initialized for', isMobile ? 'mobile' : 'web', 'with', window.mobileStorage ? 'mobile storage' : 'default storage');
+                console.log('✅ Supabase client initialized for', isCapacitorMobile ? 'Capacitor mobile app' : 'web browser', 'with', (isCapacitorMobile && window.mobileStorage) ? 'Capacitor storage' : 'browser storage');
                 console.log('✅ Supabase auth methods available:', {
                     signInWithPassword: !!window.supabase.auth.signInWithPassword,
                     signUp: !!window.supabase.auth.signUp,
@@ -476,7 +499,7 @@
                     </div>
 
                     <!-- AI Input Area -->
-                    <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
+                    <div id="ai-input-container" class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 pb-2">
                         <input type="text" id="ai-question-input" 
                                placeholder="Ask me about your health..."
                                class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm md:text-base"
@@ -1540,11 +1563,66 @@
                 yPosition += 8; // Space between entries
             });
             
-            // Save the PDF
+            // Save the PDF - different approach for mobile vs web
             const fileName = `chronicompanion-report-${new Date().toISOString().split('T')[0]}.pdf`;
-            doc.save(fileName);
             
-            console.log('✅ PDF export completed');
+            // Check if we're on mobile (Capacitor)
+            const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+            
+            if (isMobile) {
+                // Mobile: Save to filesystem and open with native PDF viewer
+                try {
+                    const pdfOutput = doc.output('datauristring');
+                    const base64Data = pdfOutput.split(',')[1]; // Remove data:application/pdf;base64, prefix
+                    
+                    console.log('📱 Mobile PDF: Saving file to filesystem...');
+                    
+                    // Import Capacitor plugins correctly for Capacitor 6
+                    const { Filesystem } = window.Capacitor.Plugins;
+                    
+                    // Directory enum is available directly from Capacitor
+                    const Directory = {
+                        Documents: 'DOCUMENTS',
+                        Data: 'DATA',
+                        Library: 'LIBRARY',
+                        Cache: 'CACHE',
+                        External: 'EXTERNAL',
+                        ExternalStorage: 'EXTERNAL_STORAGE'
+                    };
+                    
+                    console.log('📱 Mobile PDF: Available plugins:', Object.keys(window.Capacitor.Plugins));
+                    console.log('📱 Mobile PDF: Directory.Documents value:', Directory.Documents);
+                    console.log('📱 Mobile PDF: Filesystem available:', !!Filesystem);
+                    
+                    // Write file to Documents directory
+                    const result = await Filesystem.writeFile({
+                        path: fileName,
+                        data: base64Data,
+                        directory: Directory.Documents
+                    });
+                    
+                    console.log('📱 Mobile PDF: File saved to:', result.uri);
+                    
+                    // Open the PDF with native viewer
+                    const { FileOpener } = window.Capacitor.Plugins;
+                    await FileOpener.open({
+                        filePath: result.uri,
+                        contentType: 'application/pdf'
+                    });
+                    
+                    console.log('✅ Mobile PDF export completed and opened');
+                    
+                } catch (mobileError) {
+                    console.error('❌ Mobile PDF export failed:', mobileError);
+                    // Fallback to regular save
+                    doc.save(fileName);
+                    console.log('✅ PDF export completed (fallback)');
+                }
+            } else {
+                // Web: Regular download
+                doc.save(fileName);
+                console.log('✅ PDF export completed');
+            }
             
             } catch (error) {
                 console.error('❌ PDF export failed:', error);
@@ -1599,6 +1677,8 @@
                 
                 if (success) {
                     displayAIWelcomeMessage();
+                    // Load previous AI conversations
+                    await loadAIConversations();
                     console.log('✅ AI Coach fully initialized and ready');
                 } else {
                     displayAISetupMessage();
@@ -1680,6 +1760,42 @@
                 }
             });
             
+            // Mobile keyboard handling - scroll input into view when focused
+            questionInput.addEventListener('focus', () => {
+                // Check if we're on mobile
+                const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+                if (isMobile) {
+                    // Delay to allow keyboard to appear
+                    setTimeout(() => {
+                        // Scroll the input container into view
+                        const inputContainer = document.getElementById('ai-input-container');
+                        inputContainer.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                    }, 300); // Wait 300ms for keyboard animation
+                }
+            });
+            
+            // Additional mobile optimization - adjust chat container when keyboard shows
+            if (window.Capacitor && window.Capacitor.getPlatform() !== 'web') {
+                // Listen for viewport changes (keyboard show/hide)
+                window.addEventListener('resize', () => {
+                    const chatContainer = document.getElementById('ai-chat-container');
+                    const inputContainer = document.getElementById('ai-input-container');
+                    
+                    // If input is focused, ensure it stays visible
+                    if (document.activeElement === questionInput) {
+                        setTimeout(() => {
+                            inputContainer.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'center' 
+                            });
+                        }, 100);
+                    }
+                });
+            }
+            
             // Quick question buttons
             document.querySelectorAll('.ai-quick-question').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -1723,6 +1839,9 @@
                 if (result.success) {
                     // Add AI response
                     addAIMessage(result.insight, 'ai');
+                    
+                    // Save conversation to database
+                    await saveAIConversation(question, result.insight);
                     
                     // Update usage display
                     document.getElementById('ai-usage-display').innerHTML = 
@@ -1788,6 +1907,61 @@
             const message = document.getElementById(messageId);
             if (message) {
                 message.remove();
+            }
+        }
+        
+        // Save AI conversation to database
+        async function saveAIConversation(question, response) {
+            try {
+                const { data, error } = await window.supabase
+                    .from('ai_conversations')
+                    .insert([
+                        {
+                            user_id: window.currentUser?.id,
+                            question: question,
+                            response: response,
+                            created_at: new Date().toISOString()
+                        }
+                    ]);
+                    
+                if (error) {
+                    console.error('❌ Error saving AI conversation:', error);
+                } else {
+                    console.log('✅ AI conversation saved to database');
+                }
+            } catch (error) {
+                console.error('❌ Error saving AI conversation:', error);
+            }
+        }
+        
+        // Load AI conversations from database
+        async function loadAIConversations() {
+            try {
+                const { data, error } = await window.supabase
+                    .from('ai_conversations')
+                    .select('*')
+                    .eq('user_id', window.currentUser?.id)
+                    .order('created_at', { ascending: true })
+                    .limit(20); // Load last 20 conversations
+                    
+                if (error) {
+                    console.error('❌ Error loading AI conversations:', error);
+                    return;
+                }
+                
+                // Clear existing messages
+                document.getElementById('ai-chat-messages').innerHTML = '';
+                
+                // Add each conversation
+                if (data && data.length > 0) {
+                    data.forEach(conversation => {
+                        addAIMessage(conversation.question, 'user');
+                        addAIMessage(conversation.response, 'ai');
+                    });
+                    console.log(`✅ Loaded ${data.length} AI conversations from database`);
+                }
+            } catch (error) {
+                console.error('❌ Error loading AI conversations:', error);
             }
         }
         
