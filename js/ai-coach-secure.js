@@ -5,7 +5,7 @@
  * Handles authentication and premium features
  */
 
-class SecureAIHealthCoach {
+class AIHealthCoachSecure {
     constructor() {
         this.apiBaseUrl = process.env.NODE_ENV === 'production' 
             ? 'https://your-railway-app.railway.app'  // Replace with your Railway URL
@@ -243,10 +243,10 @@ class SecureAIHealthCoach {
 
 // Make the class available globally
 if (typeof window !== 'undefined') {
-    window.SecureAIHealthCoach = SecureAIHealthCoach;
+    window.AIHealthCoachSecure = AIHealthCoachSecure;
 }
 
 // Export for Node.js environments
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = SecureAIHealthCoach;
+    module.exports = AIHealthCoachSecure;
 }
