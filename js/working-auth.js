@@ -179,8 +179,41 @@ class WorkingAuth {
                     }
                 }
                 
-                // Don't auto-create accounts - just show the error
-                // This prevents "account created" messages for existing users
+                // If sign-in failed, try to create a new account
+                console.log('📧 EMAIL AUTH: Sign-in failed, attempting to create new account...');
+                
+                if (error.message?.includes('Invalid login credentials') || 
+                    error.message?.includes('Email not confirmed') ||
+                    error.message?.includes('User not found')) {
+                    
+                    // Try to create new account
+                    console.log('📧 EMAIL AUTH: Creating new account for:', email);
+                    this.showMessage('Creating new account...', 'info');
+                    
+                    const { data: signUpData, error: signUpError } = await this.supabase.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            emailRedirectTo: window.location.origin
+                        }
+                    });
+                    
+                    if (signUpError) {
+                        console.error('❌ Sign-up failed:', signUpError);
+                        this.showMessage(`Account creation failed: ${signUpError.message}`, 'error');
+                        return;
+                    }
+                    
+                    if (signUpData?.user) {
+                        console.log('✅ EMAIL AUTH: Account created successfully');
+                        this.currentUser = signUpData.user;
+                        this.updateAuthUI(true, signUpData.user);
+                        this.showMessage(`Welcome to ChroniCompanion, ${signUpData.user.email}! Account created successfully.`, 'success');
+                        return;
+                    }
+                }
+                
+                // For other errors, show the original error message
                 this.showMessage(`Sign-in failed: ${error.message}. Please check your email and password.`, 'error');
                 return;
             }
