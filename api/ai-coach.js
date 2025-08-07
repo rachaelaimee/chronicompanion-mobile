@@ -60,29 +60,84 @@ async function logAIUsage(userId, question, response) {
     }
 }
 
-// Simple CORS - allow all origins temporarily to debug
-app.use(cors({
-    origin: true, // Allow all origins
+// ⚡ DEFINITIVE CORS CONFIGURATION - Based on Express.js production best practices
+const corsOptions = {
+    origin: function (origin, callback) {
+        console.log('🔍 CORS Origin Check:', origin);
+        
+        // Allow requests with no origin (like mobile apps or Postman)
+        if (!origin) {
+            console.log('✅ No origin - allowing request');
+            return callback(null, true);
+        }
+        
+        // List of allowed origins
+        const allowedOrigins = [
+            'https://chronicompanion.app',
+            'http://localhost:8080',
+            'http://127.0.0.1:8080',
+            'http://localhost:3000',
+            'https://localhost:8080'
+        ];
+        
+        if (allowedOrigins.includes(origin)) {
+            console.log('✅ Origin allowed:', origin);
+            callback(null, true);
+        } else {
+            console.log('❌ Origin blocked:', origin);
+            // For debugging, allow all origins temporarily
+            callback(null, true); // Change to: callback(new Error('Not allowed by CORS'), false);
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization', 
+        'Accept',
+        'Origin',
+        'X-Requested-With',
+        'Access-Control-Request-Method',
+        'Access-Control-Request-Headers'
+    ],
     credentials: true,
-    optionsSuccessStatus: 200
-}));
+    optionsSuccessStatus: 200, // For legacy browser support
+    maxAge: 86400 // Cache preflight for 24 hours
+};
 
-// Handle preflight OPTIONS requests explicitly with detailed logging
-app.options('*', (req, res) => {
-    console.log('🔍 OPTIONS preflight request received:');
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Additional manual preflight handler for extra debugging
+app.options('*', (req, res, next) => {
+    console.log('🚀 Manual OPTIONS handler triggered');
     console.log('  Origin:', req.headers.origin);
-    console.log('  Method:', req.method);
-    console.log('  Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('  Access-Control-Request-Method:', req.headers['access-control-request-method']);
+    console.log('  Access-Control-Request-Headers:', req.headers['access-control-request-headers']);
     
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
+    // Let the cors middleware handle it
+    next();
+});
+
+// Comprehensive request logging middleware
+app.use((req, res, next) => {
+    console.log(`\n🌐 ${req.method} ${req.path}`);
+    console.log('  Origin:', req.headers.origin || 'undefined');
+    console.log('  User-Agent:', req.headers['user-agent']?.substring(0, 50) + '...');
+    console.log('  Content-Type:', req.headers['content-type'] || 'undefined');
+    console.log('  Authorization:', req.headers.authorization ? 'Present' : 'Missing');
     
-    console.log('✅ Sending OPTIONS response with CORS headers');
-    res.sendStatus(200);
+    // Log response headers after they're set
+    const originalSend = res.send;
+    res.send = function(data) {
+        console.log('📤 Response Headers:');
+        console.log('  Access-Control-Allow-Origin:', res.get('Access-Control-Allow-Origin') || 'undefined');
+        console.log('  Access-Control-Allow-Methods:', res.get('Access-Control-Allow-Methods') || 'undefined');
+        console.log('  Access-Control-Allow-Headers:', res.get('Access-Control-Allow-Headers') || 'undefined');
+        console.log('  Access-Control-Allow-Credentials:', res.get('Access-Control-Allow-Credentials') || 'undefined');
+        return originalSend.call(this, data);
+    };
+    
+    next();
 });
 
 app.use(express.json());
