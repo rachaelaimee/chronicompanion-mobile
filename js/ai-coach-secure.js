@@ -16,23 +16,49 @@ class AIHealthCoachSecure {
     }
 
     /**
-     * Initialize the secure AI Coach
+     * Initialize the secure AI Coach with proper auth handling
      * @param {Object} config - Configuration object
      */
     async initialize(config = {}) {
         try {
-            // Get auth token from Supabase
-            if (window.supabase) {
-                const { data: { session } } = await window.supabase.auth.getSession();
-                if (session?.access_token) {
-                    this.authToken = session.access_token;
-                    this.isInitialized = true;
-                    console.log('✅ Secure AI Health Coach initialized');
-                    return true;
+            // Apply config settings
+            if (config.backendUrl) {
+                this.backendUrl = config.backendUrl;
+            }
+            if (config.dailyLimit) {
+                this.dailyLimit = config.dailyLimit;
+            }
+            
+            // Wait for Supabase to be fully ready with retries
+            let attempts = 0;
+            const maxAttempts = 10; // 5 seconds with 500ms intervals
+            
+            while (attempts < maxAttempts) {
+                try {
+                    if (window.supabase && window.supabase.auth) {
+                        const { data: { session }, error } = await window.supabase.auth.getSession();
+                        
+                        if (error) {
+                            console.warn(`⚠️ AI Coach: Auth error (attempt ${attempts + 1}):`, error.message);
+                        } else if (session?.access_token) {
+                            this.authToken = session.access_token;
+                            this.isInitialized = true;
+                            console.log('✅ Secure AI Health Coach initialized successfully');
+                            return true;
+                        }
+                    }
+                } catch (sessionError) {
+                    console.warn(`⚠️ AI Coach: Session retrieval error (attempt ${attempts + 1}):`, sessionError.message);
+                }
+                
+                attempts++;
+                if (attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    console.log(`🔄 AI Coach: Retrying initialization (${attempts}/${maxAttempts})...`);
                 }
             }
             
-            console.warn('⚠️ AI Coach: No authentication token available');
+            console.error('❌ AI Coach: Authentication token not available after retries');
             return false;
         } catch (error) {
             console.error('❌ Secure AI Coach initialization failed:', error);
@@ -41,22 +67,56 @@ class AIHealthCoachSecure {
     }
 
     /**
-     * Get AI health insight from secure backend
+     * Get fresh auth token before making API calls
+     * @returns {string|null} Fresh auth token
+     */
+    async getFreshAuthToken() {
+        try {
+            if (window.supabase && window.supabase.auth) {
+                const { data: { session }, error } = await window.supabase.auth.getSession();
+                if (error) {
+                    console.error('❌ Token refresh error:', error);
+                    return null;
+                }
+                if (session?.access_token) {
+                    this.authToken = session.access_token;
+                    return session.access_token;
+                }
+            }
+            return null;
+        } catch (error) {
+            console.error('❌ Token refresh failed:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get AI health insight from secure backend with token refresh
      * @param {string} userQuestion - User's health question
      * @param {Object} healthContext - Health data context
      * @returns {Object} Result object with success status and insight/error
      */
     async getHealthInsight(userQuestion, healthContext = {}) {
-        if (!this.isInitialized || !this.authToken) {
+        if (!this.isInitialized) {
             throw new Error('AI Coach not initialized. Please sign in first.');
         }
 
         try {
+            // Get fresh auth token
+            const freshToken = await this.getFreshAuthToken();
+            if (!freshToken) {
+                throw new Error('Unable to get authentication token. Please sign in again.');
+            }
+
+            console.log('🚀 Making AI Coach request to:', `${this.backendUrl}/api/ai-coach`);
+            
             const response = await fetch(`${this.backendUrl}/api/ai-coach`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.authToken}`
+                    'Authorization': `Bearer ${freshToken}`,
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
                 },
                 body: JSON.stringify({
                     question: userQuestion,
@@ -64,11 +124,17 @@ class AIHealthCoachSecure {
                 })
             });
 
-            const data = await response.json();
+            console.log('📡 Response status:', response.status);
+            console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
 
             if (!response.ok) {
-                throw new Error(data.error || `Server error: ${response.status}`);
+                const errorText = await response.text();
+                console.error('❌ API Error Response:', errorText);
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
             }
+
+            const data = await response.json();
+            console.log('✅ AI Coach response received:', data);
 
             if (data.success) {
                 // Track usage locally for UI updates
@@ -94,6 +160,16 @@ class AIHealthCoachSecure {
         } catch (error) {
             console.error('❌ Secure AI Insight Error:', error);
             
+            // Check if it's a network/CORS error
+            if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                return {
+                    success: false,
+                    error: 'Network connection failed. Please check your connection and try again.',
+                    usage: await this.getTodayUsage(),
+                    limit: this.dailyLimit
+                };
+            }
+            
             // Handle specific error cases
             if (error.message.includes('Daily AI limit reached')) {
                 return {
@@ -107,7 +183,7 @@ class AIHealthCoachSecure {
             
             return {
                 success: false,
-                error: error.message || 'AI service temporarily unavailable',
+                error: error.message || 'An unexpected error occurred. Please try again.',
                 usage: await this.getTodayUsage(),
                 limit: this.dailyLimit
             };

@@ -1509,14 +1509,26 @@
         let aiCoach = null;
         let isAIInitialized = false;
         
-        // Initialize AI Coach
+        // Initialize AI Coach with proper timing
         async function initializeAICoach() {
             if (isAIInitialized) {
                 updateAIUsageDisplay();
                 return;
             }
             
+            console.log('🤖 Initializing AI Coach...');
+            
             try {
+                // Wait for authentication to be fully ready
+                if (!window.workingAuth) {
+                    console.log('⏳ Waiting for authentication to be ready...');
+                    let attempts = 0;
+                    while (!window.workingAuth && attempts < 20) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        attempts++;
+                    }
+                }
+                
                 // SECURE BACKEND: Try Railway first, fallback to localhost if needed
                 aiCoach = new window.AIHealthCoachSecure();
                 
@@ -1528,27 +1540,28 @@
                 
                 // If Railway fails, try localhost backend for development
                 if (!success && window.location.hostname === 'localhost') {
-                    console.log('Railway backend unavailable, trying localhost...');
+                    console.log('🔄 Railway backend unavailable, trying localhost...');
                     success = await aiCoach.initialize({ 
-                        backendUrl: 'http://localhost:3001',
+                        backendUrl: 'http://localhost:3000',
                         dailyLimit: 5  // Free tier limit
                     });
                 }
                 
                 if (success) {
                     displayAIWelcomeMessage();
+                    console.log('✅ AI Coach fully initialized and ready');
                 } else {
                     displayAISetupMessage();
+                    console.log('⚠️ AI Coach initialization failed - setup required');
                 }
                 
                 // Set up event handlers
                 setupAIEventHandlers();
                 
                 isAIInitialized = true;
-                console.log('✅ AI Coach initialized');
             } catch (error) {
                 console.error('❌ AI Coach initialization error:', error);
-                displayAIError('Failed to initialize AI Coach');
+                displayAIError('Failed to initialize AI Coach: ' + error.message);
             }
         }
         

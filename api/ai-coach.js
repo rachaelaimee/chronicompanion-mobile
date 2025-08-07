@@ -118,21 +118,45 @@ app.use(express.json());
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ 
-        status: 'OK', 
+        status: 'OK',
         timestamp: new Date().toISOString(),
         service: 'ChroniCompanion AI Coach Backend',
         environment: {
-            port: process.env.PORT || '3001',
-            nodeEnv: process.env.NODE_ENV || 'development',
-            openaiConfigured: !!openai,
-            supabaseConfigured: !!supabase,
-            envVars: {
+            NODE_ENV: process.env.NODE_ENV || 'development',
+            PORT: process.env.PORT || '3000',
+            OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+            SUPABASE_URL: !!process.env.SUPABASE_URL,
+            SUPABASE_SERVICE_KEY: !!process.env.SUPABASE_SERVICE_KEY,
+            openai_configured: !!openai,
+            supabase_configured: !!supabase
+        }
+    });
+});
+
+// API health check with CORS debugging
+app.get('/api/health', (req, res) => {
+    const healthStatus = {
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        service: 'AI Coach API',
+        cors: {
+            origin: req.headers.origin || 'none',
+            method: req.method,
+            headers: req.headers
+        },
+        environment: {
+            openai: !!openai,
+            supabase: !!supabase,
+            env_vars: {
                 OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
                 SUPABASE_URL: !!process.env.SUPABASE_URL,
                 SUPABASE_SERVICE_KEY: !!process.env.SUPABASE_SERVICE_KEY
             }
         }
-    });
+    };
+    
+    console.log('🏥 Health check requested:', healthStatus);
+    res.json(healthStatus);
 });
 
 // Test CORS endpoint (no auth required)
@@ -162,185 +186,155 @@ app.post('/test-cors', (req, res) => {
     });
 });
 
-// Rate limiting
-const aiRateLimit = rateLimit({
-    windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    max: (req) => {
-        // Premium users get unlimited, free users get 5
-        return req.user?.isPremium ? 1000 : 5;
-    },
-    message: {
-        error: "Daily AI limit reached. Upgrade to Premium for unlimited access!"
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
+// Add explicit preflight handling for AI Coach endpoint
+app.options('/api/ai-coach', (req, res) => {
+    console.log('🛸 AI Coach preflight request received');
+    console.log('  Origin:', req.headers.origin);
+    console.log('  Method:', req.headers['access-control-request-method']);
+    console.log('  Headers:', req.headers['access-control-request-headers']);
+    
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With, Cache-Control');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+    
+    res.status(204).end();
 });
 
-
-
-// Middleware to verify user authentication
-async function verifyUser(req, res, next) {
-    try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'No valid authorization token' });
-        }
-
-        const token = authHeader.substring(7);
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        
-        if (error || !user) {
-            return res.status(401).json({ error: 'Invalid authentication token' });
-        }
-
-        // Check if user has premium access (you'll implement this logic)
-        req.user = {
-            id: user.id,
-            email: user.email,
-            isPremium: await checkPremiumStatus(user.id)
-        };
-
-        next();
-    } catch (error) {
-        console.error('Auth verification error:', error);
-        res.status(401).json({ error: 'Authentication failed' });
-    }
-}
-
-// Check premium status (implement your payment logic here)
-async function checkPremiumStatus(userId) {
-    // TODO: Implement premium user check
-    // For now, return false (all users are free tier)
-    // Later: check payment status, subscription, etc.
-    return false;
-}
-
-// AI Coach endpoint
-app.post('/api/ai-coach', verifyUser, aiRateLimit, async (req, res) => {
-    console.log('🤖 AI Coach POST request received:');
+// Enhanced AI Coach endpoint with better error handling
+app.post('/api/ai-coach', async (req, res) => {
+    console.log('\n🤖 AI Coach request received');
     console.log('  Origin:', req.headers.origin);
-    console.log('  Method:', req.method);
-    console.log('  Content-Type:', req.headers['content-type']);
     console.log('  Authorization:', req.headers.authorization ? 'Present' : 'Missing');
+    console.log('  Content-Type:', req.headers['content-type']);
     
-    try {
-        const { question, healthContext } = req.body;
-        
-        if (!question || question.trim().length === 0) {
-            return res.status(400).json({ error: 'Question is required' });
-        }
+    // Ensure CORS headers are set for this endpoint
+    if (req.headers.origin) {
+        res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
 
+    try {
+        // Check if OpenAI is configured
         if (!openai) {
-            return res.status(500).json({ 
-                error: 'AI service not configured', 
-                details: 'OpenAI API key missing in environment variables' 
+            console.error('❌ OpenAI not configured');
+            return res.status(500).json({
+                success: false,
+                error: 'AI service is not available. Please check configuration.'
             });
         }
 
+        // Validate request body
+        const { question, healthContext } = req.body;
+        if (!question || typeof question !== 'string') {
+            return res.status(400).json({
+                success: false,
+                error: 'Question is required and must be a string.'
+            });
+        }
+
+        // Get user from JWT token
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({
+                success: false,
+                error: 'Authorization token is required.'
+            });
+        }
+
+        const token = authHeader.split(' ')[1];
+        let user = null;
+        
+        if (supabase) {
+            try {
+                const { data, error } = await supabase.auth.getUser(token);
+                if (error) {
+                    console.error('❌ Auth error:', error);
+                    return res.status(401).json({
+                        success: false,
+                        error: 'Invalid or expired token.'
+                    });
+                }
+                user = data.user;
+                console.log('✅ User authenticated:', user.email);
+            } catch (authError) {
+                console.error('❌ Token validation error:', authError);
+                return res.status(401).json({
+                    success: false,
+                    error: 'Token validation failed.'
+                });
+            }
+        }
+
         // Build health-focused prompt
-        const prompt = buildHealthPrompt(question, healthContext || {});
+        const prompt = buildHealthPrompt(question, healthContext);
+        
+        console.log('🧠 Sending request to OpenAI...');
         
         // Call OpenAI API
         const completion = await openai.chat.completions.create({
             model: 'gpt-4o-mini',
             messages: [
-                    {
-                        role: 'system',
-                        content: prompt
-                    }
-                ],
-                max_tokens: 500,
-                temperature: 0.7
-            });
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            max_tokens: 500,
+            temperature: 0.7
+        });
 
-        const aiResponse = completion.choices[0]?.message?.content || 'No response generated';
+        const insight = completion.choices[0]?.message?.content;
+        
+        if (!insight) {
+            throw new Error('No response generated from AI service');
+        }
 
-        // Log usage for analytics (optional)
-        await logAIUsage(req.user.id, question, aiResponse);
+        console.log('✅ OpenAI response generated');
 
+        // Log usage if user is available
+        if (user && supabase) {
+            await logAIUsage(user.id, question, insight);
+        }
+
+        // Return success response
         res.json({
             success: true,
-            insight: aiResponse,
-            isPremium: req.user.isPremium,
-            remainingQuestions: req.user.isPremium ? 'unlimited' : (5 - (req.rateLimit?.current || 0))
+            insight: insight,
+            isPremium: false, // For now, all users are free tier
+            remainingQuestions: 4 // Placeholder
         });
 
     } catch (error) {
-        console.error('AI Coach error:', error);
+        console.error('❌ AI Coach error:', error);
+        
+        // Handle specific OpenAI errors
+        if (error.code === 'rate_limit_exceeded') {
+            return res.status(429).json({
+                success: false,
+                error: 'AI service is currently busy. Please try again in a moment.'
+            });
+        }
+        
+        if (error.code === 'insufficient_quota') {
+            return res.status(503).json({
+                success: false,
+                error: 'AI service is temporarily unavailable. Please try again later.'
+            });
+        }
+
         res.status(500).json({
             success: false,
-            error: error.message || 'AI service temporarily unavailable'
+            error: 'Sorry, I encountered an error. Please try again later. 🤖💔'
         });
     }
-});
-
-// Build health-focused prompt
-function buildHealthPrompt(userQuestion, healthContext) {
-    const { recentEntries = [] } = healthContext;
-    
-    let healthData = "No recent health entries available.";
-    if (recentEntries.length > 0) {
-        healthData = `Recent entries (last ${recentEntries.length} days):\n` + 
-            recentEntries.slice(0, 7).map(entry => {
-                return `Date: ${entry.date || entry.entry_date}
-- Mood: ${entry.mood}/10
-- Energy: ${entry.energy}/10  
-- Pain: ${entry.pain || 0}/10
-- Sleep: ${entry.sleep}/10
-${entry.symptoms && entry.symptoms.length > 0 ? `- Symptoms: ${entry.symptoms.join(', ')}` : ''}
-${entry.notes ? `- Notes: ${entry.notes}` : ''}`;
-            }).join('\n\n');
-    }
-
-    return `You are Chroni, an AI health companion for ChroniCompanion app users. You provide personalized, empathetic health insights based on user data.
-
-IMPORTANT GUIDELINES:
-- Be supportive, empathetic, and encouraging
-- Focus on patterns, trends, and actionable insights
-- Never provide medical diagnoses or replace professional medical advice
-- Always recommend consulting healthcare providers for serious concerns
-- Use emojis sparingly and appropriately
-- Keep responses concise but informative (under 300 words)
-- Reference specific data points when available
-
-USER'S RECENT HEALTH DATA:
-${healthData}
-
-USER QUESTION: "${userQuestion}"
-
-Provide a helpful, personalized response based on their health patterns and question.`;
-}
-
-// Log AI usage for analytics
-async function logAIUsage(userId, question, response) {
-    try {
-        await supabase
-            .from('ai_usage_logs')
-            .insert([
-                {
-                    user_id: userId,
-                    question: question.substring(0, 500), // Limit length
-                    response_length: response.length,
-                    created_at: new Date().toISOString()
-                }
-            ]);
-    } catch (error) {
-        console.error('Failed to log AI usage:', error);
-        // Don't fail the request if logging fails
-    }
-}
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'healthy', 
-        service: 'ChroniCompanion AI Coach API',
-        timestamp: new Date().toISOString()
-    });
 });
 
 // Premium upgrade endpoint (placeholder)
-app.post('/api/premium/upgrade', verifyUser, async (req, res) => {
+app.post('/api/premium/upgrade', async (req, res) => {
     // TODO: Implement payment processing
     res.json({ 
         message: 'Premium upgrade coming soon!',
