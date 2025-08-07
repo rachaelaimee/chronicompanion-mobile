@@ -172,6 +172,8 @@ Please provide a concise, helpful, and empathetic response based on their health
         }
         
         console.log('🧠 Sending request to OpenAI...');
+        console.log('📝 Prompt length:', prompt.length);
+        console.log('🔑 OpenAI client available:', !!openai);
         
         // Call OpenAI API
         const completion = await openai.chat.completions.create({
@@ -180,6 +182,8 @@ Please provide a concise, helpful, and empathetic response based on their health
             max_tokens: 300,
             temperature: 0.7
         });
+        
+        console.log('📊 OpenAI response:', completion.choices?.[0]?.message?.content?.substring(0, 100) + '...');
 
         const insight = completion.choices[0]?.message?.content;
         
@@ -199,6 +203,10 @@ Please provide a concise, helpful, and empathetic response based on their health
 
     } catch (error) {
         console.error('❌ AI Coach error:', error);
+        console.error('❌ Error type:', error.constructor.name);
+        console.error('❌ Error code:', error.code);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error status:', error.status);
         
         // Handle specific OpenAI errors
         if (error.code === 'rate_limit_exceeded') {
@@ -214,10 +222,18 @@ Please provide a concise, helpful, and empathetic response based on their health
                 error: 'AI service is temporarily unavailable. Please try again later.'
             });
         }
+        
+        if (error.status === 401) {
+            return res.status(503).json({
+                success: false,
+                error: 'AI service authentication failed. Please contact support.'
+            });
+        }
 
         res.status(500).json({
             success: false,
-            error: 'Sorry, I encountered an error. Please try again later. 🤖💔'
+            error: 'Sorry, I encountered an error. Please try again later. 🤖💔',
+            debug: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });
