@@ -1517,14 +1517,23 @@
             }
             
             try {
-                // SECURE BACKEND: Use Railway backend with environment variables
+                // SECURE BACKEND: Try Railway first, fallback to localhost if needed
                 aiCoach = new window.AIHealthCoachSecure();
                 
-                // Initialize secure AI Coach (API key handled by Railway backend)
-                const success = await aiCoach.initialize({ 
+                // Try Railway backend first
+                let success = await aiCoach.initialize({ 
                     backendUrl: 'https://chronicompanion-mobile-production.up.railway.app',
                     dailyLimit: 5  // Free tier limit
                 });
+                
+                // If Railway fails, try localhost backend for development
+                if (!success && window.location.hostname === 'localhost') {
+                    console.log('Railway backend unavailable, trying localhost...');
+                    success = await aiCoach.initialize({ 
+                        backendUrl: 'http://localhost:3001',
+                        dailyLimit: 5  // Free tier limit
+                    });
+                }
                 
                 if (success) {
                     displayAIWelcomeMessage();
