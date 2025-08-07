@@ -52,7 +52,13 @@ if (supabaseUrl && supabaseServiceKey) {
         console.log('✅ Supabase client initialized');
     } catch (error) {
         console.error('❌ Supabase initialization failed:', error.message);
+        console.error('❌ Supabase URL length:', supabaseUrl?.length || 0);
+        console.error('❌ Supabase Service Key length:', supabaseServiceKey?.length || 0);
     }
+} else {
+    console.warn('⚠️ Supabase not configured - missing URL or Service Key');
+    console.log('- supabaseUrl present:', !!supabaseUrl);
+    console.log('- supabaseServiceKey present:', !!supabaseServiceKey);
 }
 
 // Helper function to build health-focused prompts
