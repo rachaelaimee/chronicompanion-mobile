@@ -19,7 +19,7 @@
     <script src="js/mobile-storage.js"></script>
     
     <!-- AI Health Coach -->
-    <script src="js/ai-coach.js"></script>
+    <script src="js/ai-coach-secure.js"></script>
     
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1517,13 +1517,12 @@
             }
             
             try {
-                // RESTORE ORIGINAL: Use the original working AIHealthCoach implementation
-                aiCoach = new window.AIHealthCoach();
+                // SECURE BACKEND: Use Railway backend with environment variables
+                aiCoach = new window.AIHealthCoachSecure();
                 
-                // Initialize with API key (set via localStorage for security)
-                const apiKey = localStorage.getItem('openai_api_key') || 'YOUR_OPENAI_API_KEY_HERE';
-                const success = await aiCoach.initialize({
-                    apiKey: apiKey,
+                // Initialize secure AI Coach (API key handled by Railway backend)
+                const success = await aiCoach.initialize({ 
+                    backendUrl: 'https://chronicompanion-mobile-production.up.railway.app',
                     dailyLimit: 5  // Free tier limit
                 });
                 
