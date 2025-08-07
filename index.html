@@ -1058,8 +1058,19 @@
         let trendsChart = null;
         
         // Create Trends Chart
-        function createTrendsChart() {
-            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
+        async function createTrendsChart() {
+            try {
+                const { data: entries, error } = await window.supabase
+                    .from('health_entries')
+                    .select('*')
+                    .order('entry_date', { ascending: false });
+
+                if (error) {
+                    console.error('Error loading chart data:', error);
+                    return;
+                }
+
+                const entriesArray = entries || [];
             const canvas = document.getElementById('trendsCanvas');
             
             if (!canvas) {
@@ -1074,7 +1085,7 @@
                 trendsChart.destroy();
             }
             
-            if (entries.length === 0) {
+            if (entriesArray.length === 0) {
                 // Show "no data" message
                 ctx.fillStyle = '#9CA3AF';
                 ctx.font = '16px sans-serif';
@@ -1084,17 +1095,17 @@
             }
             
             // Sort entries by date
-            entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+            entriesArray.sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
             
             // Prepare data
-            const labels = entries.map(entry => {
-                const date = new Date(entry.date);
+            const labels = entriesArray.map(entry => {
+                const date = new Date(entry.entry_date);
                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             });
             
-            const moodData = entries.map(entry => entry.mood || null);
-            const energyData = entries.map(entry => entry.energy || null);
-            const painData = entries.map(entry => entry.pain || null);
+            const moodData = entriesArray.map(entry => entry.mood || null);
+            const energyData = entriesArray.map(entry => entry.energy || null);
+            const painData = entriesArray.map(entry => entry.pain || null);
             
             // Create the chart
             trendsChart = new Chart(ctx, {
@@ -1172,6 +1183,18 @@
                     }
                 }
             });
+            
+            } catch (error) {
+                console.error('Error creating trends chart:', error);
+                const canvas = document.getElementById('trendsCanvas');
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#EF4444';
+                    ctx.font = '16px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Error loading chart data', canvas.width / 2, canvas.height / 2);
+                }
+            }
         }
         
         // Export Functions

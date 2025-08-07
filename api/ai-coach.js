@@ -60,35 +60,23 @@ async function logAIUsage(userId, question, response) {
     }
 }
 
-// Middleware - More permissive CORS for production
+// Simple CORS - allow all origins temporarily to debug
 app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        
-        const allowedOrigins = [
-            'https://chronicompanion.app',
-            'http://localhost:8080',
-            'http://localhost:3000',
-            'https://localhost:8080'  // In case of HTTPS locally
-        ];
-        
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            console.log('❌ CORS blocked origin:', origin);
-            console.log('🔍 Allowed origins:', allowedOrigins);
-            callback(null, true); // TEMPORARILY allow all origins for debugging
-        }
-    },
+    origin: true, // Allow all origins
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
     credentials: true,
-    optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+    optionsSuccessStatus: 200
 }));
 
 // Handle preflight OPTIONS requests explicitly
-app.options('*', cors());
+app.options('*', (req, res) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.sendStatus(200);
+});
 
 app.use(express.json());
 
