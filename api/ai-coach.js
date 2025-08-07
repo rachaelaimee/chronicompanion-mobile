@@ -60,14 +60,45 @@ async function logAIUsage(userId, question, response) {
     }
 }
 
-// Middleware
+// Middleware - More permissive CORS for production
 app.use(cors({
-    origin: ['https://chronicompanion.app', 'http://localhost:8080', 'http://localhost:3000'],
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        const allowedOrigins = [
+            'https://chronicompanion.app',
+            'http://localhost:8080',
+            'http://localhost:3000',
+            'https://localhost:8080'  // In case of HTTPS locally
+        ];
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('CORS blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    credentials: true,
+    optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
+
+// Handle preflight OPTIONS requests explicitly
+app.options('*', cors());
+
 app.use(express.json());
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        service: 'ChroniCompanion AI Coach Backend' 
+    });
+});
 
 // Rate limiting
 const aiRateLimit = rateLimit({
@@ -248,8 +279,8 @@ app.post('/api/premium/upgrade', verifyUser, async (req, res) => {
 
 app.listen(port, () => {
     console.log(`🤖 ChroniCompanion AI Coach API running on port ${port}`);
-    console.log(`🔐 OpenAI API Key: ${OPENAI_API_KEY ? 'Configured' : 'Missing'}`);
-    console.log(`🗄️  Supabase: ${SUPABASE_URL ? 'Connected' : 'Not configured'}`);
+    console.log(`🔐 OpenAI API Key: ${process.env.OPENAI_API_KEY ? 'Configured' : 'Missing'}`);
+    console.log(`🗄️  Supabase: ${process.env.SUPABASE_URL ? 'Connected' : 'Not configured'}`);
 });
 
 module.exports = app;
