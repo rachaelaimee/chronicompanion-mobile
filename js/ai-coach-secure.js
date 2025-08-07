@@ -7,13 +7,12 @@
 
 class AIHealthCoachSecure {
     constructor() {
-        this.apiBaseUrl = process.env.NODE_ENV === 'production' 
-            ? 'https://your-railway-app.railway.app'  // Replace with your Railway URL
-            : 'http://localhost:3001';
-        this.dailyLimit = 5;
+        this.backendUrl = 'https://chronicompanion-mobile-production.up.railway.app'; // Railway backend URL
+        this.dailyLimit = 5; // Free tier limit
+        this.cooldownPeriod = 10000; // 10 seconds
+        this.lastRequestTime = 0;
         this.isInitialized = false;
-        this.authToken = null;
-        this.memoryStorage = null; // For incognito mode fallback
+        this.memoryStorage = new Map(); // Fallback for in-memory storage
     }
 
     /**
