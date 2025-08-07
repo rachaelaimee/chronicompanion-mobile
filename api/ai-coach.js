@@ -299,8 +299,8 @@ app.post('/api/premium/upgrade', verifyUser, async (req, res) => {
     });
 });
 
-app.listen(port, () => {
-    console.log(`🤖 ChroniCompanion AI Coach API running on port ${port}`);
+app.listen(port, '0.0.0.0', () => {
+    console.log(`🤖 ChroniCompanion AI Coach API running on 0.0.0.0:${port}`);
     console.log(`🔐 OpenAI API Key: ${process.env.OPENAI_API_KEY ? 'Configured' : 'Missing'}`);
     console.log(`🗄️  Supabase: ${process.env.SUPABASE_URL ? 'Connected' : 'Not configured'}`);
     console.log(`🌐 Node.js Network Options: ${process.env.NODE_OPTIONS || 'Not set'}`);

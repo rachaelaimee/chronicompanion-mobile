@@ -102,12 +102,12 @@ app.use('*', (req, res) => {
     });
 });
 
-// Start server
-app.listen(port, () => {
-    console.log(`✅ Simple test server running on port ${port}`);
+// Start server - MUST listen on 0.0.0.0 for Railway
+app.listen(port, '0.0.0.0', () => {
+    console.log(`✅ Simple test server running on 0.0.0.0:${port}`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔧 Node Options: ${process.env.NODE_OPTIONS || 'none'}`);
-    console.log(`📍 Health check: http://localhost:${port}/health`);
+    console.log(`📍 Health check: http://0.0.0.0:${port}/health`);
 });
 
 // Handle graceful shutdown
