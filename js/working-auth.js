@@ -262,6 +262,7 @@ class WorkingAuth {
                     console.log('⚠️ Session already cleared, proceeding with UI cleanup...');
                     this.currentUser = null;
                     this.updateAuthUI(false, null);
+                    this.clearLoginFields(); // Clear sensitive form data
                     this.showMessage('Signed out successfully', 'success');
                     return;
                 }
@@ -272,6 +273,7 @@ class WorkingAuth {
             console.log('✅ Sign-out successful');
             this.currentUser = null;
             this.updateAuthUI(false, null);
+            this.clearLoginFields(); // Clear sensitive form data
             this.showMessage('Signed out successfully', 'success');
             
         } catch (error) {
@@ -280,6 +282,7 @@ class WorkingAuth {
             console.log('🧹 Cleaning up UI state despite sign-out error...');
             this.currentUser = null;
             this.updateAuthUI(false, null);
+            this.clearLoginFields(); // Clear sensitive form data even on error
             this.showMessage('Signed out (with cleanup)', 'info');
         }
     }
@@ -362,6 +365,33 @@ class WorkingAuth {
         setTimeout(() => {
             if (messageEl) messageEl.remove();
         }, 3000);
+    }
+
+    // 🔒 SECURITY: Clear login form fields on sign-out
+    clearLoginFields() {
+        console.log('🧹 Clearing login form fields for security...');
+        
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        
+        if (emailInput) {
+            emailInput.value = '';
+            console.log('✅ Email field cleared');
+        }
+        
+        if (passwordInput) {
+            passwordInput.value = '';
+            console.log('✅ Password field cleared');
+        }
+        
+        // Also clear any browser autocomplete data for these fields
+        if (emailInput) emailInput.autocomplete = 'off';
+        if (passwordInput) passwordInput.autocomplete = 'off';
+        
+        // Force focus away from fields to ensure they're not highlighted
+        if (document.activeElement === emailInput || document.activeElement === passwordInput) {
+            document.activeElement.blur();
+        }
     }
 }
 
