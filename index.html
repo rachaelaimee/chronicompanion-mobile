@@ -857,24 +857,35 @@
         }
         
         // Update Dashboard
-        function updateDashboard() {
-            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
+        async function updateDashboard() {
+            try {
+                const { data: entries, error } = await window.supabase
+                    .from('health_entries')
+                    .select('*')
+                    .order('entry_date', { ascending: false });
+
+                if (error) {
+                    console.error('Error loading dashboard data:', error);
+                    return;
+                }
+
+                const entriesArray = entries || [];
             
-            // Quick Stats
-            document.getElementById('total-entries').textContent = entries.length;
-            
-            if (entries.length > 0) {
-                const avgMood = (entries.reduce((sum, entry) => sum + (entry.mood || 0), 0) / entries.length).toFixed(1);
-                const avgEnergy = (entries.reduce((sum, entry) => sum + (entry.energy || 0), 0) / entries.length).toFixed(1);
-                const avgPain = (entries.reduce((sum, entry) => sum + (entry.pain || 0), 0) / entries.length).toFixed(1);
+                // Quick Stats
+                document.getElementById('total-entries').textContent = entriesArray.length;
                 
-                document.getElementById('avg-mood').textContent = avgMood;
-                document.getElementById('avg-energy').textContent = avgEnergy;
-                document.getElementById('avg-pain').textContent = avgPain;
-            }
-            
-            // Recent Entries (last 5)
-            const recentEntries = entries.slice(0, 5);
+                if (entriesArray.length > 0) {
+                    const avgMood = (entriesArray.reduce((sum, entry) => sum + (entry.mood || 0), 0) / entriesArray.length).toFixed(1);
+                    const avgEnergy = (entriesArray.reduce((sum, entry) => sum + (entry.energy || 0), 0) / entriesArray.length).toFixed(1);
+                    const avgPain = (entriesArray.reduce((sum, entry) => sum + (entry.pain || 0), 0) / entriesArray.length).toFixed(1);
+                    
+                    document.getElementById('avg-mood').textContent = avgMood;
+                    document.getElementById('avg-energy').textContent = avgEnergy;
+                    document.getElementById('avg-pain').textContent = avgPain;
+                }
+                
+                // Recent Entries (last 5)
+                const recentEntries = entriesArray.slice(0, 5);
             const recentContainer = document.getElementById('recent-entries');
             
             if (recentEntries.length === 0) {
@@ -883,7 +894,7 @@
                 recentContainer.innerHTML = recentEntries.map(entry => `
                     <div class="flex justify-between items-center p-3 bg-sage-50 rounded-lg">
                         <div>
-                            <div class="font-medium text-sage-800">${new Date(entry.date).toLocaleDateString()}</div>
+                            <div class="font-medium text-sage-800">${new Date(entry.entry_date).toLocaleDateString()}</div>
                             <div class="text-sm text-sage-600">
                                 Mood: ${entry.mood}/10 | Energy: ${entry.energy}/10 | Pain: ${entry.pain || 0}/10
                             </div>
@@ -893,6 +904,15 @@
                         </div>
                     </div>
                 `).join('');
+            }
+            
+            } catch (error) {
+                console.error('Error updating dashboard:', error);
+                document.getElementById('total-entries').textContent = '0';
+                document.getElementById('avg-mood').textContent = '0';
+                document.getElementById('avg-energy').textContent = '0';
+                document.getElementById('avg-pain').textContent = '0';
+                document.getElementById('recent-entries').innerHTML = '<p class="text-red-500 text-center py-4">Error loading dashboard data.</p>';
             }
         }
         
