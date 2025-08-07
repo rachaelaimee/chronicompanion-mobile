@@ -897,15 +897,41 @@
         }
         
         // Load All Entries
-        function loadAllEntries() {
-            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
+        async function loadAllEntries() {
             const allEntriesContainer = document.getElementById('all-entries-list');
             
-            if (entries.length === 0) {
+            try {
+                const { data: entries, error } = await window.supabase
+                    .from('health_entries')
+                    .select('*')
+                    .order('entry_date', { ascending: false });
+
+                if (error) {
+                    console.error('Error loading entries:', error);
+                    allEntriesContainer.innerHTML = `
+                        <div class="text-center py-8 text-red-500">
+                            <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                            <p>Error loading entries. Please try again.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (!entries || entries.length === 0) {
+                    allEntriesContainer.innerHTML = `
+                        <div class="text-center py-8 text-sage-500">
+                            <i class="fas fa-journal-whills text-4xl mb-4"></i>
+                            <p>No entries yet. Create your first entry!</p>
+                        </div>
+                    `;
+                    return;
+                }
+            } catch (error) {
+                console.error('Error loading entries:', error);
                 allEntriesContainer.innerHTML = `
-                    <div class="text-center py-8 text-sage-500">
-                        <i class="fas fa-journal-whills text-4xl mb-4"></i>
-                        <p>No entries yet. Create your first entry!</p>
+                    <div class="text-center py-8 text-red-500">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                        <p>Error loading entries. Please try again.</p>
                     </div>
                 `;
                 return;
@@ -915,7 +941,7 @@
             allEntriesContainer.innerHTML = entries.map(entry => `
                 <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-sage-500">
                     <div class="flex justify-between items-start mb-3">
-                        <h3 class="font-semibold text-sage-800">${new Date(entry.date).toLocaleDateString()}</h3>
+                        <h3 class="font-semibold text-sage-800">${new Date(entry.entry_date).toLocaleDateString()}</h3>
                         <div class="text-sm text-sage-500">
                             ${new Date(entry.created_at).toLocaleTimeString()}
                         </div>
