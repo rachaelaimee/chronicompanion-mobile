@@ -6,7 +6,7 @@
 const http = require('http');
 const url = require('url');
 
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3000;
 
 console.log('🚀 Starting ultra minimal server...');
 console.log('📍 Port:', port);
