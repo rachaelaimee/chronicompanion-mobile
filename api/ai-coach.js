@@ -27,6 +27,7 @@ console.log('- NODE_ENV:', process.env.NODE_ENV || 'development');
 console.log('- OPENAI_API_KEY:', openaiApiKey ? '✅ Set' : '❌ Missing');
 console.log('- SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
 console.log('- SUPABASE_SERVICE_KEY:', supabaseServiceKey ? '✅ Set' : '❌ Missing');
+console.log('🚀 Starting server regardless of environment variables for debugging...');
 
 // Initialize services (will handle missing variables gracefully in endpoints)
 let openai = null;
