@@ -25,8 +25,12 @@ console.log('🔍 Environment Check:');
 console.log('- PORT:', process.env.PORT || '3001');
 console.log('- NODE_ENV:', process.env.NODE_ENV || 'development');
 console.log('- OPENAI_API_KEY:', openaiApiKey ? '✅ Set' : '❌ Missing');
-console.log('- SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
-console.log('- SUPABASE_SERVICE_KEY:', supabaseServiceKey ? '✅ Set' : '❌ Missing');
+console.log('- DATABASE_URL:', process.env.DATABASE_URL ? '✅ Set' : '❌ Missing');
+console.log('- SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ Set' : '❌ Missing');
+console.log('- SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? '✅ Set' : '❌ Missing');
+console.log('- SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
+console.log('- Final supabaseUrl:', supabaseUrl ? '✅ Configured' : '❌ Missing');
+console.log('- Final supabaseServiceKey:', supabaseServiceKey ? '✅ Configured' : '❌ Missing');
 console.log('🚀 Starting server regardless of environment variables for debugging...');
 
 // Initialize services (will handle missing variables gracefully in endpoints)
