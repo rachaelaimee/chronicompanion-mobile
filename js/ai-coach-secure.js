@@ -52,7 +52,7 @@ class AIHealthCoachSecure {
         }
 
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/ai-coach/ask`, {
+            const response = await fetch(`${this.backendUrl}/api/ai-coach`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

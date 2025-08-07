@@ -10,9 +10,55 @@ const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { createClient } = require('@supabase/supabase-js');
+const { OpenAI } = require('openai');
+require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+// Initialize OpenAI
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Initialize Supabase
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Helper function to build health-focused prompts
+function buildHealthPrompt(question, healthContext) {
+    let contextString = '';
+    if (healthContext && healthContext.recentEntries && healthContext.recentEntries.length > 0) {
+        const formattedEntries = healthContext.recentEntries.map(entry => {
+            return `Date: ${entry.entry_date}, Mood: ${entry.mood}, Energy: ${entry.energy}, Pain: ${entry.pain}, Sleep: ${entry.sleep}, Symptoms: ${entry.symptoms?.join(', ') || 'none'}, Notes: ${entry.notes || 'none'}`;
+        }).join('\n');
+        contextString = `Here are your recent health entries:\n${formattedEntries}\n\n`;
+    }
+
+    return `You are Chroni, a helpful and empathetic AI health companion for ChroniCompanion. Your goal is to provide insights and suggestions based on the user's health data and chronic illness management.
+
+${contextString}
+
+User's question: "${question}"
+
+Please provide a concise, helpful, and empathetic response focused on chronic illness management and health tracking insights.`;
+}
+
+// Helper function to log AI usage
+async function logAIUsage(userId, question, response) {
+    try {
+        await supabase.from('ai_usage_logs').insert({
+            user_id: userId,
+            question: question,
+            response: response,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error logging AI usage:', error);
+        // Don't throw - logging is optional
+    }
+}
 
 // Middleware
 app.use(cors({
@@ -81,7 +127,7 @@ async function checkPremiumStatus(userId) {
 }
 
 // AI Coach endpoint
-app.post('/api/ai-coach/ask', verifyUser, aiRateLimit, async (req, res) => {
+app.post('/api/ai-coach', verifyUser, aiRateLimit, async (req, res) => {
     try {
         const { question, healthContext } = req.body;
         
@@ -89,7 +135,7 @@ app.post('/api/ai-coach/ask', verifyUser, aiRateLimit, async (req, res) => {
             return res.status(400).json({ error: 'Question is required' });
         }
 
-        if (!OPENAI_API_KEY) {
+        if (!process.env.OPENAI_API_KEY) {
             return res.status(500).json({ error: 'AI service not configured' });
         }
 
@@ -97,15 +143,9 @@ app.post('/api/ai-coach/ask', verifyUser, aiRateLimit, async (req, res) => {
         const prompt = buildHealthPrompt(question, healthContext || {});
         
         // Call OpenAI API
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [
                     {
                         role: 'system',
                         content: prompt
@@ -113,16 +153,9 @@ app.post('/api/ai-coach/ask', verifyUser, aiRateLimit, async (req, res) => {
                 ],
                 max_tokens: 500,
                 temperature: 0.7
-            })
-        });
+            });
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(`OpenAI API error: ${response.status} ${errorData.error?.message || response.statusText}`);
-        }
-
-        const data = await response.json();
-        const aiResponse = data.choices[0]?.message?.content || 'No response generated';
+        const aiResponse = completion.choices[0]?.message?.content || 'No response generated';
 
         // Log usage for analytics (optional)
         await logAIUsage(req.user.id, question, aiResponse);
