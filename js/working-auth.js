@@ -320,12 +320,12 @@ class WorkingAuth {
             }
             
             // Load entries and dashboard when user signs in
-            setTimeout(() => {
+            setTimeout(async () => {
                 if (typeof loadEntries === 'function') {
-                    loadEntries();
+                    await loadEntries();
                 }
                 if (typeof updateDashboard === 'function') {
-                    updateDashboard();
+                    await updateDashboard();
                 }
             }, 100);
             

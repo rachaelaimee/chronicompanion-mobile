@@ -591,9 +591,9 @@
             // New Entry Form Submission
             const newEntryForm = document.getElementById('new-entry-form');
             if (newEntryForm) {
-                newEntryForm.addEventListener('submit', (e) => {
+                newEntryForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
-                    saveNewEntry();
+                    await saveNewEntry();
                 });
             }
             
@@ -612,7 +612,7 @@
         });
         
         // Save New Entry Function
-        function saveNewEntry() {
+        async function saveNewEntry() {
             const date = document.getElementById('entry-date').value;
             const mood = document.getElementById('mood-slider').value;
             const energy = document.getElementById('energy-slider').value;
@@ -653,15 +653,41 @@
                 created_at: new Date().toISOString()
             };
             
-            console.log('💾 Saving entry:', entry);
+            console.log('💾 Saving entry to Supabase:', entry);
             
-            // For now, just save to localStorage (we'll add Supabase storage later)
-            let entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
-            entries.unshift(entry); // Add to beginning of array
-            localStorage.setItem('chronicompanion_entries', JSON.stringify(entries));
-            
-            // Show success message
-            alert('✅ Entry saved successfully!');
+            try {
+                // Save to Supabase database
+                const { data, error } = await window.supabase
+                    .from('health_entries')
+                    .insert([{
+                        user_id: (await window.supabase.auth.getUser()).data.user?.id,
+                        entry_date: entry.date,
+                        mood: entry.mood,
+                        energy: entry.energy,
+                        pain: entry.pain,
+                        sleep: entry.sleep,
+                        symptoms: entry.symptoms,
+                        medications: entry.medications,
+                        activities: entry.activities,
+                        weather: entry.weather,
+                        notes: entry.notes,
+                        created_at: entry.created_at
+                    }]);
+
+                if (error) {
+                    console.error('❌ Error saving entry to Supabase:', error);
+                    alert('❌ Failed to save entry. Please try again.');
+                    return;
+                }
+
+                console.log('✅ Entry saved to Supabase successfully:', data);
+                // Show success message
+                alert('✅ Entry saved successfully!');
+            } catch (saveError) {
+                console.error('❌ Exception saving entry:', saveError);
+                alert('❌ Failed to save entry. Please check your connection and try again.');
+                return;
+            }
             
             // Reset form
             document.getElementById('new-entry-form').reset();
@@ -672,8 +698,8 @@
             document.getElementById('sleep-value').textContent = '5';
             
             // Refresh entries list and dashboard
-            loadEntries();
-            updateDashboard();
+            await loadEntries();
+            await updateDashboard();
             
             // Update chart after saving
             setTimeout(() => {
@@ -682,26 +708,43 @@
         }
         
         // Load and display entries
-        function loadEntries() {
+        async function loadEntries() {
             const entriesList = document.getElementById('entries-list');
             if (!entriesList) return;
             
-            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
+            try {
+                const { data: entries, error } = await window.supabase
+                    .from('health_entries')
+                    .select('*')
+                    .order('entry_date', { ascending: false });
+
+                if (error) {
+                    console.error('Error loading entries:', error);
+                    entriesList.innerHTML = `
+                        <div class="text-center py-8 text-red-500">
+                            <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                            <p>Error loading entries. Please try again.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const entriesArray = entries || [];
             
-            if (entries.length === 0) {
-                entriesList.innerHTML = `
-                    <div class="text-center py-8 text-sage-500">
-                        <i class="fas fa-journal-whills text-4xl mb-4"></i>
-                        <p>No entries yet. Create your first entry above!</p>
-                            </div>
-                `;
-                return;
-            }
-            
-            entriesList.innerHTML = entries.map(entry => `
+                if (entriesArray.length === 0) {
+                    entriesList.innerHTML = `
+                        <div class="text-center py-8 text-sage-500">
+                            <i class="fas fa-journal-whills text-4xl mb-4"></i>
+                            <p>No entries yet. Create your first entry above!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                entriesList.innerHTML = entriesArray.map(entry => `
                 <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-sage-500">
                     <div class="flex justify-between items-start mb-3">
-                        <h3 class="font-semibold text-sage-800">${new Date(entry.date).toLocaleDateString()}</h3>
+                        <h3 class="font-semibold text-sage-800">${new Date(entry.entry_date).toLocaleDateString()}</h3>
                         <div class="text-sm text-sage-500">
                             ${new Date(entry.created_at).toLocaleTimeString()}
                             </div>
@@ -792,6 +835,15 @@
                     ` : ''}
             </div>
             `).join('');
+            } catch (error) {
+                console.error('❌ Error loading entries:', error);
+                entriesList.innerHTML = `
+                    <div class="text-center py-8 text-red-500">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                        <p>Error loading entries. Please try again.</p>
+                    </div>
+                `;
+            }
         }
         
         // Helper functions for emojis
