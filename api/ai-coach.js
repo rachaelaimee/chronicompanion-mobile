@@ -69,12 +69,19 @@ app.use(cors({
     optionsSuccessStatus: 200
 }));
 
-// Handle preflight OPTIONS requests explicitly
+// Handle preflight OPTIONS requests explicitly with detailed logging
 app.options('*', (req, res) => {
+    console.log('🔍 OPTIONS preflight request received:');
+    console.log('  Origin:', req.headers.origin);
+    console.log('  Method:', req.method);
+    console.log('  Headers:', JSON.stringify(req.headers, null, 2));
+    
     res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
     res.header('Access-Control-Allow-Credentials', 'true');
+    
+    console.log('✅ Sending OPTIONS response with CORS headers');
     res.sendStatus(200);
 });
 
@@ -86,6 +93,33 @@ app.get('/health', (req, res) => {
         status: 'OK', 
         timestamp: new Date().toISOString(),
         service: 'ChroniCompanion AI Coach Backend' 
+    });
+});
+
+// Test CORS endpoint (no auth required)
+app.get('/test-cors', (req, res) => {
+    console.log('🧪 Test CORS request received:');
+    console.log('  Origin:', req.headers.origin);
+    console.log('  Method:', req.method);
+    
+    res.json({ 
+        message: 'CORS test successful!',
+        origin: req.headers.origin,
+        timestamp: new Date().toISOString()
+    });
+});
+
+app.post('/test-cors', (req, res) => {
+    console.log('🧪 Test CORS POST request received:');
+    console.log('  Origin:', req.headers.origin);
+    console.log('  Method:', req.method);
+    console.log('  Body:', req.body);
+    
+    res.json({ 
+        message: 'CORS POST test successful!',
+        origin: req.headers.origin,
+        timestamp: new Date().toISOString(),
+        receivedData: req.body
     });
 });
 
@@ -144,6 +178,12 @@ async function checkPremiumStatus(userId) {
 
 // AI Coach endpoint
 app.post('/api/ai-coach', verifyUser, aiRateLimit, async (req, res) => {
+    console.log('🤖 AI Coach POST request received:');
+    console.log('  Origin:', req.headers.origin);
+    console.log('  Method:', req.method);
+    console.log('  Content-Type:', req.headers['content-type']);
+    console.log('  Authorization:', req.headers.authorization ? 'Present' : 'Missing');
+    
     try {
         const { question, healthContext } = req.body;
         
