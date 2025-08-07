@@ -83,13 +83,7 @@ const aiRateLimit = rateLimit({
     legacyHeaders: false,
 });
 
-// Environment variables
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-// Initialize Supabase client
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 // Middleware to verify user authentication
 async function verifyUser(req, res, next) {
