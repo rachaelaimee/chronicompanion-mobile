@@ -239,10 +239,32 @@ class WorkingAuth {
             console.log('👋 Signing out...');
             this.showMessage('Signing out...', 'info');
             
+            // Check if we have a current session before attempting sign-out
+            const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
+            
+            if (sessionError) {
+                console.warn('⚠️ Session check error during sign-out:', sessionError);
+            }
+            
+            console.log('🔍 Current session status:', {
+                hasSession: !!session,
+                hasUser: !!session?.user,
+                userEmail: session?.user?.email
+            });
+            
+            // Attempt sign-out regardless of session status
             const { error } = await this.supabase.auth.signOut();
             
             if (error) {
                 console.error('❌ Sign-out error:', error);
+                // If the error is just about missing session, still proceed with UI cleanup
+                if (error.message.includes('session') || error.message.includes('Session')) {
+                    console.log('⚠️ Session already cleared, proceeding with UI cleanup...');
+                    this.currentUser = null;
+                    this.updateAuthUI(false, null);
+                    this.showMessage('Signed out successfully', 'success');
+                    return;
+                }
                 this.showMessage(`Sign-out failed: ${error.message}`, 'error');
                 return;
             }
@@ -254,7 +276,11 @@ class WorkingAuth {
             
         } catch (error) {
             console.error('❌ Sign-out error:', error);
-            this.showMessage(`Sign-out failed: ${error.message}`, 'error');
+            // Even if sign-out fails, clean up the UI state
+            console.log('🧹 Cleaning up UI state despite sign-out error...');
+            this.currentUser = null;
+            this.updateAuthUI(false, null);
+            this.showMessage('Signed out (with cleanup)', 'info');
         }
     }
 
