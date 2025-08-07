@@ -62,7 +62,9 @@ async function logAIUsage(userId, question, response) {
 
 // Middleware
 app.use(cors({
-    origin: ['https://chronicompanion.app', 'http://localhost:8080'],
+    origin: ['https://chronicompanion.app', 'http://localhost:8080', 'http://localhost:3000'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
 app.use(express.json());
