@@ -14,7 +14,7 @@ const { OpenAI } = require('openai');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3000;
 
 // Environment variables
 const supabaseUrl = process.env.SUPABASE_URL;
