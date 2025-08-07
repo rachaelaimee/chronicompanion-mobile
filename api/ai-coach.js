@@ -16,33 +16,39 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Initialize OpenAI with error checking
-if (!process.env.OPENAI_API_KEY) {
-    console.error('❌ OPENAI_API_KEY environment variable is required');
-    process.exit(1);
-}
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Initialize Supabase with error checking
+// Environment variables
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const openaiApiKey = process.env.OPENAI_API_KEY;
 
 console.log('🔍 Environment Check:');
-console.log('- OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '✅ Set' : '❌ Missing');
-console.log('- SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ Set' : '❌ Missing');
-console.log('- SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? '✅ Set' : '❌ Missing');
+console.log('- PORT:', process.env.PORT || '3001');
+console.log('- NODE_ENV:', process.env.NODE_ENV || 'development');
+console.log('- OPENAI_API_KEY:', openaiApiKey ? '✅ Set' : '❌ Missing');
+console.log('- SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
+console.log('- SUPABASE_SERVICE_KEY:', supabaseServiceKey ? '✅ Set' : '❌ Missing');
 
-if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('❌ Missing Supabase environment variables');
-    console.error('- SUPABASE_URL:', supabaseUrl ? 'OK' : 'MISSING');
-    console.error('- SUPABASE_SERVICE_KEY:', supabaseServiceKey ? 'OK' : 'MISSING');
-    process.exit(1);
+// Initialize services (will handle missing variables gracefully in endpoints)
+let openai = null;
+let supabase = null;
+
+if (openaiApiKey) {
+    try {
+        openai = new OpenAI({ apiKey: openaiApiKey });
+        console.log('✅ OpenAI client initialized');
+    } catch (error) {
+        console.error('❌ OpenAI initialization failed:', error.message);
+    }
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+if (supabaseUrl && supabaseServiceKey) {
+    try {
+        supabase = createClient(supabaseUrl, supabaseServiceKey);
+        console.log('✅ Supabase client initialized');
+    } catch (error) {
+        console.error('❌ Supabase initialization failed:', error.message);
+    }
+}
 
 // Helper function to build health-focused prompts
 function buildHealthPrompt(question, healthContext) {
@@ -103,7 +109,18 @@ app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
-        service: 'ChroniCompanion AI Coach Backend' 
+        service: 'ChroniCompanion AI Coach Backend',
+        environment: {
+            port: process.env.PORT || '3001',
+            nodeEnv: process.env.NODE_ENV || 'development',
+            openaiConfigured: !!openai,
+            supabaseConfigured: !!supabase,
+            envVars: {
+                OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+                SUPABASE_URL: !!process.env.SUPABASE_URL,
+                SUPABASE_SERVICE_KEY: !!process.env.SUPABASE_SERVICE_KEY
+            }
+        }
     });
 });
 
@@ -202,8 +219,11 @@ app.post('/api/ai-coach', verifyUser, aiRateLimit, async (req, res) => {
             return res.status(400).json({ error: 'Question is required' });
         }
 
-        if (!process.env.OPENAI_API_KEY) {
-            return res.status(500).json({ error: 'AI service not configured' });
+        if (!openai) {
+            return res.status(500).json({ 
+                error: 'AI service not configured', 
+                details: 'OpenAI API key missing in environment variables' 
+            });
         }
 
         // Build health-focused prompt
