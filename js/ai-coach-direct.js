@@ -7,7 +7,7 @@
 
 class AIHealthCoachDirect {
     constructor() {
-        this.apiKey = 'YOUR_OPENAI_API_KEY_HERE'; // Replace with actual key for debugging
+        this.apiKey = null; // Will be set during initialization
         this.model = 'gpt-4o-mini';
         this.maxTokens = 500;
         this.temperature = 0.7;
@@ -24,8 +24,19 @@ class AIHealthCoachDirect {
     async initialize(config = {}) {
         try {
             this.dailyLimit = config.dailyLimit || 5;
+            
+            // For emergency use - you'll need to manually set this in browser console:
+            // aiCoach.apiKey = 'your-openai-api-key'
+            this.apiKey = localStorage.getItem('openai_api_key') || null;
+            
+            if (!this.apiKey || this.apiKey === 'YOUR_OPENAI_API_KEY_HERE') {
+                console.warn('⚠️ Direct AI Coach: API key not configured');
+                return false;
+            }
+            
             this.isInitialized = true;
-            console.log('✅ Direct AI Health Coach initialized (DEBUG MODE)');
+            console.log('✅ Direct AI Health Coach initialized (EMERGENCY MODE - Railway backend down)');
+            console.log('⚠️ Using direct OpenAI calls - API key exposed in frontend!');
             return true;
         } catch (error) {
             console.error('❌ Direct AI Coach initialization failed:', error);

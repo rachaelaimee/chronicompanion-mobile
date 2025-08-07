@@ -20,6 +20,7 @@
     
     <!-- AI Health Coach -->
     <script src="js/ai-coach-secure.js"></script>
+    <script src="js/ai-coach-direct.js"></script>
     
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1517,13 +1518,13 @@
             }
             
             try {
-                aiCoach = new window.AIHealthCoachSecure();
+                // EMERGENCY SWITCH: Use direct OpenAI implementation while Railway backend is down
+                aiCoach = new window.AIHealthCoachDirect();
                 
-                                    // Initialize secure AI Coach (no API key needed on frontend)
-                    const success = await aiCoach.initialize({ 
-                        backendUrl: 'https://chronicompanion-mobile-production.up.railway.app',
-                        dailyLimit: 5  // Free tier limit
-                    });
+                // Initialize direct AI Coach (works like your original implementation)
+                const success = await aiCoach.initialize({ 
+                    dailyLimit: 5  // Free tier limit
+                });
                 
                 if (success) {
                     displayAIWelcomeMessage();
