@@ -1198,13 +1198,24 @@
         }
         
         // Export Functions
-        function exportToCSV() {
-            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
-            
-            if (entries.length === 0) {
-                alert('No entries to export!');
-                return;
-            }
+        async function exportToCSV() {
+            try {
+                // Fetch entries from Supabase database
+                const { data: entries, error } = await window.supabase
+                    .from('health_entries')
+                    .select('*')
+                    .order('entry_date', { ascending: false });
+
+                if (error) {
+                    console.error('❌ Error fetching entries for CSV export:', error);
+                    alert('Error loading entries for export. Please try again.');
+                    return;
+                }
+
+                if (!entries || entries.length === 0) {
+                    alert('No entries to export!');
+                    return;
+                }
             
             // CSV headers
             const headers = ['Date', 'Mood', 'Energy', 'Pain', 'Sleep', 'Symptoms', 'Medications', 'Activities', 'Weather', 'Notes'];
@@ -1212,7 +1223,7 @@
             // Convert entries to CSV format
             const csvData = entries.map(entry => {
                 return [
-                    entry.date || '',
+                    entry.entry_date || '',
                     entry.mood || '',
                     entry.energy || '',
                     entry.pain || '',
@@ -1240,15 +1251,31 @@
             window.URL.revokeObjectURL(url);
             
             console.log('✅ CSV export completed');
+            
+            } catch (error) {
+                console.error('❌ CSV export failed:', error);
+                alert('Failed to export CSV. Please try again.');
+            }
         }
         
-        function exportToJSON() {
-            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
-            
-            if (entries.length === 0) {
-                alert('No entries to export!');
-                return;
-            }
+        async function exportToJSON() {
+            try {
+                // Fetch entries from Supabase database
+                const { data: entries, error } = await window.supabase
+                    .from('health_entries')
+                    .select('*')
+                    .order('entry_date', { ascending: false });
+
+                if (error) {
+                    console.error('❌ Error fetching entries for JSON export:', error);
+                    alert('Error loading entries for export. Please try again.');
+                    return;
+                }
+
+                if (!entries || entries.length === 0) {
+                    alert('No entries to export!');
+                    return;
+                }
             
             // Create export object with metadata
             const exportData = {
@@ -1270,6 +1297,11 @@
             window.URL.revokeObjectURL(url);
             
             console.log('✅ JSON export completed');
+            
+            } catch (error) {
+                console.error('❌ JSON export failed:', error);
+                alert('Failed to export JSON. Please try again.');
+            }
         }
         
         function printReport() {
@@ -1355,14 +1387,27 @@
             console.log('✅ Print report opened');
         }
         
-        // PDF Export Function (based on old export_service.py)
-        function exportToPDF() {
-            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
-            
-            if (entries.length === 0) {
-                alert('No entries to export!');
-                return;
-            }
+        // PDF Export Function (updated to fetch from Supabase)
+        async function exportToPDF() {
+            try {
+                // Fetch entries from Supabase database instead of localStorage
+                const { data: entries, error } = await window.supabase
+                    .from('health_entries')
+                    .select('*')
+                    .order('entry_date', { ascending: false });
+
+                if (error) {
+                    console.error('❌ Error fetching entries for PDF export:', error);
+                    alert('Error loading entries for export. Please try again.');
+                    return;
+                }
+
+                if (!entries || entries.length === 0) {
+                    alert('No entries to export!');
+                    return;
+                }
+
+                console.log('📄 Exporting', entries.length, 'entries to PDF');
             
             // Initialize jsPDF
             const { jsPDF } = window.jspdf;
@@ -1393,10 +1438,10 @@
             yPosition += 8;
             
             if (entries.length > 0) {
-                const sortedEntries = entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+                const sortedEntries = entries.sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
                 const dateRange = sortedEntries.length === 1 
-                    ? sortedEntries[0].date 
-                    : `${sortedEntries[0].date} to ${sortedEntries[sortedEntries.length - 1].date}`;
+                    ? sortedEntries[0].entry_date 
+                    : `${sortedEntries[0].entry_date} to ${sortedEntries[sortedEntries.length - 1].entry_date}`;
                 doc.text(`Date Range: ${dateRange}`, 20, yPosition);
                 yPosition += 15;
             }
@@ -1440,7 +1485,7 @@
                 // Entry header
                 doc.setFontSize(14);
                 doc.setTextColor(...sageGreen);
-                doc.text(`${new Date(entry.date).toLocaleDateString()}`, 20, yPosition);
+                doc.text(`${new Date(entry.entry_date).toLocaleDateString()}`, 20, yPosition);
                 yPosition += 8;
                 
                 // Entry content
@@ -1500,6 +1545,11 @@
             doc.save(fileName);
             
             console.log('✅ PDF export completed');
+            
+            } catch (error) {
+                console.error('❌ PDF export failed:', error);
+                alert('Failed to export PDF. Please try again.');
+            }
         }
 
         // ========================================
