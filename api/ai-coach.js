@@ -310,6 +310,7 @@ app.listen(port, () => {
     console.log(`🤖 ChroniCompanion AI Coach API running on port ${port}`);
     console.log(`🔐 OpenAI API Key: ${process.env.OPENAI_API_KEY ? 'Configured' : 'Missing'}`);
     console.log(`🗄️  Supabase: ${process.env.SUPABASE_URL ? 'Connected' : 'Not configured'}`);
+    console.log(`🌐 Node.js Network Options: ${process.env.NODE_OPTIONS || 'Not set'}`);
 });
 
 module.exports = app;
