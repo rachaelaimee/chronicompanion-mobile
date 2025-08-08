@@ -1,9 +1,12 @@
 -- Premium Subscriptions Table for ChroniCompanion
 -- This table tracks user premium subscriptions across platforms
 
+-- Enable UUID extension if not already enabled
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Create user_subscriptions table
 CREATE TABLE IF NOT EXISTS user_subscriptions (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     subscription_id TEXT, -- Stripe subscription ID or Google Play order ID
     platform TEXT NOT NULL CHECK (platform IN ('stripe', 'google', 'manual')), -- Payment platform
