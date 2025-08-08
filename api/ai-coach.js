@@ -163,6 +163,43 @@ app.post('/api/ai-coach', async (req, res) => {
             }
         }
 
+        // SECURITY FIX: Server-side premium validation
+        if (user) {
+            console.log('🔍 Verifying premium subscription for user:', user.email);
+            try {
+                const { data: subscription, error } = await supabase
+                    .from('user_subscriptions')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('status', 'active')
+                    .single();
+                    
+                if (error && error.code !== 'PGRST116') {
+                    console.error('❌ Premium verification error:', error);
+                    return res.status(500).json({
+                        success: false,
+                        error: 'Premium verification failed.'
+                    });
+                }
+                
+                if (!subscription) {
+                    console.log('🔒 Premium subscription required for AI Coach access');
+                    return res.status(403).json({
+                        success: false,
+                        error: 'Premium subscription required for AI Coach features. Please upgrade to access unlimited AI insights.'
+                    });
+                }
+                
+                console.log('✅ Premium subscription verified:', subscription.plan);
+            } catch (premiumError) {
+                console.error('❌ Premium verification exception:', premiumError);
+                return res.status(500).json({
+                    success: false,
+                    error: 'Premium verification failed.'
+                });
+            }
+        }
+
         // Build simple prompt
         let prompt = `You are Chroni, a helpful AI health companion for ChroniCompanion app users.
 

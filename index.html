@@ -2414,37 +2414,9 @@
             }
         }
         
-        // Add premium subscription manually (for testing)
-        async function addTestPremiumSubscription() {
-            try {
-                const user = await window.supabase.auth.getUser();
-                if (!user.data.user) {
-                    alert('Please sign in first');
-                    return;
-                }
-                
-                const { data, error } = await window.supabase
-                    .from('user_subscriptions')
-                    .insert([{
-                        user_id: user.data.user.id,
-                        platform: 'manual',
-                        status: 'active',
-                        plan: 'premium'
-                    }]);
-                    
-                if (error) {
-                    console.error('❌ Error adding test subscription:', error);
-                    alert('Error adding premium subscription');
-                } else {
-                    console.log('✅ Test premium subscription added');
-                    alert('✅ Premium subscription activated for testing!');
-                    await checkPremiumStatus(); // Refresh premium status
-                }
-            } catch (error) {
-                console.error('❌ Exception adding test subscription:', error);
-                alert('Error adding premium subscription');
-            }
-        }
+        // SECURITY FIX: addTestPremiumSubscription function removed
+        // This function was a critical security vulnerability allowing free premium access
+        // Premium subscriptions must only be created through legitimate payment processing
         
         // Initialize premium features on page load
         async function initializePremiumFeatures() {
@@ -2495,11 +2467,7 @@
                                     class="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
                                 Upgrade to Premium - $4.99/month
                             </button>
-                            <br>
-                            <button onclick="addTestPremiumSubscription()" 
-                                    class="text-sm text-gray-500 hover:text-gray-700 underline">
-                                Activate Test Premium (Development)
-                            </button>
+                            <!-- SECURITY FIX: Test Premium button removed for production security -->
                         </div>
                     </div>
                 `;
