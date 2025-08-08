@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download ChroniCompanion - Your Health Tracking Companion</title>
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="ChroniCompanion - AI-Powered Health Tracking">
+    <meta property="og:description" content="Track symptoms, get AI insights, and manage your health journey with ChroniCompanion.">
+    <meta property="og:image" content="https://chronicompanion.app/icons/icon-512x512.png">
+    <meta property="og:url" content="https://chronicompanion.app/download">
+    <meta name="twitter:card" content="summary_large_image">
+</head>
+<body class="bg-gradient-to-br from-green-50 to-blue-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <img src="/icons/icon-192x192.png" alt="ChroniCompanion" class="w-10 h-10">
+                <h1 class="text-xl font-bold text-gray-800">ChroniCompanion</h1>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="/" class="text-gray-600 hover:text-green-600">Web App</a>
+                <a href="/privacy.html" class="text-gray-600 hover:text-green-600">Privacy</a>
+                <a href="mailto:support@chronicompanion.app" class="text-gray-600 hover:text-green-600">Support</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="py-20 px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <div class="mb-8">
+                <img src="/icons/icon-512x512.png" alt="ChroniCompanion" class="w-32 h-32 mx-auto mb-6 drop-shadow-lg">
+            </div>
+            
+            <h1 class="text-4xl md:text-6xl font-bold text-gray-800 mb-6">
+                Download ChroniCompanion
+            </h1>
+            
+            <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+                Your AI-powered health tracking companion. Track symptoms, get personalized insights, 
+                and take control of your wellness journey.
+            </p>
+
+            <!-- Download Buttons -->
+            <div class="space-y-4 mb-12">
+                <!-- Android APK Download -->
+                <div class="bg-white rounded-2xl shadow-lg p-8 max-w-md mx-auto">
+                    <div class="flex items-center justify-center mb-4">
+                        <i class="fab fa-android text-green-500 text-4xl mr-3"></i>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">Android App</h3>
+                            <p class="text-gray-600">Direct APK Download</p>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        onclick="downloadAPK()" 
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                    >
+                        <i class="fas fa-download"></i>
+                        <span>Download APK (4.3MB)</span>
+                    </button>
+                    
+                    <p class="text-sm text-gray-500 mt-3">
+                        💰 <strong>Save Money:</strong> Direct download = No Google Play fees = Lower prices!
+                    </p>
+                </div>
+
+                <!-- Coming Soon -->
+                <div class="bg-gray-100 rounded-2xl shadow-lg p-8 max-w-md mx-auto opacity-60">
+                    <div class="flex items-center justify-center mb-4">
+                        <i class="fab fa-google-play text-blue-500 text-4xl mr-3"></i>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">Google Play Store</h3>
+                            <p class="text-gray-600">Coming Soon</p>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        disabled 
+                        class="w-full bg-gray-400 text-white font-bold py-4 px-6 rounded-lg cursor-not-allowed flex items-center justify-center space-x-2"
+                    >
+                        <i class="fas fa-clock"></i>
+                        <span>Coming Soon</span>
+                    </button>
+                    
+                    <p class="text-sm text-gray-500 mt-3">
+                        📱 Official store version in review
+                    </p>
+                </div>
+            </div>
+
+            <!-- Web App Alternative -->
+            <div class="bg-blue-50 rounded-xl p-6 max-w-2xl mx-auto mb-12">
+                <h3 class="text-lg font-bold text-blue-800 mb-2">
+                    <i class="fas fa-globe mr-2"></i>
+                    Or Use Our Web App
+                </h3>
+                <p class="text-blue-700 mb-4">
+                    No download required! Use ChroniCompanion directly in your browser.
+                </p>
+                <a 
+                    href="/" 
+                    class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                >
+                    Launch Web App
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-16 px-4 bg-white">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">
+                Why Choose ChroniCompanion?
+            </h2>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center p-6">
+                    <div class="text-4xl mb-4">📊</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Smart Tracking</h3>
+                    <p class="text-gray-600">
+                        Track symptoms, mood, medications, and daily activities with intuitive logging.
+                    </p>
+                </div>
+                
+                <div class="text-center p-6">
+                    <div class="text-4xl mb-4">🤖</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">AI Health Coach</h3>
+                    <p class="text-gray-600">
+                        Get personalized insights and recommendations powered by advanced AI technology.
+                    </p>
+                    <span class="inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-2 py-1 rounded-full mt-2">
+                        Premium Feature
+                    </span>
+                </div>
+                
+                <div class="text-center p-6">
+                    <div class="text-4xl mb-4">📈</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Visual Analytics</h3>
+                    <p class="text-gray-600">
+                        Beautiful charts and trends help you understand your health patterns over time.
+                    </p>
+                </div>
+                
+                <div class="text-center p-6">
+                    <div class="text-4xl mb-4">🔒</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Privacy First</h3>
+                    <p class="text-gray-600">
+                        Your health data is encrypted and secure. You own your information, always.
+                    </p>
+                </div>
+                
+                <div class="text-center p-6">
+                    <div class="text-4xl mb-4">📱</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Cross-Platform</h3>
+                    <p class="text-gray-600">
+                        Access your data on web, mobile, or tablet. Syncs seamlessly across all devices.
+                    </p>
+                </div>
+                
+                <div class="text-center p-6">
+                    <div class="text-4xl mb-4">💾</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Export Ready</h3>
+                    <p class="text-gray-600">
+                        Export your data as PDF, CSV, or JSON for healthcare providers or personal records.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Instructions -->
+    <section class="py-16 px-4 bg-gray-50">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">
+                Installation Instructions
+            </h2>
+            
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <div class="space-y-6">
+                    <div class="flex items-start space-x-4">
+                        <div class="bg-green-100 text-green-800 rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 mb-2">Download the APK</h3>
+                            <p class="text-gray-600">Click the download button above to get the ChroniCompanion APK file.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start space-x-4">
+                        <div class="bg-green-100 text-green-800 rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 mb-2">Enable Unknown Sources</h3>
+                            <p class="text-gray-600">Go to Settings > Security > Install unknown apps and enable for your browser or file manager.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start space-x-4">
+                        <div class="bg-green-100 text-green-800 rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 mb-2">Install the App</h3>
+                            <p class="text-gray-600">Tap the downloaded APK file and follow the installation prompts.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start space-x-4">
+                        <div class="bg-green-100 text-green-800 rounded-full w-8 h-8 flex items-center justify-center font-bold">4</div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 mb-2">Launch & Enjoy</h3>
+                            <p class="text-gray-600">Open ChroniCompanion and start tracking your health journey!</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 p-4 bg-blue-50 rounded-lg">
+                    <div class="flex items-center space-x-2 text-blue-800">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="font-semibold">Need Help?</span>
+                    </div>
+                    <p class="text-blue-700 mt-2">
+                        Contact us at <a href="mailto:support@chronicompanion.app" class="underline">support@chronicompanion.app</a> 
+                        if you need assistance with installation.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="py-16 px-4 bg-white">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-3xl font-bold text-gray-800 mb-12">Simple, Transparent Pricing</h2>
+            
+            <div class="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+                <!-- Free Plan -->
+                <div class="bg-gray-50 rounded-2xl p-8 border-2 border-gray-200">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Free</h3>
+                    <div class="text-4xl font-bold text-gray-800 mb-6">$0<span class="text-lg text-gray-600">/month</span></div>
+                    <ul class="text-left space-y-3 mb-8">
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-check text-green-500"></i>
+                            <span>Unlimited health tracking</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-check text-green-500"></i>
+                            <span>Basic charts and trends</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-check text-green-500"></i>
+                            <span>PDF/CSV export</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-check text-green-500"></i>
+                            <span>Cross-platform sync</span>
+                        </li>
+                    </ul>
+                    <button class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+                        Get Started Free
+                    </button>
+                </div>
+                
+                <!-- Premium Plan -->
+                <div class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-8 border-2 border-purple-200 relative">
+                    <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                        <span class="bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">Most Popular</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Premium</h3>
+                    <div class="text-4xl font-bold text-purple-600 mb-6">$4.99<span class="text-lg text-gray-600">/month</span></div>
+                    <ul class="text-left space-y-3 mb-8">
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-check text-green-500"></i>
+                            <span>Everything in Free</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-star text-purple-500"></i>
+                            <span><strong>AI Health Coach</strong></span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-star text-purple-500"></i>
+                            <span>Personalized insights</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-star text-purple-500"></i>
+                            <span>Advanced pattern analysis</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-star text-purple-500"></i>
+                            <span>Unlimited AI conversations</span>
+                        </li>
+                    </ul>
+                    <button class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+                        Upgrade to Premium
+                    </button>
+                </div>
+            </div>
+            
+            <p class="text-gray-600 mt-8">
+                💰 <strong>Direct Download Benefit:</strong> By downloading directly from us instead of app stores, 
+                we can offer lower prices and more features!
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12 px-4">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <img src="/icons/icon-192x192.png" alt="ChroniCompanion" class="w-8 h-8">
+                        <h3 class="text-lg font-bold">ChroniCompanion</h3>
+                    </div>
+                    <p class="text-gray-400">
+                        Your AI-powered health tracking companion for managing chronic conditions and wellness.
+                    </p>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold mb-4">App</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="/" class="hover:text-white">Web App</a></li>
+                        <li><a href="/download" class="hover:text-white">Download</a></li>
+                        <li><a href="#features" class="hover:text-white">Features</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold mb-4">Support</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="mailto:support@chronicompanion.app" class="hover:text-white">Contact Us</a></li>
+                        <li><a href="/privacy.html" class="hover:text-white">Privacy Policy</a></li>
+                        <li><a href="#help" class="hover:text-white">Help Center</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold mb-4">Connect</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-facebook text-xl"></i>
+                        </a>
+                        <a href="mailto:support@chronicompanion.app" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-envelope text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 ChroniCompanion. All rights reserved.</p>
+                <p class="mt-2">Made with ❤️ for the chronic illness community</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function downloadAPK() {
+            // Track download
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'download', {
+                    event_category: 'APK',
+                    event_label: 'ChroniCompanion-STRIPE-PAYMENTS'
+                });
+            }
+            
+            // Start download
+            const link = document.createElement('a');
+            link.href = '/ChroniCompanion-STRIPE-PAYMENTS.apk';
+            link.download = 'ChroniCompanion-STRIPE-PAYMENTS.apk';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Show success message
+            alert('🎉 Download started! Check your downloads folder.\n\n📱 Don\'t forget to enable "Install from unknown sources" in your Android settings before installing.');
+        }
+        
+        // Add smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
