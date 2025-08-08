@@ -91,6 +91,44 @@ class AIHealthCoachSecure {
     }
 
     /**
+     * Check if current user has premium subscription
+     * @returns {Promise<boolean>} True if user has active premium subscription
+     */
+    async checkPremiumStatus() {
+        try {
+            if (!window.supabase || !window.supabase.auth) {
+                console.warn('🔒 AI Coach: Supabase not available for premium check');
+                return false;
+            }
+
+            const user = await window.supabase.auth.getUser();
+            if (!user.data.user) {
+                console.warn('🔒 AI Coach: No authenticated user for premium check');
+                return false;
+            }
+
+            const { data: subscription, error } = await window.supabase
+                .from('user_subscriptions')
+                .select('*')
+                .eq('user_id', user.data.user.id)
+                .eq('status', 'active')
+                .single();
+
+            if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+                console.error('❌ AI Coach: Error checking premium status:', error);
+                return false;
+            }
+
+            const isPremium = !!subscription;
+            console.log('🔒 AI Coach Premium Check:', isPremium ? 'ACTIVE' : 'FREE');
+            return isPremium;
+        } catch (error) {
+            console.error('❌ AI Coach: Exception checking premium status:', error);
+            return false;
+        }
+    }
+
+    /**
      * Get AI health insight from secure backend with token refresh
      * @param {string} userQuestion - User's health question
      * @param {Object} healthContext - Health data context
@@ -100,6 +138,15 @@ class AIHealthCoachSecure {
         if (!this.isInitialized) {
             throw new Error('AI Coach not initialized. Please sign in first.');
         }
+
+        // 🔒 PREMIUM CHECK: Verify user has active subscription
+        console.log('🔍 AI Coach: Checking premium status...');
+        const isPremium = await this.checkPremiumStatus();
+        if (!isPremium) {
+            console.log('🔒 AI Coach: Premium subscription required');
+            throw new Error('PREMIUM_REQUIRED');
+        }
+        console.log('✅ AI Coach: Premium user verified');
 
         try {
             // Get fresh auth token

@@ -274,6 +274,12 @@ class WorkingAuth {
             this.currentUser = null;
             this.updateAuthUI(false, null);
             this.clearLoginFields(); // Clear sensitive form data
+            
+            // Reset dashboard stats to prevent data leakage between users
+            if (typeof resetQuickStats === 'function') {
+                resetQuickStats();
+            }
+            
             this.showMessage('Signed out successfully', 'success');
             
         } catch (error) {
@@ -283,6 +289,12 @@ class WorkingAuth {
             this.currentUser = null;
             this.updateAuthUI(false, null);
             this.clearLoginFields(); // Clear sensitive form data even on error
+            
+            // Reset dashboard stats even on sign-out error
+            if (typeof resetQuickStats === 'function') {
+                resetQuickStats();
+            }
+            
             this.showMessage('Signed out (with cleanup)', 'info');
         }
     }

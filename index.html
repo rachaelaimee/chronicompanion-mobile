@@ -716,9 +716,17 @@
             if (!entriesList) return;
             
             try {
+                // Get current user
+                const user = await window.supabase.auth.getUser();
+                if (!user.data.user) {
+                    console.error('No authenticated user for loadEntries');
+                    return;
+                }
+                
                 const { data: entries, error } = await window.supabase
                     .from('health_entries')
                     .select('*')
+                    .eq('user_id', user.data.user.id)
                     .order('entry_date', { ascending: false });
 
                 if (error) {
@@ -934,12 +942,34 @@
             }
         }
         
+        // Reset quick stats to zero
+        function resetQuickStats() {
+            console.log('📊 Resetting quick stats to 0');
+            const totalEntriesEl = document.getElementById('total-entries');
+            const avgMoodEl = document.getElementById('avg-mood');
+            const avgEnergyEl = document.getElementById('avg-energy');
+            const avgPainEl = document.getElementById('avg-pain');
+            
+            if (totalEntriesEl) totalEntriesEl.textContent = '0';
+            if (avgMoodEl) avgMoodEl.textContent = '0';
+            if (avgEnergyEl) avgEnergyEl.textContent = '0';
+            if (avgPainEl) avgPainEl.textContent = '0';
+        }
+        
         // Update Dashboard
         async function updateDashboard() {
             try {
+                // Get current user
+                const user = await window.supabase.auth.getUser();
+                if (!user.data.user) {
+                    console.error('No authenticated user for updateDashboard');
+                    return;
+                }
+                
                 const { data: entries, error } = await window.supabase
                     .from('health_entries')
                     .select('*')
+                    .eq('user_id', user.data.user.id)
                     .order('entry_date', { ascending: false });
 
                 if (error) {
@@ -960,6 +990,10 @@
                     document.getElementById('avg-mood').textContent = avgMood;
                     document.getElementById('avg-energy').textContent = avgEnergy;
                     document.getElementById('avg-pain').textContent = avgPain;
+                } else {
+                    // Reset stats to 0 when no entries
+                    console.log('📊 No entries found - resetting quick stats to 0');
+                    resetQuickStats();
                 }
                 
                 // Recent Entries (last 5)
@@ -986,11 +1020,11 @@
             
             } catch (error) {
                 console.error('Error updating dashboard:', error);
-                document.getElementById('total-entries').textContent = '0';
-                document.getElementById('avg-mood').textContent = '0';
-                document.getElementById('avg-energy').textContent = '0';
-                document.getElementById('avg-pain').textContent = '0';
-                document.getElementById('recent-entries').innerHTML = '<p class="text-red-500 text-center py-4">Error loading dashboard data.</p>';
+                // Don't reset stats here - let the main logic handle empty data properly
+                const recentContainer = document.getElementById('recent-entries');
+                if (recentContainer) {
+                    recentContainer.innerHTML = '<p class="text-red-500 text-center py-4">Error loading dashboard data. Please try refreshing.</p>';
+                }
             }
         }
         
@@ -999,9 +1033,17 @@
             const allEntriesContainer = document.getElementById('all-entries-list');
             
             try {
+                // Get current user
+                const user = await window.supabase.auth.getUser();
+                if (!user.data.user) {
+                    console.error('No authenticated user for loadAllEntries');
+                    return;
+                }
+                
                 const { data: entries, error } = await window.supabase
                     .from('health_entries')
                     .select('*')
+                    .eq('user_id', user.data.user.id)
                     .order('entry_date', { ascending: false });
 
                 if (error) {
@@ -1138,9 +1180,17 @@
         // Create Trends Chart
         async function createTrendsChart() {
             try {
+                // Get current user
+                const user = await window.supabase.auth.getUser();
+                if (!user.data.user) {
+                    console.error('No authenticated user for createTrendsChart');
+                    return;
+                }
+                
                 const { data: entries, error } = await window.supabase
                     .from('health_entries')
                     .select('*')
+                    .eq('user_id', user.data.user.id)
                     .order('entry_date', { ascending: false });
 
                 if (error) {
@@ -1278,10 +1328,19 @@
         // Export Functions
         async function exportToCSV() {
             try {
+                // Get current user
+                const user = await window.supabase.auth.getUser();
+                if (!user.data.user) {
+                    console.error('No authenticated user for exportToCSV');
+                    alert('Please sign in to export data.');
+                    return;
+                }
+                
                 // Fetch entries from Supabase database
                 const { data: entries, error } = await window.supabase
                     .from('health_entries')
                     .select('*')
+                    .eq('user_id', user.data.user.id)
                     .order('entry_date', { ascending: false });
 
                 if (error) {
@@ -1338,10 +1397,19 @@
         
         async function exportToJSON() {
             try {
+                // Get current user
+                const user = await window.supabase.auth.getUser();
+                if (!user.data.user) {
+                    console.error('No authenticated user for exportToJSON');
+                    alert('Please sign in to export data.');
+                    return;
+                }
+                
                 // Fetch entries from Supabase database
                 const { data: entries, error } = await window.supabase
                     .from('health_entries')
                     .select('*')
+                    .eq('user_id', user.data.user.id)
                     .order('entry_date', { ascending: false });
 
                 if (error) {
@@ -1468,10 +1536,19 @@
         // PDF Export Function (updated to fetch from Supabase)
         async function exportToPDF() {
             try {
+                // Get current user
+                const user = await window.supabase.auth.getUser();
+                if (!user.data.user) {
+                    console.error('No authenticated user for exportToPDF');
+                    alert('Please sign in to export data.');
+                    return;
+                }
+                
                 // Fetch entries from Supabase database instead of localStorage
                 const { data: entries, error } = await window.supabase
                     .from('health_entries')
                     .select('*')
+                    .eq('user_id', user.data.user.id)
                     .order('entry_date', { ascending: false });
 
                 if (error) {
@@ -1701,10 +1778,70 @@
             
             console.log('🤖 Initializing AI Coach...');
             
+            // 🔒 CRITICAL FIX: Wait for authentication to be fully ready BEFORE premium check
+            console.log('⏳ Ensuring authentication system is ready...');
+            if (!window.workingAuth) {
+                console.log('⚠️ WorkingAuth not ready, waiting...');
+                let authSystemAttempts = 0;
+                while (!window.workingAuth && authSystemAttempts < 20) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    authSystemAttempts++;
+                }
+                
+                if (!window.workingAuth) {
+                    console.error('❌ Authentication system not ready after 10 seconds');
+                    showAIPremiumGate(); // Show premium gate as fallback for security
+                    return;
+                }
+            }
+            
+            // 🔒 MOBILE FIX: Additional wait to ensure Supabase auth is fully initialized
+            console.log('🔍 Ensuring Supabase session is ready...');
+            const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+            const maxSessionAttempts = isMobile ? 25 : 15; // Longer wait for mobile
+            console.log(`📱 Platform: ${isMobile ? 'Mobile' : 'Web'} - Max attempts: ${maxSessionAttempts}`);
+            
+            let sessionAttempts = 0;
+            let userSession = null;
+            
+            while (sessionAttempts < maxSessionAttempts) {
+                try {
+                    const { data: { session }, error } = await window.supabase.auth.getSession();
+                    if (error) {
+                        console.warn(`⚠️ Session check error (attempt ${sessionAttempts + 1}):`, error);
+                    } else if (session?.user) {
+                        console.log('✅ Supabase session confirmed for user:', session.user.email);
+                        userSession = session;
+                        break;
+                    } else {
+                        console.log(`🔄 No session yet (attempt ${sessionAttempts + 1}), waiting...`);
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ Session check exception (attempt ${sessionAttempts + 1}):`, error);
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                sessionAttempts++;
+            }
+            
+            if (!userSession) {
+                console.error(`❌ No authenticated session found after ${maxSessionAttempts} seconds`);
+                console.log('🔒 Mobile: Forcing premium gate display due to session timeout');
+                showAIPremiumGate(); // Show premium gate as fallback for security
+                return;
+            }
+            
             // Check if user has premium subscription
+            console.log('🔍 Checking premium status...');
             const isPremium = await checkPremiumStatus();
+            
+            // 🔒 MOBILE FIX: Force premium gate display on mobile when not premium
             if (!isPremium) {
-                console.log('🔒 AI Coach requires premium subscription');
+                if (isMobile) {
+                    console.log('🔒 Mobile: User is not premium - forcing premium gate display');
+                } else {
+                    console.log('🔒 Web: User is not premium - showing premium gate');
+                }
                 showAIPremiumGate();
                 return;
             }
@@ -1712,15 +1849,7 @@
             console.log('✅ Premium user verified, proceeding with AI Coach initialization...');
             
             try {
-                // Wait for authentication to be fully ready
-                if (!window.workingAuth) {
-                    console.log('⏳ Waiting for authentication to be ready...');
-                    let attempts = 0;
-                    while (!window.workingAuth && attempts < 20) {
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        attempts++;
-                    }
-                }
+                console.log('🚀 Starting AI Coach backend initialization...');
                 
                 // SECURE BACKEND: Try Railway first, fallback to localhost if needed
                 aiCoach = new window.AIHealthCoachSecure();
@@ -1745,15 +1874,22 @@
                     // Load previous AI conversations
                     await loadAIConversations();
                     console.log('✅ AI Coach fully initialized and ready');
+                    
+                    // Set up event handlers
+                    setupAIEventHandlers();
+                    
+                    // CRITICAL FIX: Only set flag when AI Coach actually succeeds
+                    isAIInitialized = true;
                 } else {
                     displayAISetupMessage();
                     console.log('⚠️ AI Coach initialization failed - setup required');
+                    
+                    // Set up event handlers for setup message
+                    setupAIEventHandlers();
+                    
+                    // CRITICAL FIX: Don't set isAIInitialized when setup fails
+                    // This allows retries when user clicks the tab again
                 }
-                
-                // Set up event handlers
-                setupAIEventHandlers();
-                
-                isAIInitialized = true;
             } catch (error) {
                 console.error('❌ AI Coach initialization error:', error);
                 displayAIError('Failed to initialize AI Coach: ' + error.message);
@@ -1816,17 +1952,22 @@
             const askBtn = document.getElementById('ai-ask-btn');
             const questionInput = document.getElementById('ai-question-input');
             
-            askBtn.addEventListener('click', handleAIQuestion);
+            // Remove existing event listeners to prevent duplicates
+            askBtn.replaceWith(askBtn.cloneNode(true));
+            const newAskBtn = document.getElementById('ai-ask-btn');
+            newAskBtn.addEventListener('click', handleAIQuestion);
             
-            // Enter key support
-            questionInput.addEventListener('keypress', (e) => {
+            // Enter key support - also remove existing listeners
+            questionInput.replaceWith(questionInput.cloneNode(true));
+            const newQuestionInput = document.getElementById('ai-question-input');
+            newQuestionInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     handleAIQuestion();
                 }
             });
             
             // Mobile keyboard handling - scroll input into view when focused
-            questionInput.addEventListener('focus', () => {
+            newQuestionInput.addEventListener('focus', () => {
                 // Check if we're on mobile
                 const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
                 if (isMobile) {
@@ -1878,6 +2019,8 @@
             
             if (!question) return;
             
+            // Premium check is now handled by the AI Coach script itself
+            
             // Show user message
             addAIMessage(question, 'user');
             questionInput.value = '';
@@ -1928,6 +2071,14 @@
                 
             } catch (error) {
                 removeAIMessage(thinkingId);
+                
+                // Handle premium required error specifically
+                if (error.message === 'PREMIUM_REQUIRED') {
+                    console.log('🔒 Premium required error caught - showing premium gate');
+                    showAIPremiumGate();
+                    return;
+                }
+                
                 addAIMessage('Sorry, I encountered an error. Please try again later. 🤖💔', 'ai');
                 console.error('❌ AI Question Error:', error);
             }
@@ -2068,11 +2219,31 @@
         // Check if current user has active premium subscription
         async function checkPremiumStatus() {
             try {
+                console.log('🔍 checkPremiumStatus: Starting premium check...');
+                
+                // 🔒 MOBILE FIX: Add extra safety checks for mobile
+                const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
+                if (isMobile) {
+                    console.log('📱 checkPremiumStatus: Running mobile-specific premium check');
+                    
+                    // Extra validation for mobile authentication
+                    if (!window.supabase || !window.supabase.auth) {
+                        console.warn('🔒 Mobile: Supabase not properly initialized for premium check');
+                        return false;
+                    }
+                }
+                
                 const user = await window.supabase.auth.getUser();
                 if (!user.data.user) {
-                    console.log('🔒 No authenticated user for premium check');
+                    console.log('🔒 checkPremiumStatus: No authenticated user for premium check');
+                    if (isMobile) {
+                        console.log('📱 Mobile: Returning false due to missing user authentication');
+                    }
                     return false;
                 }
+                
+                console.log('🔍 checkPremiumStatus: User found:', user.data.user.email);
+                console.log('🔍 checkPremiumStatus: Querying user_subscriptions table...');
                 
                 const { data: subscription, error } = await window.supabase
                     .from('user_subscriptions')
@@ -2081,6 +2252,8 @@
                     .eq('status', 'active')
                     .single();
                     
+                console.log('🔍 checkPremiumStatus: Subscription query result:', { subscription, error });
+                    
                 if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
                     console.error('❌ Error checking premium status:', error);
                     return false;
@@ -2088,6 +2261,7 @@
                 
                 const isPremium = !!subscription;
                 console.log('💎 Premium status:', isPremium ? 'ACTIVE' : 'FREE');
+                console.log('🔍 checkPremiumStatus: Final result:', isPremium);
                 
                 // Update UI based on premium status
                 updatePremiumUI(isPremium);
@@ -2365,7 +2539,7 @@
                                        id="ai-question-input"
                                        placeholder="Ask about your health patterns, symptoms, or wellness advice..."
                                        class="flex-1 px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
-                                <button onclick="handleAIQuestion()" 
+                                <button id="ai-ask-btn"
                                         class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
