@@ -293,7 +293,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
                             name: 'ChroniCompanion Premium',
                             description: 'AI Health Coach, Advanced Analytics, Premium Features',
                         },
-                        unit_amount: 999, // $9.99/month in cents
+                        unit_amount: 499, // $4.99/month in cents
                         recurring: {
                             interval: 'month',
                         },
