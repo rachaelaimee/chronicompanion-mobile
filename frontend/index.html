@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChroniCompanion - Clean Auth</title>
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        .message {
+            padding: 12px;
+            margin: 16px 0;
+            border-radius: 8px;
+            display: none;
+        }
+        .message.error {
+            background-color: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #dc2626;
+        }
+        .message.success {
+            background-color: #dcfce7;
+            border: 1px solid #86efac;
+            color: #166534;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full mx-auto p-6">
+        
+        <!-- App Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">🌿 ChroniCompanion</h1>
+            <p class="text-gray-600">Your gentle space for daily reflection and wellness tracking</p>
+            <p class="text-sm text-blue-600 mt-2">Clean Authentication v3000</p>
+        </div>
+
+        <!-- Messages -->
+        <div id="message" class="message"></div>
+        
+        <!-- AUTH FORM - Shows when signed out -->
+        <div id="auth-form" class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Welcome</h2>
+            
+            <!-- Email Input -->
+            <div class="mb-4">
+                <label for="email-input" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                <input 
+                    type="email" 
+                    id="email-input" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Enter your email"
+                >
+                    </div>
+                    
+            <!-- Password Input -->
+            <div class="mb-6">
+                <label for="password-input" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <input 
+                    type="password" 
+                    id="password-input" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Enter your password"
+                    minlength="6"
+                >
+        </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-3">
+                <!-- SIGN IN BUTTON - For existing users -->
+                <button 
+                    id="sign-in-btn" 
+                    class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 font-medium"
+                >
+                    Sign In
+                        </button>
+                        
+                <div class="text-center text-gray-500 text-sm">
+                    Don't have an account?
+        </div>
+
+                <!-- SIGN UP BUTTON - For new users -->
+                <button 
+                    id="sign-up-btn" 
+                    class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                >
+                    Create New Account
+                        </button>
+            </div>
+
+            <div class="mt-4 text-xs text-gray-500 text-center">
+                <p><strong>Existing users:</strong> Use "Sign In" button</p>
+                <p><strong>New users:</strong> Use "Create New Account" button</p>
+                    </div>
+                </div>
+
+        <!-- SIGNED IN CONTROLS - Shows when signed in -->
+        <div id="signed-in-controls" class="bg-white rounded-lg shadow-md p-6" style="display: none;">
+            <div id="user-info" class="mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <span class="text-green-600 font-semibold">👤</span>
+                    </div>
+                            <div>
+                        <p class="text-sm text-gray-500">Signed in as:</p>
+                        <p id="user-email" class="font-medium text-gray-900"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <button 
+                id="sign-out-btn" 
+                class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 font-medium"
+            >
+                Sign Out
+                </button>
+            </div>
+        
+        <!-- App Content (placeholder for when signed in) -->
+        <div id="app-content" class="mt-6 space-y-4" style="display: none;">
+            <button class="w-full bg-green-600 text-white py-3 px-4 rounded-md font-medium">+ New Entry</button>
+            <button class="w-full bg-purple-600 text-white py-3 px-4 rounded-md font-medium">📝 View Entries</button>
+            <button class="w-full bg-teal-600 text-white py-3 px-4 rounded-md font-medium">📊 Dashboard</button>
+        </div>
+    </div>
+
+    <!-- Supabase Configuration -->
+    <script>
+        // Initialize Supabase client
+        const supabaseUrl = 'https://wizvwerzrbuvdhbjpelz.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpenZ3ZXJ6cmJ1dmRoYmpwZWx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjMwNDczMzcsImV4cCI6MjAzODYyMzMzN30.o1uNqKjCN6kBg8TrROYIUB8fFdLWa2xG8UcBWmfWpFE';
+        
+        window.supabase = supabase.createClient(supabaseUrl, supabaseKey, {
+            auth: {
+                persistSession: true,
+                detectSessionInUrl: true,
+                flowType: 'pkce'
+            }
+        });
+        
+        console.log('✅ Supabase client initialized');
+    </script>
+    
+    <!-- 🚨 DISABLE SERVICE WORKER TEMPORARILY -->
+    <script>
+        // Unregister any existing service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+        console.log('🧹 Service worker disabled - forcing fresh load');
+    </script>
+    
+    <!-- Clean Authentication -->
+    <script src="js/clean-auth.js?v=FORCE-RELOAD-v4000"></script>
+    <script src="js/main.js?v=FORCE-RELOAD-v4000"></script>
+</body>
+</html> 

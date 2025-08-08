@@ -1689,7 +1689,7 @@
         let aiCoach = null;
         let isAIInitialized = false;
         
-        // Initialize AI Coach with proper timing
+        // Initialize AI Coach with proper timing (Premium Feature)
         async function initializeAICoach() {
             if (isAIInitialized) {
                 updateAIUsageDisplay();
@@ -1697,6 +1697,16 @@
             }
             
             console.log('🤖 Initializing AI Coach...');
+            
+            // Check if user has premium subscription
+            const isPremium = await checkPremiumStatus();
+            if (!isPremium) {
+                console.log('🔒 AI Coach requires premium subscription');
+                showAIPremiumGate();
+                return;
+            }
+            
+            console.log('✅ Premium user verified, proceeding with AI Coach initialization...');
             
             try {
                 // Wait for authentication to be fully ready
@@ -2047,6 +2057,269 @@
         function displayAIError(errorMessage) {
             addAIMessage(`❌ Error: ${errorMessage}`, 'ai');
         }
+        
+        // ===============================
+        // PREMIUM SUBSCRIPTION FUNCTIONS
+        // ===============================
+        
+        // Check if current user has active premium subscription
+        async function checkPremiumStatus() {
+            try {
+                const user = await window.supabase.auth.getUser();
+                if (!user.data.user) {
+                    console.log('🔒 No authenticated user for premium check');
+                    return false;
+                }
+                
+                const { data: subscription, error } = await window.supabase
+                    .from('user_subscriptions')
+                    .select('*')
+                    .eq('user_id', user.data.user.id)
+                    .eq('status', 'active')
+                    .single();
+                    
+                if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+                    console.error('❌ Error checking premium status:', error);
+                    return false;
+                }
+                
+                const isPremium = !!subscription;
+                console.log('💎 Premium status:', isPremium ? 'ACTIVE' : 'FREE');
+                
+                // Update UI based on premium status
+                updatePremiumUI(isPremium);
+                
+                return isPremium;
+            } catch (error) {
+                console.error('❌ Exception checking premium status:', error);
+                return false;
+            }
+        }
+        
+        // Update UI elements based on premium status
+        function updatePremiumUI(isPremium) {
+            // Update AI Coach tab with premium indicator
+            const aiTab = document.getElementById('tab-ai-coach');
+            if (aiTab) {
+                if (isPremium) {
+                    aiTab.innerHTML = '<i class="fas fa-robot mr-2"></i>AI Coach <span class="text-yellow-300">💎</span>';
+                } else {
+                    aiTab.innerHTML = '<i class="fas fa-robot mr-2"></i>AI Coach <span class="text-gray-400">(Premium)</span>';
+                }
+            }
+            
+            // Show/hide premium prompts
+            const premiumPrompts = document.querySelectorAll('.premium-prompt');
+            premiumPrompts.forEach(prompt => {
+                prompt.style.display = isPremium ? 'none' : 'block';
+            });
+        }
+        
+        // Show premium upgrade modal
+        function showPremiumUpgradeModal() {
+            const modal = document.createElement('div');
+            modal.id = 'premium-modal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg p-6 max-w-md mx-4">
+                    <div class="text-center">
+                        <div class="text-4xl mb-4">💎</div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Upgrade to Premium</h2>
+                        <p class="text-gray-600 mb-6">Unlock unlimited AI health insights, advanced analytics, and more!</p>
+                        
+                        <div class="bg-purple-50 rounded-lg p-4 mb-6">
+                            <div class="text-lg font-semibold text-purple-800 mb-2">Premium Features:</div>
+                            <ul class="text-left text-purple-700 space-y-1">
+                                <li>✅ Unlimited AI Health Coach</li>
+                                <li>✅ Advanced Health Analytics</li>
+                                <li>✅ Premium PDF Reports</li>
+                                <li>✅ Priority Support</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="text-center mb-4">
+                            <div class="text-2xl font-bold text-purple-600">$4.99/month</div>
+                            <div class="text-sm text-gray-500">Cancel anytime</div>
+                        </div>
+                        
+                        <div class="flex space-x-3">
+                            <button onclick="closePremiumModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                                Maybe Later
+                            </button>
+                            <button onclick="initiatePremiumUpgrade()" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                                Upgrade Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        // Close premium upgrade modal
+        function closePremiumModal() {
+            const modal = document.getElementById('premium-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // Initiate premium upgrade process
+        function initiatePremiumUpgrade() {
+            closePremiumModal();
+            
+            // For now, show a coming soon message
+            // Later this will integrate with Stripe
+            alert('🚧 Premium upgrade coming soon! We\'re setting up secure payment processing.');
+            
+            // TODO: Implement Stripe Checkout
+            // redirectToStripeCheckout();
+        }
+        
+        // Add premium subscription manually (for testing)
+        async function addTestPremiumSubscription() {
+            try {
+                const user = await window.supabase.auth.getUser();
+                if (!user.data.user) {
+                    alert('Please sign in first');
+                    return;
+                }
+                
+                const { data, error } = await window.supabase
+                    .from('user_subscriptions')
+                    .insert([{
+                        user_id: user.data.user.id,
+                        platform: 'manual',
+                        status: 'active',
+                        plan: 'premium'
+                    }]);
+                    
+                if (error) {
+                    console.error('❌ Error adding test subscription:', error);
+                    alert('Error adding premium subscription');
+                } else {
+                    console.log('✅ Test premium subscription added');
+                    alert('✅ Premium subscription activated for testing!');
+                    await checkPremiumStatus(); // Refresh premium status
+                }
+            } catch (error) {
+                console.error('❌ Exception adding test subscription:', error);
+                alert('Error adding premium subscription');
+            }
+        }
+        
+        // Initialize premium features on page load
+        async function initializePremiumFeatures() {
+            console.log('💎 Initializing premium features...');
+            
+            // Check premium status when user is authenticated
+            const { data: { session } } = await window.supabase.auth.getSession();
+            if (session?.user) {
+                await checkPremiumStatus();
+            }
+            
+            // Listen for auth changes to update premium status
+            window.supabase.auth.onAuthStateChange(async (event, session) => {
+                if (event === 'SIGNED_IN' && session?.user) {
+                    await checkPremiumStatus();
+                } else if (event === 'SIGNED_OUT') {
+                    updatePremiumUI(false);
+                }
+            });
+        }
+        
+        // Show AI Premium Gate
+        function showAIPremiumGate() {
+            const aiContent = document.getElementById('content-ai-coach');
+            if (aiContent) {
+                aiContent.innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="text-6xl mb-6">🤖💎</div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">AI Health Coach</h2>
+                        <p class="text-gray-600 mb-6 max-w-md mx-auto">
+                            Get personalized health insights, pattern analysis, and coaching recommendations 
+                            powered by advanced AI technology.
+                        </p>
+                        
+                        <div class="bg-purple-50 rounded-lg p-6 max-w-md mx-auto mb-8">
+                            <h3 class="font-semibold text-purple-800 mb-3">Premium AI Features:</h3>
+                            <ul class="text-left text-purple-700 space-y-2">
+                                <li>🧠 Intelligent health pattern analysis</li>
+                                <li>💡 Personalized wellness recommendations</li>
+                                <li>📈 Trend identification and insights</li>
+                                <li>🎯 Goal setting and progress tracking</li>
+                                <li>⚡ Unlimited AI conversations</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <button onclick="showPremiumUpgradeModal()" 
+                                    class="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                                Upgrade to Premium - $4.99/month
+                            </button>
+                            <br>
+                            <button onclick="addTestPremiumSubscription()" 
+                                    class="text-sm text-gray-500 hover:text-gray-700 underline">
+                                Activate Test Premium (Development)
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Hide AI Premium Gate and restore chat interface
+        function hideAIPremiumGate() {
+            const aiContent = document.getElementById('content-ai-coach');
+            if (aiContent && aiContent.innerHTML.includes('AI Health Coach')) {
+                // Reset the AI initialization flag so it can be properly initialized
+                isAIInitialized = false;
+                
+                // Restore original AI chat interface
+                aiContent.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-md h-full flex flex-col">
+                        <div class="p-4 border-b border-gray-200">
+                            <h2 class="text-xl font-semibold text-sage-800 flex items-center">
+                                <i class="fas fa-robot mr-2 text-purple-600"></i>
+                                AI Health Coach 💎
+                            </h2>
+                            <p class="text-sm text-sage-600 mt-1">Get personalized health insights based on your entries</p>
+                            <div id="ai-usage-display" class="text-xs text-gray-500 mt-2">
+                                <span class="text-green-600">Premium: Unlimited</span>
+                            </div>
+                        </div>
+                        
+                        <div id="ai-chat-container" class="flex-1 overflow-y-auto p-4 min-h-0">
+                            <div id="ai-chat-messages" class="space-y-4">
+                                <!-- Messages will be loaded here -->
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 border-t border-gray-200 relative pb-20 md:pb-4">
+                            <div class="flex space-x-2">
+                                <input type="text" 
+                                       id="ai-question-input"
+                                       placeholder="Ask about your health patterns, symptoms, or wellness advice..."
+                                       class="flex-1 px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                                <button onclick="handleAIQuestion()" 
+                                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Reinitialize AI Coach now that user has premium
+                initializeAICoach();
+            }
+        }
+        
+        // Call initialize premium features after DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            initializePremiumFeatures();
+        });
     </script>
 </body>
 </html> 

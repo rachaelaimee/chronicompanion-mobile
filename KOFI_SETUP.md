@@ -9,6 +9,7 @@ Your ChroniCompanion app now has real Ko-fi donation functionality!
 **Ko-fi Account:** [ko-fi.com/chronicompanion](https://ko-fi.com/chronicompanion)
 
 **Donation Options:**
+
 - **Quick Buttons:** $1, $3, $5 (predefined amounts)
 - **Custom Amount:** Full Ko-fi page for any amount
 - **Mobile Optimized:** Works perfectly on all devices
@@ -24,11 +25,13 @@ Your ChroniCompanion app now has real Ko-fi donation functionality!
 ### 💰 How It Works
 
 **Preset Amounts ($1, $3, $5):**
+
 - Click button → Opens `https://ko-fi.com/chronicompanion?amount=X`
 - User completes donation on Ko-fi
 - Returns to app with success message
 
 **Custom Amounts:**
+
 - Click "Support on Ko-fi" → Opens main Ko-fi page
 - User can choose any amount or even recurring support
 - Full Ko-fi experience with all payment options
@@ -55,6 +58,7 @@ Your ChroniCompanion app now has real Ko-fi donation functionality!
 ### 🔗 Ko-fi Account Management
 
 Visit [ko-fi.com/chronicompanion](https://ko-fi.com/chronicompanion) to:
+
 - Customize your Ko-fi page
 - Set up goals and milestones
 - Add donation rewards/perks
