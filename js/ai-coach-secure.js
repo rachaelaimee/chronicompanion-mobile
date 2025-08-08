@@ -42,8 +42,19 @@ class AIHealthCoachSecure {
                             console.warn(`⚠️ AI Coach: Auth error (attempt ${attempts + 1}):`, error.message);
                         } else if (session?.access_token) {
                             this.authToken = session.access_token;
+                            
+                            // 🔒 CRITICAL FIX: Check premium status BEFORE initializing
+                            console.log('🔍 AI Coach: Checking premium status during initialization...');
+                            const isPremium = await this.checkPremiumStatus();
+                            
+                            if (!isPremium) {
+                                console.log('🔒 AI Coach: Premium subscription required - initialization blocked');
+                                this.isInitialized = false;
+                                return false;
+                            }
+                            
                             this.isInitialized = true;
-                            console.log('✅ Secure AI Health Coach initialized successfully');
+                            console.log('✅ Secure AI Health Coach initialized successfully for premium user');
                             return true;
                         }
                     }
