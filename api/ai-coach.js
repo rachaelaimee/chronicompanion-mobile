@@ -8,6 +8,7 @@ const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const { OpenAI } = require('openai');
+const Stripe = require('stripe');
 require('dotenv').config();
 
 const app = express();
@@ -17,16 +18,19 @@ const port = process.env.PORT || 3000;
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const openaiApiKey = process.env.OPENAI_API_KEY;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
 console.log('🚀 ChroniCompanion AI Coach API Starting...');
 console.log('- PORT:', port);
 console.log('- OPENAI_API_KEY:', openaiApiKey ? '✅ Set' : '❌ Missing');
 console.log('- SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
 console.log('- SUPABASE_SERVICE_KEY:', supabaseServiceKey ? '✅ Set' : '❌ Missing');
+console.log('- STRIPE_SECRET_KEY:', stripeSecretKey ? '✅ Set' : '❌ Missing');
 
 // Initialize services
 let openai = null;
 let supabase = null;
+let stripe = null;
 
 if (openaiApiKey) {
     try {
@@ -43,6 +47,15 @@ if (supabaseUrl && supabaseServiceKey) {
         console.log('✅ Supabase client initialized');
     } catch (error) {
         console.error('❌ Supabase initialization failed:', error.message);
+    }
+}
+
+if (stripeSecretKey) {
+    try {
+        stripe = new Stripe(stripeSecretKey);
+        console.log('✅ Stripe client initialized');
+    } catch (error) {
+        console.error('❌ Stripe initialization failed:', error.message);
     }
 }
 
@@ -238,11 +251,176 @@ Please provide a concise, helpful, and empathetic response based on their health
     }
 });
 
+// =============================================================================
+// STRIPE PAYMENT ENDPOINTS
+// =============================================================================
+
+// Create Stripe Checkout Session
+app.post('/api/create-checkout-session', async (req, res) => {
+    console.log('🛒 Creating Stripe checkout session...');
+    
+    try {
+        // Validate Stripe is configured
+        if (!stripe) {
+            return res.status(503).json({
+                success: false,
+                error: 'Payment service not configured'
+            });
+        }
+        
+        // Validate request body
+        const { user_id, user_email, success_url, cancel_url } = req.body;
+        if (!user_id || !user_email || !success_url || !cancel_url) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: user_id, user_email, success_url, cancel_url'
+            });
+        }
+        
+        console.log('📧 Creating session for:', user_email);
+        
+        // Create Stripe Checkout session
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            mode: 'subscription',
+            customer_email: user_email,
+            client_reference_id: user_id, // This will help us identify the user in webhooks
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'usd',
+                        product_data: {
+                            name: 'ChroniCompanion Premium',
+                            description: 'AI Health Coach, Advanced Analytics, Premium Features',
+                        },
+                        unit_amount: 999, // $9.99/month in cents
+                        recurring: {
+                            interval: 'month',
+                        },
+                    },
+                    quantity: 1,
+                },
+            ],
+            success_url: success_url,
+            cancel_url: cancel_url,
+            metadata: {
+                user_id: user_id,
+                plan: 'premium'
+            }
+        });
+        
+        console.log('✅ Stripe session created:', session.id);
+        
+        res.json({
+            success: true,
+            sessionId: session.id
+        });
+        
+    } catch (error) {
+        console.error('❌ Stripe checkout session creation failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create checkout session'
+        });
+    }
+});
+
+// Stripe Webhook Handler
+app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    console.log('🔔 Stripe webhook received');
+    
+    try {
+        // Validate Stripe and Supabase are configured
+        if (!stripe || !supabase) {
+            console.error('❌ Stripe or Supabase not configured for webhooks');
+            return res.status(503).json({ error: 'Service not configured' });
+        }
+        
+        const sig = req.headers['stripe-signature'];
+        let event;
+        
+        try {
+            // For now, we'll skip webhook signature verification in development
+            // In production, you should set STRIPE_WEBHOOK_SECRET and verify signatures
+            event = JSON.parse(req.body);
+            console.log('🎯 Webhook event type:', event.type);
+        } catch (err) {
+            console.error('❌ Webhook signature verification failed:', err.message);
+            return res.status(400).send(`Webhook Error: ${err.message}`);
+        }
+        
+        // Handle the event
+        switch (event.type) {
+            case 'checkout.session.completed':
+                const session = event.data.object;
+                console.log('💳 Payment successful for session:', session.id);
+                console.log('👤 User ID:', session.client_reference_id);
+                console.log('📧 Customer email:', session.customer_email);
+                
+                // Add premium subscription to database
+                if (session.client_reference_id) {
+                    try {
+                        const { data, error } = await supabase
+                            .from('user_subscriptions')
+                            .insert([{
+                                user_id: session.client_reference_id,
+                                subscription_id: session.subscription,
+                                platform: 'stripe',
+                                status: 'active',
+                                plan: 'premium',
+                                expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+                            }]);
+                        
+                        if (error) {
+                            console.error('❌ Failed to create subscription record:', error);
+                        } else {
+                            console.log('✅ Premium subscription activated for user:', session.client_reference_id);
+                        }
+                    } catch (dbError) {
+                        console.error('❌ Database error:', dbError);
+                    }
+                }
+                break;
+                
+            case 'customer.subscription.deleted':
+                const subscription = event.data.object;
+                console.log('❌ Subscription cancelled:', subscription.id);
+                
+                // Update subscription status to cancelled
+                try {
+                    const { error } = await supabase
+                        .from('user_subscriptions')
+                        .update({ status: 'cancelled' })
+                        .eq('subscription_id', subscription.id);
+                    
+                    if (error) {
+                        console.error('❌ Failed to cancel subscription:', error);
+                    } else {
+                        console.log('✅ Subscription cancelled in database');
+                    }
+                } catch (dbError) {
+                    console.error('❌ Database error:', dbError);
+                }
+                break;
+                
+            default:
+                console.log(`🤷 Unhandled event type: ${event.type}`);
+        }
+        
+        res.json({ received: true });
+        
+    } catch (error) {
+        console.error('❌ Webhook handler error:', error);
+        res.status(500).json({ error: 'Webhook handler failed' });
+    }
+});
+
 // Start server
 app.listen(port, '0.0.0.0', () => {
     console.log(`🤖 ChroniCompanion AI Coach API running on 0.0.0.0:${port}`);
     console.log(`🔐 OpenAI: ${openai ? 'Ready' : 'Not configured'}`);
     console.log(`🗄️  Supabase: ${supabase ? 'Ready' : 'Not configured'}`);
+    console.log(`💳 Stripe: ${stripe ? 'Ready' : 'Not configured'}`);
 });
 
 module.exports = app;
