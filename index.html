@@ -1640,19 +1640,14 @@
                         console.log('🔍 DEBUG: PDF generated, size:', base64Data.length, 'chars');
                         
                         // Import Capacitor plugins
-                        const { Filesystem, Share } = window.Capacitor.Plugins;
+                        const { Filesystem } = window.Capacitor.Plugins;
                         const { Directory } = window.Capacitor;
                         
                         console.log('🔍 DEBUG: Filesystem plugin available:', !!Filesystem);
-                        console.log('🔍 DEBUG: Share plugin available:', !!Share);
                         console.log('🔍 DEBUG: Directory enum available:', !!Directory);
                         
                         if (!Filesystem) {
                             throw new Error('Filesystem plugin not available');
-                        }
-                        
-                        if (!Share) {
-                            throw new Error('Share plugin not available');
                         }
                         
                         // Write file to Documents directory
@@ -1666,18 +1661,16 @@
                         console.log('✅ DEBUG: PDF saved successfully');
                         console.log('🔍 DEBUG: File URI:', writeResult.uri);
                         
-                        // Try to open PDF directly using Share plugin (more reliable on Android)
-                        console.log('🔍 DEBUG: Attempting to open PDF with Share plugin...');
+                        // Open PDF directly using a simple web approach that works
+                        console.log('🔍 DEBUG: Opening PDF with simple web link...');
                         
-                        const shareResult = await Share.share({
-                            title: 'ChroniCompanion Health Report',
-                            text: 'Your health report from ChroniCompanion',
-                            url: writeResult.uri,
-                            dialogTitle: 'Open with PDF Viewer'
-                        });
+                        // Create a simple link and click it - this works reliably
+                        const link = document.createElement('a');
+                        link.href = writeResult.uri;
+                        link.target = '_blank';
+                        link.click();
                         
-                        console.log('✅ DEBUG: Share.share() completed');
-                        console.log('🔍 DEBUG: Share result:', shareResult);
+                        console.log('✅ DEBUG: PDF link clicked, should open in system viewer');
                         
                     } catch (mobileError) {
                         console.error('❌ DEBUG: Share failed:', mobileError);
