@@ -487,7 +487,7 @@
                         <h3 class="text-base md:text-lg font-semibold text-sage-800">
                             <i class="fas fa-robot mr-2 text-purple-600"></i>Meet Chroni, Your AI Health Coach
                         </h3>
-                        <div id="ai-usage-display" class="text-xs md:text-sm text-gray-600">
+                        <div id="ai-usage-display" class="text-sm md:text-base text-gray-600 bg-gray-50 px-3 py-1 rounded-full">
                             <!-- Usage will be shown here -->
                         </div>
                         <div class="mt-2">
@@ -2218,8 +2218,8 @@
                     await saveAIConversation(question, result.insight);
                     
                     // Update usage display
-                    document.getElementById('ai-usage-display').innerHTML = 
-                        `<span class="text-green-600">${result.usage}/${result.limit} questions today</span>`;
+                                        document.getElementById('ai-usage-display').innerHTML =
+                        `<span class="text-green-600 font-medium">✅ ${result.usage}/${result.limit} questions today</span>`;
                     
                     // Show premium prompt if limit reached
                     if (result.usage >= result.limit) {
@@ -2437,10 +2437,10 @@
                 
                 if (usage >= limit) {
                     aiUsageElement.innerHTML = 
-                        `<span class="text-red-600">⚠️ ${usage}/${limit} - Limit Reached</span>`;
+                        `<span class="text-red-600 font-medium">⚠️ ${usage}/${limit} - Limit Reached</span>`;
                 } else {
                     aiUsageElement.innerHTML = 
-                        `<span class="text-green-600">✅ ${usage}/${limit} questions today</span>`;
+                        `<span class="text-green-600 font-medium">✅ ${usage}/${limit} questions today</span>`;
                 }
                 
                 // Always add Premium Settings button after updating usage
