@@ -295,6 +295,12 @@ class WorkingAuth {
                 resetQuickStats();
             }
             
+            // 🔒 CRITICAL SECURITY FIX: Reset AI initialization flag to force premium check on re-login
+            if (typeof window !== 'undefined' && 'isAIInitialized' in window) {
+                window.isAIInitialized = false;
+                console.log('🔒 AI initialization flag reset - premium check will be enforced on next login');
+            }
+            
             this.showMessage('Signed out (with cleanup)', 'info');
         }
     }
