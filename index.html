@@ -579,17 +579,11 @@
                             <i class="fas fa-check-circle mr-2"></i>Active Premium Subscription
                         </h3>
                         <p class="text-green-700 text-sm mb-3">$4.99/month • Unlimited AI features</p>
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <button onclick="manageSubscription()" 
-                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
-                                <i class="fas fa-cog mr-1"></i> Manage Subscription
-                            </button>
-                            <button onclick="cancelSubscription()" 
-                                    class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
-                                <i class="fas fa-times mr-1"></i> Cancel Subscription
-                            </button>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-2">Use "Manage Subscription" to update payment methods, view invoices, or cancel through Stripe's secure portal</p>
+                        <button onclick="manageSubscription()" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                            <i class="fas fa-cog mr-1"></i> Manage Subscription
+                        </button>
+                        <p class="text-xs text-gray-500 mt-2">Use "Manage Subscription" to update payment methods, view invoices, cancel subscription, and more through Stripe's secure portal</p>
                     </div>
                     
                     <!-- Mailing List Signup -->
@@ -2694,6 +2688,10 @@
         
         // Manage Subscription via Stripe Customer Portal
         async function manageSubscription() {
+            // Declare button variables in function scope
+            const button = event?.target;
+            const originalText = button?.innerHTML;
+            
             try {
                 console.log('🏪 Opening Stripe Customer Portal...');
                 
@@ -2705,8 +2703,6 @@
                 }
                 
                 // Show loading state
-                const button = event?.target;
-                const originalText = button?.innerHTML;
                 if (button) {
                     button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Opening Portal...';
                     button.disabled = true;
@@ -2745,39 +2741,7 @@
             }
         }
         
-        // Cancel Subscription
-        async function cancelSubscription() {
-            if (!confirm('Are you sure you want to cancel your premium subscription? You\'ll lose access to AI features at the end of your current billing period.')) {
-                return;
-            }
-            
-            try {
-                // In a real implementation, you'd call Stripe API to cancel
-                // For now, we'll just show a message and update the database
-                const { data: { user } } = await window.supabase.auth.getUser();
-                if (user) {
-                    const { error } = await window.supabase
-                        .from('user_subscriptions')
-                        .update({ status: 'cancelled' })
-                        .eq('user_id', user.id);
-                    
-                    if (error) {
-                        throw error;
-                    }
-                    
-                    alert('✅ Subscription cancelled successfully. You\'ll retain premium access until your next billing date.');
-                    closePremiumSettings();
-                    
-                    // Refresh premium status
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                }
-            } catch (error) {
-                console.error('❌ Cancellation error:', error);
-                alert('❌ Failed to cancel subscription. Please contact support or manage your subscription through Stripe.');
-            }
-        }
+        // Cancel Subscription function removed - now handled through Stripe Customer Portal
         
         // Join Mailing List
         async function joinMailingList() {
