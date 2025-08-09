@@ -1625,55 +1625,107 @@
                 const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
                 
                 if (isMobile) {
-                    console.log('📱 Mobile device detected - using native PDF handling');
+                    console.log('🔍 DEBUG: Mobile device detected');
+                    console.log('🔍 DEBUG: Capacitor available:', !!window.Capacitor);
+                    console.log('🔍 DEBUG: Capacitor platform:', window.Capacitor?.getPlatform());
+                    console.log('🔍 DEBUG: Available plugins:', Object.keys(window.Capacitor?.Plugins || {}));
                     
                     try {
+                        console.log('🔍 DEBUG: Starting PDF generation...');
+                        
                         // Get PDF as base64
                         const pdfOutput = doc.output('datauristring');
                         const base64Data = pdfOutput.split(',')[1];
+                        
+                        console.log('🔍 DEBUG: PDF generated, size:', base64Data.length, 'chars');
                         
                         // Import Capacitor plugins
                         const { Filesystem, Browser } = window.Capacitor.Plugins;
                         const { Directory } = window.Capacitor;
                         
+                        console.log('🔍 DEBUG: Filesystem plugin available:', !!Filesystem);
+                        console.log('🔍 DEBUG: Browser plugin available:', !!Browser);
+                        console.log('🔍 DEBUG: Directory enum available:', !!Directory);
+                        
+                        if (!Filesystem) {
+                            throw new Error('Filesystem plugin not available');
+                        }
+                        
+                        if (!Browser) {
+                            throw new Error('Browser plugin not available');
+                        }
+                        
                         // Write file to Documents directory
+                        console.log('🔍 DEBUG: Writing file to Documents directory...');
                         const writeResult = await Filesystem.writeFile({
                             path: fileName,
                             data: base64Data,
                             directory: Directory.Documents
                         });
                         
-                        console.log('✅ PDF saved to:', writeResult.uri);
+                        console.log('✅ DEBUG: PDF saved successfully');
+                        console.log('🔍 DEBUG: File URI:', writeResult.uri);
                         
-                        // Open PDF directly in native viewer using Browser plugin
-                        await Browser.open({
+                        // Try to open PDF directly
+                        console.log('🔍 DEBUG: Attempting to open PDF with Browser plugin...');
+                        
+                        const browserResult = await Browser.open({
                             url: writeResult.uri,
                             presentationStyle: 'fullscreen'
                         });
                         
-                        console.log('✅ PDF opened in native viewer successfully');
+                        console.log('✅ DEBUG: Browser.open() completed');
+                        console.log('🔍 DEBUG: Browser result:', browserResult);
                         
                     } catch (mobileError) {
-                        console.error('❌ Mobile PDF handling failed:', mobileError);
-                        console.log('Error details:', mobileError);
+                        console.error('❌ DEBUG: Primary method failed:', mobileError);
+                        console.error('🔍 DEBUG: Error name:', mobileError.name);
+                        console.error('🔍 DEBUG: Error message:', mobileError.message);
+                        console.error('🔍 DEBUG: Error stack:', mobileError.stack);
                         
                         // Alternative approach: try data URI directly
                         try {
+                            console.log('🔍 DEBUG: Trying data URI fallback...');
                             const pdfDataUri = doc.output('datauristring');
                             const { Browser } = window.Capacitor.Plugins;
                             
-                            await Browser.open({
+                            console.log('🔍 DEBUG: Data URI length:', pdfDataUri.length);
+                            console.log('🔍 DEBUG: Data URI start:', pdfDataUri.substring(0, 50));
+                            
+                            const dataUriResult = await Browser.open({
                                 url: pdfDataUri,
                                 presentationStyle: 'fullscreen'
                             });
                             
-                            console.log('✅ PDF opened via data URI');
+                            console.log('✅ DEBUG: PDF opened via data URI');
+                            console.log('🔍 DEBUG: Data URI result:', dataUriResult);
                             
                         } catch (fallbackError) {
-                            console.error('❌ All mobile PDF methods failed:', fallbackError);
+                            console.error('❌ DEBUG: Data URI fallback failed:', fallbackError);
+                            console.error('🔍 DEBUG: Fallback error name:', fallbackError.name);
+                            console.error('🔍 DEBUG: Fallback error message:', fallbackError.message);
+                            
+                            // Try a simple URL test
+                            try {
+                                console.log('🔍 DEBUG: Testing Browser plugin with simple URL...');
+                                const { Browser } = window.Capacitor.Plugins;
+                                
+                                await Browser.open({
+                                    url: 'https://www.google.com',
+                                    presentationStyle: 'fullscreen'
+                                });
+                                
+                                console.log('✅ DEBUG: Browser plugin works with regular URLs');
+                                console.log('❌ DEBUG: Issue is specifically with PDF file/data URIs');
+                                
+                            } catch (testError) {
+                                console.error('❌ DEBUG: Browser plugin completely broken:', testError);
+                            }
+                            
                             // Final fallback - regular download
+                            console.log('🔍 DEBUG: Using final fallback - regular download');
                             doc.save(fileName);
-                            console.log('📱 Final fallback: PDF saved to Downloads');
+                            alert('📱 PDF saved to Downloads. Please open your file manager to view it.');
                         }
                     }
                 } else {
