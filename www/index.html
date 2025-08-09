@@ -546,7 +546,7 @@
         </div>
 
     <!-- Working Authentication Script -->
-    <script src="js/working-auth.js?v=SIGNOUT-DEBUG-v30000-1754440000"></script>
+    <script src="js/working-auth.js?v=PREMIUM-DEBUG-v40000-1754441000"></script>
     
     <!-- App Functionality -->
     <script>
@@ -2271,6 +2271,7 @@
                 }
                 
                 console.log('🔍 checkPremiumStatus: User found:', user.data.user.email);
+                console.log('🔍 checkPremiumStatus: User ID:', user.data.user.id);
                 console.log('🔍 checkPremiumStatus: Querying user_subscriptions table...');
                 
                 const { data: subscription, error } = await window.supabase
