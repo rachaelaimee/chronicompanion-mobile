@@ -1625,67 +1625,30 @@
                 const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
                 
                 if (isMobile) {
-                    console.log('🔍 DEBUG: Mobile device detected');
-                    console.log('🔍 DEBUG: Capacitor available:', !!window.Capacitor);
-                    console.log('🔍 DEBUG: Capacitor platform:', window.Capacitor?.getPlatform());
-                    console.log('🔍 DEBUG: Available plugins:', Object.keys(window.Capacitor?.Plugins || {}));
-                    
+                    // MOBILE: Save and open PDF natively
                     try {
-                        console.log('🔍 DEBUG: Starting PDF generation...');
-                        
-                        // Get PDF as base64
-                        const pdfOutput = doc.output('datauristring');
-                        const base64Data = pdfOutput.split(',')[1];
-                        
-                        console.log('🔍 DEBUG: PDF generated, size:', base64Data.length, 'chars');
-                        
-                        // Import Capacitor plugins
                         const { Filesystem, FileOpener } = window.Capacitor.Plugins;
                         const { Directory } = window.Capacitor;
                         
-                        console.log('🔍 DEBUG: Filesystem plugin available:', !!Filesystem);
-                        console.log('🔍 DEBUG: FileOpener plugin available:', !!FileOpener);
-                        console.log('🔍 DEBUG: Directory enum available:', !!Directory);
-                        
-                        if (!Filesystem) {
-                            throw new Error('Filesystem plugin not available');
-                        }
-                        
-                        if (!FileOpener) {
-                            throw new Error('FileOpener plugin not available');
-                        }
-                        
-                        // Write file to Documents directory
-                        console.log('🔍 DEBUG: Writing file to Documents directory...');
+                        // Save PDF to device
                         const writeResult = await Filesystem.writeFile({
                             path: fileName,
-                            data: base64Data,
+                            data: doc.output('datauristring').split(',')[1],
                             directory: Directory.Documents
                         });
                         
-                        console.log('✅ DEBUG: PDF saved successfully');
-                        console.log('🔍 DEBUG: File URI:', writeResult.uri);
-                        
-                        // Use FileOpener to open PDF in native viewer - this is the RIGHT way
-                        console.log('🔍 DEBUG: Opening PDF with FileOpener plugin...');
-                        
+                        // Open with native PDF viewer
                         await FileOpener.open({
                             path: writeResult.uri,
                             mime: 'application/pdf'
                         });
                         
-                        console.log('✅ DEBUG: PDF opened with FileOpener plugin');
-                        
-                    } catch (mobileError) {
-                        console.error('❌ DEBUG: FileOpener failed:', mobileError);
-                        console.error('🔍 DEBUG: Error name:', mobileError.name);
-                        console.error('🔍 DEBUG: Error message:', mobileError.message);
-                        
-                        // No download fallback - just show error
-                        alert('❌ Unable to open PDF. Please ensure you have a PDF viewer app installed.');
+                    } catch (error) {
+                        console.error('PDF export failed:', error);
+                        alert('Unable to open PDF. Please ensure you have a PDF viewer app installed.');
                     }
                 } else {
-                    // Web: Regular download with user feedback
+                    // WEB: Download PDF
                     doc.save(fileName);
                     alert('✅ PDF downloaded! Perfect for emailing to healthcare providers or printing.');
                 }
