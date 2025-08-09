@@ -9,8 +9,8 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // Credential Manager uses standard Capacitor plugins (App plugin)
-        // No additional plugin registration needed
+        // Capacitor 7 auto-registers plugins from capacitor.build.gradle
+        // No manual plugin registration needed
     }
     
     @Override

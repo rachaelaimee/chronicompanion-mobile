@@ -1643,11 +1643,11 @@
                     console.log('📱 Mobile PDF: Directory.Documents value:', Directory.Documents);
                     console.log('📱 Mobile PDF: Filesystem available:', !!Filesystem);
                     
-                    // Write file to Documents directory
+                    // Write file to Cache directory (easier permissions)
                     const result = await Filesystem.writeFile({
                         path: fileName,
                         data: base64Data,
-                        directory: Directory.Documents
+                        directory: Directory.Cache
                     });
                     
                     console.log('📱 Mobile PDF: File saved to:', result.uri);
