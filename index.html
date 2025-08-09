@@ -1633,7 +1633,7 @@
                         const base64Data = pdfOutput.split(',')[1];
                         
                         // Import Capacitor plugins
-                        const { Filesystem, Browser } = window.Capacitor.Plugins;
+                        const { Filesystem, Share } = window.Capacitor.Plugins;
                         const { Directory } = window.Capacitor;
                         
                         // Write file to Documents directory
@@ -1645,39 +1645,24 @@
                         
                         console.log('✅ PDF saved to:', writeResult.uri);
                         
-                        // Open PDF directly in native viewer using Browser plugin
-                        await Browser.open({
+                        // Try to share the PDF (this will open it in a PDF viewer)
+                        await Share.share({
+                            title: 'ChroniCompanion Health Report',
+                            text: 'Your health report from ChroniCompanion',
                             url: writeResult.uri,
-                            presentationStyle: 'fullscreen'
+                            dialogTitle: 'Share Health Report'
                         });
                         
-                        console.log('✅ PDF opened in native viewer successfully');
+                        console.log('✅ PDF shared successfully');
                         
                     } catch (mobileError) {
                         console.error('❌ Mobile PDF handling failed:', mobileError);
-                        console.log('Error details:', mobileError);
-                        
-                        // Alternative approach: try data URI directly
-                        try {
-                            const pdfDataUri = doc.output('datauristring');
-                            const { Browser } = window.Capacitor.Plugins;
-                            
-                            await Browser.open({
-                                url: pdfDataUri,
-                                presentationStyle: 'fullscreen'
-                            });
-                            
-                            console.log('✅ PDF opened via data URI');
-                            
-                        } catch (fallbackError) {
-                            console.error('❌ All mobile PDF methods failed:', fallbackError);
-                            // Final fallback - regular download
-                            doc.save(fileName);
-                            console.log('📱 Final fallback: PDF saved to Downloads');
-                        }
+                        // Fallback to regular download
+                        doc.save(fileName);
+                        alert('✅ PDF downloaded! Check your Downloads folder.');
                     }
                 } else {
-                    // Web: Regular download with user feedback
+                    // Web: Regular download
                     doc.save(fileName);
                     alert('✅ PDF downloaded! Perfect for emailing to healthcare providers or printing.');
                 }
