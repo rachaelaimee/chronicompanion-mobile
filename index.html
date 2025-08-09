@@ -2748,26 +2748,43 @@
             
             try {
                 const { data: { user } } = await window.supabase.auth.getUser();
+                const userEmail = user?.email || 'Anonymous User';
                 
-                // Store feedback in database
-                const { error } = await window.supabase
-                    .from('user_feedback')
-                    .insert([{
-                        user_id: user?.id,
-                        feedback: feedback,
-                        submitted_at: new Date().toISOString(),
-                        source: 'premium_settings'
-                    }]);
+                // Create email content
+                const subject = 'ChroniCompanion Feedback';
+                const emailBody = `From: ${userEmail}%0D%0AUser ID: ${user?.id || 'Anonymous'}%0D%0ADate: ${new Date().toLocaleString()}%0D%0A%0D%0AFeedback:%0D%0A${encodeURIComponent(feedback)}`;
                 
-                if (error) {
-                    throw error;
+                // Open email client with pre-filled content
+                const mailtoLink = `mailto:ivytenebrae1@gmail.com?subject=${encodeURIComponent(subject)}&body=${emailBody}`;
+                window.open(mailtoLink, '_blank');
+                
+                // Also try to store in database as backup
+                try {
+                    await window.supabase
+                        .from('user_feedback')
+                        .insert([{
+                            user_id: user?.id,
+                            feedback: feedback,
+                            submitted_at: new Date().toISOString(),
+                            source: 'premium_settings'
+                        }]);
+                } catch (dbError) {
+                    console.log('ℹ️ Database storage failed, but email was sent:', dbError);
                 }
                 
                 document.getElementById('feedback-text').value = '';
-                alert('✅ Thank you for your feedback! We really appreciate it.');
+                alert('✅ Thank you for your feedback! An email has been opened for you to send.');
+                
             } catch (error) {
                 console.error('❌ Feedback error:', error);
-                alert('✅ Thank you for your feedback! (Note: Feedback table needs to be created in Supabase)');
+                // Fallback: still try to send email even if user lookup fails
+                const subject = 'ChroniCompanion Feedback';
+                const emailBody = `From: Anonymous User%0D%0ADate: ${new Date().toLocaleString()}%0D%0A%0D%0AFeedback:%0D%0A${encodeURIComponent(feedback)}`;
+                const mailtoLink = `mailto:ivytenebrae1@gmail.com?subject=${encodeURIComponent(subject)}&body=${emailBody}`;
+                window.open(mailtoLink, '_blank');
+                
+                document.getElementById('feedback-text').value = '';
+                alert('✅ Thank you for your feedback! An email has been opened for you to send.');
             }
         }
         
