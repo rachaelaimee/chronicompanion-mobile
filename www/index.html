@@ -214,6 +214,9 @@
                     <i class="fas fa-robot mr-1 md:mr-2"></i><span class="hidden sm:inline">AI Coach</span><span class="sm:hidden">AI</span>
                     <span id="ai-premium-badge" class="ml-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1 md:px-2 py-0.5 rounded-full">Premium</span>
                 </button>
+                <button id="tab-settings" onclick="showPremiumSettings()" class="py-2 px-2 md:px-3 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium transition-colors ml-2 text-xs md:text-sm">
+                    <i class="fas fa-cog mr-1"></i><span class="hidden sm:inline">⚙️ Settings</span><span class="sm:hidden">⚙️</span>
+                </button>
             </div>
                         
             <!-- New Entry Tab -->
@@ -488,7 +491,7 @@
                             <!-- Usage will be shown here -->
                         </div>
                         <div class="mt-2">
-                            <button onclick="showPremiumSettings()" class="text-xs text-purple-600 hover:text-purple-800 underline">
+                            <button id="premium-settings-btn" onclick="showPremiumSettings()" class="text-xs text-purple-600 hover:text-purple-800 underline">
                                 ⚙️ Premium Settings
                             </button>
                         </div>
@@ -564,7 +567,44 @@
         </div>
 
     <!-- Working Authentication Script -->
-    <script src="js/working-auth.js?v=PREMIUM-SETTINGS-v60000-1754443000"></script>
+    <script src="js/working-auth.js?v=TOP-TAB-v300000-1754449000"></script>
+    
+    <!-- Global Premium Settings Function -->
+    <script>
+        // Add Premium Settings button dynamically - GLOBAL FUNCTION
+        window.addPremiumSettingsButton = function() {
+            console.log('🔧 Attempting to add Premium Settings button...');
+            
+            // Check if button already exists
+            if (document.getElementById('premium-settings-btn')) {
+                console.log('ℹ️ Premium Settings button already exists');
+                return;
+            }
+            
+            // Find the AI usage display element
+            const aiUsageElement = document.getElementById('ai-usage-display');
+            if (!aiUsageElement) {
+                console.log('❌ ai-usage-display element not found');
+                return;
+            }
+            
+            console.log('✅ Found ai-usage-display element, adding button...');
+            
+            // Create the button container
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'mt-2';
+            buttonContainer.innerHTML = `
+                <button id="premium-settings-btn" onclick="showPremiumSettings()" 
+                        class="text-xs text-purple-600 hover:text-purple-800 underline">
+                    ⚙️ Premium Settings
+                </button>
+            `;
+            
+            // Insert after the usage display
+            aiUsageElement.parentNode.insertBefore(buttonContainer, aiUsageElement.nextSibling);
+            console.log('✅ Premium Settings button added successfully!');
+        }
+    </script>
     
     <!-- App Functionality -->
     <script>
@@ -1916,6 +1956,8 @@
                     await loadAIConversations();
                     // Load recent conversations for history display
                     await loadRecentConversations();
+                    // Add Premium Settings button
+                    addPremiumSettingsButton();
                     console.log('✅ AI Coach fully initialized and ready');
                     
                     // Set up event handlers
@@ -2298,9 +2340,13 @@
         
         // Update AI usage display
         async function updateAIUsageDisplay() {
+            const aiUsageElement = document.getElementById('ai-usage-display');
+            if (!aiUsageElement) return;
+            
             if (!aiCoach || !aiCoach.isInitialized) {
-                document.getElementById('ai-usage-display').innerHTML = 
+                aiUsageElement.innerHTML = 
                     '<span class="text-orange-600">⚙️ Setup Required</span>';
+                addPremiumSettingsButton();
                 return;
             }
             
@@ -2309,18 +2355,25 @@
                 const limit = aiCoach.dailyLimit;
                 
                 if (usage >= limit) {
-                    document.getElementById('ai-usage-display').innerHTML = 
+                    aiUsageElement.innerHTML = 
                         `<span class="text-red-600">⚠️ ${usage}/${limit} - Limit Reached</span>`;
                 } else {
-                    document.getElementById('ai-usage-display').innerHTML = 
+                    aiUsageElement.innerHTML = 
                         `<span class="text-green-600">✅ ${usage}/${limit} questions today</span>`;
                 }
+                
+                // Always add Premium Settings button after updating usage
+                addPremiumSettingsButton();
+                
             } catch (error) {
                 console.error('Error updating usage display:', error);
-                document.getElementById('ai-usage-display').innerHTML = 
+                aiUsageElement.innerHTML = 
                     '<span class="text-gray-600">Usage: Unknown</span>';
+                addPremiumSettingsButton();
             }
         }
+
+        // Premium Settings button is now defined globally above
         
         // Display AI error
         function displayAIError(errorMessage) {
@@ -2375,9 +2428,20 @@
                     
                 console.log('🔍 checkPremiumStatus: Subscription query result:', { subscription, error });
                     
-                if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-                    console.error('❌ Error checking premium status:', error);
-                    return false;
+                if (error) {
+                    if (error.code === 'PGRST116') {
+                        // No subscription found - user is free tier
+                        console.log('ℹ️ No premium subscription found - user is on free tier');
+                        return false;
+                    } else if (error.code === '42501' || error.message.includes('policy')) {
+                        // RLS policy error - treat as free user
+                        console.warn('⚠️ Database access issue - treating as free user:', error);
+                        return false;
+                    } else {
+                        // Other error
+                        console.error('❌ Error checking premium status:', error);
+                        return false;
+                    }
                 }
                 
                 const isPremium = !!subscription;
