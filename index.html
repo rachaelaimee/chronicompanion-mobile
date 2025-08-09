@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChroniCompanion - Your Daily Journey</title>
     
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
+    <!-- PWA Manifest REMOVED to prevent duplicate app installation -->
+    <!-- <link rel="manifest" href="/manifest.json"> -->
     <meta name="theme-color" content="#5a6e5a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1795,50 +1795,73 @@
                 }
             }
             
-            // 🔒 MOBILE FIX: Additional wait to ensure Supabase auth is fully initialized
-            console.log('🔍 Ensuring Supabase session is ready...');
+            // 🔒 IMPROVED MOBILE FIX: Check authentication status through working auth system
+            console.log('🔍 Checking authentication status...');
             const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
-            const maxSessionAttempts = isMobile ? 25 : 15; // Longer wait for mobile
-            console.log(`📱 Platform: ${isMobile ? 'Mobile' : 'Web'} - Max attempts: ${maxSessionAttempts}`);
+            console.log(`📱 Platform: ${isMobile ? 'Mobile' : 'Web'}`);
             
-            let sessionAttempts = 0;
+            // First, try to get session directly (faster approach)
             let userSession = null;
-            
-            while (sessionAttempts < maxSessionAttempts) {
-                try {
-                    const { data: { session }, error } = await window.supabase.auth.getSession();
-                    if (error) {
-                        console.warn(`⚠️ Session check error (attempt ${sessionAttempts + 1}):`, error);
-                    } else if (session?.user) {
-                        console.log('✅ Supabase session confirmed for user:', session.user.email);
-                        userSession = session;
-                        break;
-                    } else {
-                        console.log(`🔄 No session yet (attempt ${sessionAttempts + 1}), waiting...`);
+            try {
+                const { data: { session }, error } = await window.supabase.auth.getSession();
+                if (!error && session?.user) {
+                    console.log('✅ Direct session found for user:', session.user.email);
+                    userSession = session;
+                } else {
+                    console.log('🔄 No direct session, checking working auth...');
+                    
+                    // Check if working auth has a current user
+                    if (window.workingAuth && window.workingAuth.currentUser) {
+                        console.log('✅ Working auth has current user:', window.workingAuth.currentUser.email);
+                        // Try to get session again after a short wait
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        const { data: { session: retrySession } } = await window.supabase.auth.getSession();
+                        if (retrySession?.user) {
+                            userSession = retrySession;
+                            console.log('✅ Session retrieved after working auth check');
+                        }
                     }
-                } catch (error) {
-                    console.warn(`⚠️ Session check exception (attempt ${sessionAttempts + 1}):`, error);
                 }
-                
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                sessionAttempts++;
+            } catch (error) {
+                console.warn('⚠️ Session check error:', error);
             }
             
+            // If still no session, but user might be authenticated, show a more user-friendly message
             if (!userSession) {
-                console.error(`❌ No authenticated session found after ${maxSessionAttempts} seconds`);
-                console.log('🔒 Mobile: Forcing premium gate display due to session timeout');
-                showAIPremiumGate(); // Show premium gate as fallback for security
-                return;
+                console.log('⚠️ No session found - checking if user needs to sign in');
+                
+                // Check if the user is actually signed out vs. just having session issues
+                if (!window.workingAuth || !window.workingAuth.currentUser) {
+                    console.log('🔒 User not authenticated - showing premium gate');
+                    showAIPremiumGate();
+                    return;
+                } else {
+                    // User appears authenticated but session is having issues - try once more with longer wait
+                    console.log('🔄 User appears authenticated but session unavailable, trying extended wait...');
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    
+                    const { data: { finalSession } } = await window.supabase.auth.getSession();
+                    if (finalSession?.user) {
+                        userSession = finalSession;
+                        console.log('✅ Session retrieved after extended wait');
+                    } else {
+                        console.log('⚠️ Session still unavailable - showing premium gate as fallback');
+                        showAIPremiumGate();
+                        return;
+                    }
+                }
             }
             
             // Check if user has premium subscription
             console.log('🔍 Checking premium status...');
+            console.log('🔍 DEBUG: About to call checkPremiumStatus()');
             const isPremium = await checkPremiumStatus();
+            console.log('🔍 DEBUG: checkPremiumStatus() returned:', isPremium, typeof isPremium);
             
-            // 🔒 MOBILE FIX: Force premium gate display on mobile when not premium
+            // 🔒 IMPROVED MOBILE FIX: Handle premium status more gracefully
             if (!isPremium) {
                 if (isMobile) {
-                    console.log('🔒 Mobile: User is not premium - forcing premium gate display');
+                    console.log('🔒 Mobile: User is not premium - showing premium gate');
                 } else {
                     console.log('🔒 Web: User is not premium - showing premium gate');
                 }
@@ -2220,6 +2243,8 @@
         async function checkPremiumStatus() {
             try {
                 console.log('🔍 checkPremiumStatus: Starting premium check...');
+                console.log('🔍 DEBUG: window.supabase exists:', !!window.supabase);
+                console.log('🔍 DEBUG: window.supabase.auth exists:', !!(window.supabase && window.supabase.auth));
                 
                 // 🔒 MOBILE FIX: Add extra safety checks for mobile
                 const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
@@ -2234,6 +2259,9 @@
                 }
                 
                 const user = await window.supabase.auth.getUser();
+                console.log('🔍 DEBUG: getUser() result:', user);
+                console.log('🔍 DEBUG: user.data:', user.data);
+                console.log('🔍 DEBUG: user.data.user:', user.data.user);
                 if (!user.data.user) {
                     console.log('🔒 checkPremiumStatus: No authenticated user for premium check');
                     if (isMobile) {
