@@ -1058,7 +1058,12 @@
                 content.style.display = 'none';
             });
             
-            document.getElementById(`content-${tabName}`).style.display = 'block';
+            const targetContent = document.getElementById(`content-${tabName}`);
+            if (targetContent) {
+                targetContent.style.display = 'block';
+            } else {
+                console.error(`❌ Tab content not found: content-${tabName}`);
+            }
             
             // Load content based on tab
             if (tabName === 'dashboard') {
@@ -2697,10 +2702,12 @@
                 }
                 
                 // Show loading state
-                const button = event.target;
-                const originalText = button.innerHTML;
-                button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Opening Portal...';
-                button.disabled = true;
+                const button = event?.target;
+                const originalText = button?.innerHTML;
+                if (button) {
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Opening Portal...';
+                    button.disabled = true;
+                }
                 
                 // Create customer portal session
                 const response = await fetch('https://chronicompanion-mobile-production.up.railway.app/api/create-customer-portal-session', {
@@ -2718,7 +2725,7 @@
                 if (result.success && result.url) {
                     // Redirect to Stripe Customer Portal
                     window.open(result.url, '_blank');
-                    closePremiumSettings();
+                    // Portal opened successfully - no need to close anything since we're using a tab now
                 } else {
                     throw new Error(result.error || 'Failed to create portal session');
                 }
@@ -2728,9 +2735,9 @@
                 alert('❌ Unable to open subscription management. Please try again or contact support.');
             } finally {
                 // Reset button state
-                if (event.target) {
-                    event.target.innerHTML = originalText;
-                    event.target.disabled = false;
+                if (button && originalText) {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
                 }
             }
         }
