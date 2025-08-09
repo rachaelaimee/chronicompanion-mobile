@@ -2624,11 +2624,17 @@
                     <div class="mb-6 p-4 bg-green-50 rounded-lg">
                         <h3 class="font-semibold text-green-800 mb-2">✅ Active Premium Subscription</h3>
                         <p class="text-green-700 text-sm mb-3">$4.99/month • Unlimited AI features</p>
-                        <button onclick="cancelSubscription()" 
-                                class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
-                            Cancel Subscription
-                        </button>
-                        <p class="text-xs text-gray-500 mt-2">You'll retain access until your next billing date</p>
+                        <div class="space-y-2">
+                            <button onclick="manageSubscription()" 
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors mr-2">
+                                <i class="fas fa-cog mr-1"></i> Manage Subscription
+                            </button>
+                            <button onclick="cancelSubscription()" 
+                                    class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                                <i class="fas fa-times mr-1"></i> Cancel Subscription
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Use "Manage Subscription" to update payment methods, view invoices, or cancel through Stripe's secure portal</p>
                     </div>
                     
                     <!-- Mailing List Signup -->
@@ -2666,6 +2672,57 @@
             const modal = document.getElementById('premium-settings-modal');
             if (modal) {
                 modal.remove();
+            }
+        }
+        
+        // Manage Subscription via Stripe Customer Portal
+        async function manageSubscription() {
+            try {
+                console.log('🏪 Opening Stripe Customer Portal...');
+                
+                // Get current user
+                const { data: { user } } = await window.supabase.auth.getUser();
+                if (!user) {
+                    alert('❌ Please sign in to manage your subscription');
+                    return;
+                }
+                
+                // Show loading state
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Opening Portal...';
+                button.disabled = true;
+                
+                // Create customer portal session
+                const response = await fetch('https://chronicompanion-mobile-production.up.railway.app/api/create-customer-portal-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: user.id
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.url) {
+                    // Redirect to Stripe Customer Portal
+                    window.open(result.url, '_blank');
+                    closePremiumSettings();
+                } else {
+                    throw new Error(result.error || 'Failed to create portal session');
+                }
+                
+            } catch (error) {
+                console.error('❌ Manage subscription error:', error);
+                alert('❌ Unable to open subscription management. Please try again or contact support.');
+            } finally {
+                // Reset button state
+                if (event.target) {
+                    event.target.innerHTML = originalText;
+                    event.target.disabled = false;
+                }
             }
         }
         

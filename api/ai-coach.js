@@ -352,6 +352,86 @@ app.post('/api/create-checkout-session', async (req, res) => {
     }
 });
 
+// Create Customer Portal Session for Subscription Management
+app.post('/api/create-customer-portal-session', async (req, res) => {
+    console.log('🏪 Creating customer portal session...');
+    
+    try {
+        // Validate Stripe is configured
+        if (!stripe) {
+            console.error('❌ Stripe not configured');
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Payment service not configured' 
+            });
+        }
+        
+        const { userId } = req.body;
+        
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID is required'
+            });
+        }
+        
+        console.log('👤 Creating portal session for user:', userId);
+        
+        // Find the customer in Stripe using metadata or email
+        // First, get user's subscription from our database
+        if (!supabase) {
+            console.error('❌ Supabase not configured');
+            return res.status(503).json({ 
+                success: false, 
+                error: 'Database service not configured' 
+            });
+        }
+        
+        const { data: subscription, error } = await supabase
+            .from('user_subscriptions')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .single();
+        
+        if (error || !subscription) {
+            console.error('❌ No active subscription found for user:', userId);
+            return res.status(404).json({
+                success: false,
+                error: 'No active subscription found'
+            });
+        }
+        
+        console.log('💳 Found subscription:', subscription.subscription_id);
+        
+        // Get the Stripe subscription to find the customer
+        const stripeSubscription = await stripe.subscriptions.retrieve(subscription.subscription_id);
+        const customerId = stripeSubscription.customer;
+        
+        console.log('👤 Customer ID:', customerId);
+        
+        // Create the portal session
+        const portalSession = await stripe.billingPortal.sessions.create({
+            customer: customerId,
+            return_url: 'https://chronicompanion.app/#premium-settings', // Return to premium settings
+        });
+        
+        console.log('✅ Portal session created:', portalSession.id);
+        
+        res.json({
+            success: true,
+            url: portalSession.url
+        });
+        
+    } catch (error) {
+        console.error('❌ Customer portal error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create customer portal session'
+        });
+    }
+});
+
 // Stripe Webhook Handler
 app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     console.log('🔔 Stripe webhook received');
@@ -410,6 +490,37 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
                 }
                 break;
                 
+            case 'customer.subscription.updated':
+                const updatedSubscription = event.data.object;
+                console.log('🔄 Subscription updated:', updatedSubscription.id);
+                
+                // Handle subscription updates (plan changes, quantity changes, cancellation scheduling)
+                try {
+                    const updateData = {
+                        status: updatedSubscription.status,
+                    };
+                    
+                    // If subscription is scheduled for cancellation
+                    if (updatedSubscription.cancel_at_period_end) {
+                        updateData.status = 'cancelling'; // Will be cancelled at period end
+                        console.log('📅 Subscription scheduled for cancellation at period end');
+                    }
+                    
+                    const { error } = await supabase
+                        .from('user_subscriptions')
+                        .update(updateData)
+                        .eq('subscription_id', updatedSubscription.id);
+                    
+                    if (error) {
+                        console.error('❌ Failed to update subscription:', error);
+                    } else {
+                        console.log('✅ Subscription updated in database');
+                    }
+                } catch (dbError) {
+                    console.error('❌ Database error:', dbError);
+                }
+                break;
+                
             case 'customer.subscription.deleted':
                 const subscription = event.data.object;
                 console.log('❌ Subscription cancelled:', subscription.id);
@@ -429,6 +540,18 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
                 } catch (dbError) {
                     console.error('❌ Database error:', dbError);
                 }
+                break;
+                
+            case 'payment_method.attached':
+                console.log('💳 Payment method attached:', event.data.object.id);
+                break;
+                
+            case 'payment_method.detached':
+                console.log('💳 Payment method detached:', event.data.object.id);
+                break;
+                
+            case 'customer.updated':
+                console.log('👤 Customer updated:', event.data.object.id);
                 break;
                 
             default:
