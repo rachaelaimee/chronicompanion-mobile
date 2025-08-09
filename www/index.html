@@ -1640,19 +1640,19 @@
                         console.log('🔍 DEBUG: PDF generated, size:', base64Data.length, 'chars');
                         
                         // Import Capacitor plugins
-                        const { Filesystem, Browser } = window.Capacitor.Plugins;
+                        const { Filesystem, Share } = window.Capacitor.Plugins;
                         const { Directory } = window.Capacitor;
                         
                         console.log('🔍 DEBUG: Filesystem plugin available:', !!Filesystem);
-                        console.log('🔍 DEBUG: Browser plugin available:', !!Browser);
+                        console.log('🔍 DEBUG: Share plugin available:', !!Share);
                         console.log('🔍 DEBUG: Directory enum available:', !!Directory);
                         
                         if (!Filesystem) {
                             throw new Error('Filesystem plugin not available');
                         }
                         
-                        if (!Browser) {
-                            throw new Error('Browser plugin not available');
+                        if (!Share) {
+                            throw new Error('Share plugin not available');
                         }
                         
                         // Write file to Documents directory
@@ -1666,18 +1666,18 @@
                         console.log('✅ DEBUG: PDF saved successfully');
                         console.log('🔍 DEBUG: File URI:', writeResult.uri);
                         
-                        // Open PDF using Browser plugin - this works on Android
-                        console.log('🔍 DEBUG: Opening PDF with Browser plugin...');
+                        // Use Share to trigger native Intent system - this opens in actual PDF viewer
+                        console.log('🔍 DEBUG: Opening PDF with native Intent via Share...');
                         
-                        await Browser.open({
-                            url: writeResult.uri,
-                            presentationStyle: 'fullscreen'
+                        await Share.share({
+                            files: [writeResult.uri],
+                            dialogTitle: 'Open PDF'
                         });
                         
-                        console.log('✅ DEBUG: PDF opened with Browser plugin');
+                        console.log('✅ DEBUG: PDF opened with native Intent system');
                         
                     } catch (mobileError) {
-                        console.error('❌ DEBUG: Browser failed:', mobileError);
+                        console.error('❌ DEBUG: Share failed:', mobileError);
                         console.error('🔍 DEBUG: Error name:', mobileError.name);
                         console.error('🔍 DEBUG: Error message:', mobileError.message);
                         
