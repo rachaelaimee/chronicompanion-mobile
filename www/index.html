@@ -1653,16 +1653,18 @@
                             dialogTitle: 'Share Health Report'
                         });
                         
-                        console.log('✅ PDF shared successfully');
+                        console.log('✅ PDF opened in native viewer successfully');
+                        // No alert on mobile - the PDF viewer opens automatically
                         
                     } catch (mobileError) {
                         console.error('❌ Mobile PDF handling failed:', mobileError);
-                        // Fallback to regular download
+                        // Fallback to regular download only if native sharing fails
                         doc.save(fileName);
-                        alert('✅ PDF downloaded! Check your Downloads folder.');
+                        console.log('📱 Fallback: PDF saved to Downloads');
+                        // Still no alert - let the system handle it
                     }
                 } else {
-                    // Web: Regular download
+                    // Web: Regular download with user feedback
                     doc.save(fileName);
                     alert('✅ PDF downloaded! Perfect for emailing to healthcare providers or printing.');
                 }
