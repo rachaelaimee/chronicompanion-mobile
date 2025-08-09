@@ -435,15 +435,26 @@
                                 <!-- Export Section -->
                 <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <h3 class="text-lg font-semibold text-sage-800 mb-4">
-                        <i class="fas fa-file-pdf mr-2"></i>Export Health Report
+                        <i class="fas fa-download mr-2"></i>Export Your Data
                     </h3>
-                    <p class="text-gray-600 text-sm mb-4">
-                        Generate a comprehensive PDF report of your health entries. Perfect for sharing with healthcare providers, printing for appointments, or keeping personal records.
-                    </p>
-                    <button onclick="exportToPDF()" 
-                            class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg transition-colors duration-200 flex items-center justify-center w-full sm:w-auto">
-                        <i class="fas fa-file-pdf mr-2"></i>Export to PDF
-                    </button>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="exportToCSV()" 
+                                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                            <i class="fas fa-file-csv mr-2"></i>Export to CSV
+                        </button>
+                        <button onclick="exportToJSON()" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                            <i class="fas fa-file-code mr-2"></i>Export to JSON
+                        </button>
+                        <button onclick="exportToPDF()" 
+                                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                            <i class="fas fa-file-pdf mr-2"></i>Export to PDF
+                        </button>
+                        <button onclick="printReport()" 
+                                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center">
+                            <i class="fas fa-print mr-2"></i>Print Report
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Recent Entries Summary -->
@@ -1447,8 +1458,213 @@
             }
         }
         
-        // Export Functions - Simplified to PDF only for better user experience
+        // Export Functions
+        async function exportToCSV() {
+            try {
+                // Get current user
+                const user = await window.supabase.auth.getUser();
+                if (!user.data.user) {
+                    console.error('No authenticated user for exportToCSV');
+                    alert('Please sign in to export data.');
+                    return;
+                }
+                
+                // Fetch entries from Supabase database
+                const { data: entries, error } = await window.supabase
+                    .from('health_entries')
+                    .select('*')
+                    .eq('user_id', user.data.user.id)
+                    .order('entry_date', { ascending: false });
 
+                if (error) {
+                    console.error('❌ Error fetching entries for CSV export:', error);
+                    alert('Error loading entries for export. Please try again.');
+                    return;
+                }
+
+                if (!entries || entries.length === 0) {
+                    alert('No entries to export!');
+                    return;
+                }
+            
+            // CSV headers
+            const headers = ['Date', 'Mood', 'Energy', 'Pain', 'Sleep', 'Symptoms', 'Medications', 'Activities', 'Weather', 'Notes'];
+            
+            // Convert entries to CSV format
+            const csvData = entries.map(entry => {
+                return [
+                    entry.entry_date || '',
+                    entry.mood || '',
+                    entry.energy || '',
+                    entry.pain || '',
+                    entry.sleep || '',
+                    (entry.symptoms || []).join('; '),
+                    entry.medications || '',
+                    entry.activities || '',
+                    entry.weather || '',
+                    entry.notes || ''
+                ].map(field => `"${field}"`).join(',');
+            });
+            
+            // Combine headers and data
+            const csv = [headers.join(','), ...csvData].join('\n');
+            
+            // Create and download file
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chronicompanion-entries-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            console.log('✅ CSV export completed');
+            
+            } catch (error) {
+                console.error('❌ CSV export failed:', error);
+                alert('Failed to export CSV. Please try again.');
+            }
+        }
+        
+        async function exportToJSON() {
+            try {
+                // Get current user
+                const user = await window.supabase.auth.getUser();
+                if (!user.data.user) {
+                    console.error('No authenticated user for exportToJSON');
+                    alert('Please sign in to export data.');
+                    return;
+                }
+                
+                // Fetch entries from Supabase database
+                const { data: entries, error } = await window.supabase
+                    .from('health_entries')
+                    .select('*')
+                    .eq('user_id', user.data.user.id)
+                    .order('entry_date', { ascending: false });
+
+                if (error) {
+                    console.error('❌ Error fetching entries for JSON export:', error);
+                    alert('Error loading entries for export. Please try again.');
+                    return;
+                }
+
+                if (!entries || entries.length === 0) {
+                    alert('No entries to export!');
+                    return;
+                }
+            
+            // Create export object with metadata
+            const exportData = {
+                exported_at: new Date().toISOString(),
+                app_version: 'ChroniCompanion v1.3',
+                total_entries: entries.length,
+                entries: entries
+            };
+            
+            // Create and download file
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chronicompanion-entries-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            console.log('✅ JSON export completed');
+            
+            } catch (error) {
+                console.error('❌ JSON export failed:', error);
+                alert('Failed to export JSON. Please try again.');
+            }
+        }
+        
+        function printReport() {
+            const entries = JSON.parse(localStorage.getItem('chronicompanion_entries') || '[]');
+            
+            if (entries.length === 0) {
+                alert('No entries to print!');
+                return;
+            }
+            
+            // Calculate statistics
+            const totalEntries = entries.length;
+            const avgMood = entries.length > 0 ? (entries.reduce((sum, entry) => sum + (entry.mood || 0), 0) / entries.length).toFixed(1) : 'N/A';
+            const avgEnergy = entries.length > 0 ? (entries.reduce((sum, entry) => sum + (entry.energy || 0), 0) / entries.length).toFixed(1) : 'N/A';
+            const avgPain = entries.length > 0 ? (entries.reduce((sum, entry) => sum + (entry.pain || 0), 0) / entries.length).toFixed(1) : 'N/A';
+            
+            // Create printable HTML
+            const printContent = `
+                <html>
+                <head>
+                    <title>ChroniCompanion Health Report</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+                        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #5a6e5a; padding-bottom: 20px; }
+                        .stats { display: flex; justify-content: space-around; margin: 20px 0; }
+                        .stat-box { text-align: center; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+                        .entry { margin: 20px 0; padding: 15px; border: 1px solid #eee; border-left: 4px solid #5a6e5a; }
+                        .entry-date { font-weight: bold; color: #5a6e5a; margin-bottom: 10px; }
+                        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 10px 0; }
+                        .metric { padding: 5px; background: #f9f9f9; border-radius: 3px; }
+                        .notes { margin-top: 10px; padding: 10px; background: #f6f7f6; border-radius: 5px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>🌱 ChroniCompanion Health Report</h1>
+                        <p>Generated on ${new Date().toLocaleDateString()}</p>
+                        <p>Total Entries: ${totalEntries}</p>
+                    </div>
+                    
+                    <div class="stats">
+                        <div class="stat-box">
+                            <h3>Average Mood</h3>
+                            <p>${avgMood}/10</p>
+                        </div>
+                        <div class="stat-box">
+                            <h3>Average Energy</h3>
+                            <p>${avgEnergy}/10</p>
+                        </div>
+                        <div class="stat-box">
+                            <h3>Average Pain</h3>
+                            <p>${avgPain}/10</p>
+                        </div>
+                    </div>
+                    
+                    <h2>Recent Entries</h2>
+                    ${entries.slice(0, 10).map(entry => `
+                        <div class="entry">
+                            <div class="entry-date">${new Date(entry.date).toLocaleDateString()}</div>
+                            <div class="metrics">
+                                <div class="metric">Mood: ${entry.mood}/10 ${getMoodEmoji(entry.mood)}</div>
+                                <div class="metric">Energy: ${entry.energy}/10 ${getEnergyEmoji(entry.energy)}</div>
+                                ${entry.pain !== undefined ? `<div class="metric">Pain: ${entry.pain}/10 ${getPainEmoji(entry.pain)}</div>` : ''}
+                                ${entry.sleep !== undefined ? `<div class="metric">Sleep: ${entry.sleep}/10 ${getSleepEmoji(entry.sleep)}</div>` : ''}
+                            </div>
+                            ${entry.symptoms && entry.symptoms.length > 0 ? `<div><strong>Symptoms:</strong> ${entry.symptoms.join(', ')}</div>` : ''}
+                            ${entry.medications ? `<div><strong>Medications:</strong> ${entry.medications}</div>` : ''}
+                            ${entry.activities ? `<div><strong>Activities:</strong> ${entry.activities}</div>` : ''}
+                            ${entry.weather ? `<div><strong>Weather:</strong> ${entry.weather}</div>` : ''}
+                            ${entry.notes ? `<div class="notes"><strong>Notes:</strong> ${entry.notes}</div>` : ''}
+                        </div>
+                    `).join('')}
+                </body>
+                </html>
+            `;
+            
+            // Open print dialog
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.print();
+            
+            console.log('✅ Print report opened');
+        }
         
         // PDF Export Function (updated to fetch from Supabase)
         async function exportToPDF() {
