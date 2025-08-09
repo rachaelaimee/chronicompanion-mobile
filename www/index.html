@@ -1680,15 +1680,12 @@
                         console.log('🔍 DEBUG: Share result:', shareResult);
                         
                     } catch (mobileError) {
-                        console.error('❌ DEBUG: Primary method failed:', mobileError);
+                        console.error('❌ DEBUG: Share failed:', mobileError);
                         console.error('🔍 DEBUG: Error name:', mobileError.name);
                         console.error('🔍 DEBUG: Error message:', mobileError.message);
-                        console.error('🔍 DEBUG: Error stack:', mobileError.stack);
                         
-                        // Fallback - regular download if Share fails
-                        console.log('🔍 DEBUG: Share failed, using download fallback');
-                        doc.save(fileName);
-                        alert('📱 PDF saved to Downloads. Please open your file manager to view it.');
+                        // No download fallback - just show error
+                        alert('❌ Unable to open PDF. Please ensure you have a PDF viewer app installed.');
                     }
                 } else {
                     // Web: Regular download with user feedback
