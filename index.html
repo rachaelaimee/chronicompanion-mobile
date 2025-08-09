@@ -1625,30 +1625,59 @@
                 const isMobile = window.Capacitor && window.Capacitor.getPlatform() !== 'web';
                 
                 if (isMobile) {
-                    // MOBILE: Save and open PDF natively
+                    console.log('📱 Mobile device detected - using native PDF handling');
+                    
                     try {
-                        const { Filesystem, FileOpener } = window.Capacitor.Plugins;
+                        // Get PDF as base64
+                        const pdfOutput = doc.output('datauristring');
+                        const base64Data = pdfOutput.split(',')[1];
+                        
+                        // Import Capacitor plugins
+                        const { Filesystem, Browser } = window.Capacitor.Plugins;
                         const { Directory } = window.Capacitor;
                         
-                        // Save PDF to device
+                        // Write file to Documents directory
                         const writeResult = await Filesystem.writeFile({
                             path: fileName,
-                            data: doc.output('datauristring').split(',')[1],
+                            data: base64Data,
                             directory: Directory.Documents
                         });
                         
-                        // Open with native PDF viewer
-                        await FileOpener.open({
-                            path: writeResult.uri,
-                            mime: 'application/pdf'
+                        console.log('✅ PDF saved to:', writeResult.uri);
+                        
+                        // Open PDF directly in native viewer using Browser plugin
+                        await Browser.open({
+                            url: writeResult.uri,
+                            presentationStyle: 'fullscreen'
                         });
                         
-                    } catch (error) {
-                        console.error('PDF export failed:', error);
-                        alert('Unable to open PDF. Please ensure you have a PDF viewer app installed.');
+                        console.log('✅ PDF opened in native viewer successfully');
+                        
+                    } catch (mobileError) {
+                        console.error('❌ Mobile PDF handling failed:', mobileError);
+                        console.log('Error details:', mobileError);
+                        
+                        // Alternative approach: try data URI directly
+                        try {
+                            const pdfDataUri = doc.output('datauristring');
+                            const { Browser } = window.Capacitor.Plugins;
+                            
+                            await Browser.open({
+                                url: pdfDataUri,
+                                presentationStyle: 'fullscreen'
+                            });
+                            
+                            console.log('✅ PDF opened via data URI');
+                            
+                        } catch (fallbackError) {
+                            console.error('❌ All mobile PDF methods failed:', fallbackError);
+                            // Final fallback - regular download
+                            doc.save(fileName);
+                            console.log('📱 Final fallback: PDF saved to Downloads');
+                        }
                     }
                 } else {
-                    // WEB: Download PDF
+                    // Web: Regular download with user feedback
                     doc.save(fileName);
                     alert('✅ PDF downloaded! Perfect for emailing to healthcare providers or printing.');
                 }
