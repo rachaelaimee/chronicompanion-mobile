@@ -324,17 +324,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
             client_reference_id: user_id, // This will help us identify the user in webhooks
             line_items: [
                 {
-                    price_data: {
-                        currency: 'usd',
-                        product_data: {
-                            name: 'ChroniCompanion Premium',
-                            description: 'AI Health Coach, Advanced Analytics, Premium Features',
-                        },
-                        unit_amount: 499, // $4.99/month in cents
-                        recurring: {
-                            interval: 'month',
-                        },
-                    },
+                    price: 'prod_SpoSak2dwIG1Ym', // ChroniCompanion Premium - $4.99/month
                     quantity: 1,
                 },
             ],
