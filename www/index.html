@@ -489,6 +489,19 @@
                         </div>
                     </div>
                     
+                    <!-- Recent Conversations -->
+                    <div id="recent-conversations-section" class="mb-4" style="display: none;">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-medium text-gray-700 text-sm">Recent Conversations</h4>
+                            <button onclick="toggleRecentConversations()" class="text-xs text-purple-600 hover:text-purple-800">
+                                <span id="toggle-conversations-text">Hide</span>
+                            </button>
+                        </div>
+                        <div id="recent-conversations" class="max-h-48 overflow-y-auto bg-white border rounded-lg p-3 text-xs">
+                            <!-- Recent conversations will appear here -->
+                        </div>
+                    </div>
+
                     <!-- AI Chat Interface -->
                     <div id="ai-chat-container" class="border rounded-lg p-3 md:p-4 mb-3 md:mb-4 max-h-80 md:max-h-96 overflow-y-auto bg-gray-50">
                         <div id="ai-welcome-message" class="text-center text-gray-600 py-4 md:py-8">
@@ -546,7 +559,7 @@
         </div>
 
     <!-- Working Authentication Script -->
-    <script src="js/working-auth.js?v=PREMIUM-DEBUG-v40000-1754441000"></script>
+    <script src="js/working-auth.js?v=CHAT-HISTORY-v50000-1754442000"></script>
     
     <!-- App Functionality -->
     <script>
@@ -1896,6 +1909,8 @@
                     displayAIWelcomeMessage();
                     // Load previous AI conversations
                     await loadAIConversations();
+                    // Load recent conversations for history display
+                    await loadRecentConversations();
                     console.log('✅ AI Coach fully initialized and ready');
                     
                     // Set up event handlers
@@ -2152,11 +2167,18 @@
         // Save AI conversation to database
         async function saveAIConversation(question, response) {
             try {
+                const { data: { user } } = await window.supabase.auth.getUser();
+                if (!user) {
+                    console.warn('⚠️ No user found, skipping conversation save');
+                    return;
+                }
+
                 const { data, error } = await window.supabase
                     .from('ai_conversations')
                     .insert([
                         {
-                            user_id: window.currentUser?.id,
+                            user_id: user.id,
+                            user_email: user.email,
                             question: question,
                             response: response,
                             created_at: new Date().toISOString()
@@ -2167,6 +2189,8 @@
                     console.error('❌ Error saving AI conversation:', error);
                 } else {
                     console.log('✅ AI conversation saved to database');
+                    // Refresh chat history after saving
+                    await loadRecentConversations();
                 }
             } catch (error) {
                 console.error('❌ Error saving AI conversation:', error);
@@ -2176,10 +2200,16 @@
         // Load AI conversations from database
         async function loadAIConversations() {
             try {
+                const { data: { user } } = await window.supabase.auth.getUser();
+                if (!user) {
+                    console.warn('⚠️ No user found, skipping conversation load');
+                    return;
+                }
+
                 const { data, error } = await window.supabase
                     .from('ai_conversations')
                     .select('*')
-                    .eq('user_id', window.currentUser?.id)
+                    .eq('user_id', user.id)
                     .order('created_at', { ascending: true })
                     .limit(20); // Load last 20 conversations
                     
@@ -2201,6 +2231,63 @@
                 }
             } catch (error) {
                 console.error('❌ Error loading AI conversations:', error);
+            }
+        }
+
+        // Load recent conversations for history display
+        async function loadRecentConversations() {
+            try {
+                const { data: { user } } = await window.supabase.auth.getUser();
+                if (!user) return;
+
+                const { data, error } = await window.supabase
+                    .from('ai_conversations')
+                    .select('question, response, created_at')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(10); // Last 10 conversations
+                    
+                if (error) {
+                    console.error('❌ Error loading recent conversations:', error);
+                    return;
+                }
+                
+                // Update recent conversations display if it exists
+                const recentConversationsElement = document.getElementById('recent-conversations');
+                const recentConversationsSection = document.getElementById('recent-conversations-section');
+                
+                if (recentConversationsElement && data && data.length > 0) {
+                    recentConversationsElement.innerHTML = data.map(conv => `
+                        <div class="mb-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="text-sm text-gray-600 mb-1">${new Date(conv.created_at).toLocaleDateString()}</div>
+                            <div class="font-medium text-gray-800 mb-2">Q: ${conv.question.substring(0, 60)}${conv.question.length > 60 ? '...' : ''}</div>
+                            <div class="text-sm text-gray-700">A: ${conv.response.substring(0, 100)}${conv.response.length > 100 ? '...' : ''}</div>
+                        </div>
+                    `).join('');
+                    
+                    // Show the recent conversations section
+                    if (recentConversationsSection) {
+                        recentConversationsSection.style.display = 'block';
+                    }
+                } else if (recentConversationsElement) {
+                    recentConversationsElement.innerHTML = '<div class="text-gray-500 text-center py-4">No recent conversations yet. Start by asking Chroni a question!</div>';
+                }
+            } catch (error) {
+                console.error('❌ Error loading recent conversations:', error);
+            }
+        }
+
+        // Toggle recent conversations display
+        function toggleRecentConversations() {
+            const recentConversations = document.getElementById('recent-conversations');
+            const toggleText = document.getElementById('toggle-conversations-text');
+            
+            if (recentConversations.style.display === 'none') {
+                recentConversations.style.display = 'block';
+                toggleText.textContent = 'Hide';
+            } else {
+                recentConversations.style.display = 'none';
+                toggleText.textContent = 'Show';
             }
         }
         
