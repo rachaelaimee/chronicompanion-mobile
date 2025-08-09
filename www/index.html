@@ -1657,9 +1657,7 @@
                         
                     } catch (mobileError) {
                         console.error('❌ Mobile PDF handling failed:', mobileError);
-                        // Fallback to regular download
-                        doc.save(fileName);
-                        alert('✅ PDF downloaded! Check your Downloads folder.');
+                        alert('❌ Unable to open PDF. Please ensure you have a PDF viewer app installed.');
                     }
                 } else {
                     // Web: Regular download
