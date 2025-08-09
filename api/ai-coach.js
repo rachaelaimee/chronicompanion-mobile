@@ -425,18 +425,47 @@ app.post('/api/create-customer-portal-session', async (req, res) => {
         
         console.log('💳 Found subscription:', subscription);
         
-        if (!subscription.subscription_id) {
-            console.error('❌ Subscription has no Stripe subscription_id');
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid subscription data. Please contact support.'
-            });
+        let customerId = null;
+        
+        if (subscription.subscription_id) {
+            // Method 1: Get customer via Stripe subscription
+            try {
+                console.log('🔍 Retrieving Stripe subscription:', subscription.subscription_id);
+                const stripeSubscription = await stripe.subscriptions.retrieve(subscription.subscription_id);
+                customerId = stripeSubscription.customer;
+                console.log('✅ Found customer via subscription:', customerId);
+            } catch (stripeError) {
+                console.error('⚠️ Failed to get customer via subscription:', stripeError.message);
+            }
         }
         
-        // Get the Stripe subscription to find the customer
-        console.log('🔍 Retrieving Stripe subscription:', subscription.subscription_id);
-        const stripeSubscription = await stripe.subscriptions.retrieve(subscription.subscription_id);
-        const customerId = stripeSubscription.customer;
+        if (!customerId && subscription.email) {
+            // Method 2: Find customer by email in Stripe
+            try {
+                console.log('🔍 Searching for customer by email:', subscription.email);
+                const customers = await stripe.customers.list({
+                    email: subscription.email,
+                    limit: 1
+                });
+                
+                if (customers.data && customers.data.length > 0) {
+                    customerId = customers.data[0].id;
+                    console.log('✅ Found customer via email:', customerId);
+                } else {
+                    console.log('⚠️ No customer found with email:', subscription.email);
+                }
+            } catch (emailError) {
+                console.error('⚠️ Failed to search customer by email:', emailError.message);
+            }
+        }
+        
+        if (!customerId) {
+            console.error('❌ Could not find Stripe customer');
+            return res.status(400).json({
+                success: false,
+                error: 'Unable to find your Stripe customer record. Please contact support or try subscribing again.'
+            });
+        }
         
         console.log('👤 Customer ID:', customerId);
         
@@ -702,7 +731,7 @@ app.listen(port, '0.0.0.0', () => {
     console.log(`🔐 OpenAI: ${openai ? 'Ready' : 'Not configured'}`);
     console.log(`🗄️  Supabase: ${supabase ? 'Ready' : 'Not configured'}`);
     console.log(`💳 Stripe: ${stripe ? 'Ready' : 'Not configured'}`);
-    console.log(`📧 Resend: ${resend ? 'Ready' : 'Not configured'}`);
+    console.log(`📧 Resend: ${resend ? 'Ready' : 'Not configured - Add RESEND_API_KEY to env'}`);
 });
 
 module.exports = app;
