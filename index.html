@@ -1640,19 +1640,19 @@
                         console.log('🔍 DEBUG: PDF generated, size:', base64Data.length, 'chars');
                         
                         // Import Capacitor plugins
-                        const { Filesystem, Share } = window.Capacitor.Plugins;
+                        const { Filesystem, FileOpener } = window.Capacitor.Plugins;
                         const { Directory } = window.Capacitor;
                         
                         console.log('🔍 DEBUG: Filesystem plugin available:', !!Filesystem);
-                        console.log('🔍 DEBUG: Share plugin available:', !!Share);
+                        console.log('🔍 DEBUG: FileOpener plugin available:', !!FileOpener);
                         console.log('🔍 DEBUG: Directory enum available:', !!Directory);
                         
                         if (!Filesystem) {
                             throw new Error('Filesystem plugin not available');
                         }
                         
-                        if (!Share) {
-                            throw new Error('Share plugin not available');
+                        if (!FileOpener) {
+                            throw new Error('FileOpener plugin not available');
                         }
                         
                         // Write file to Documents directory
@@ -1666,18 +1666,18 @@
                         console.log('✅ DEBUG: PDF saved successfully');
                         console.log('🔍 DEBUG: File URI:', writeResult.uri);
                         
-                        // Use Share to trigger native Intent system - this opens in actual PDF viewer
-                        console.log('🔍 DEBUG: Opening PDF with native Intent via Share...');
+                        // Use FileOpener to open PDF in native viewer - this is the RIGHT way
+                        console.log('🔍 DEBUG: Opening PDF with FileOpener plugin...');
                         
-                        await Share.share({
-                            files: [writeResult.uri],
-                            dialogTitle: 'Open PDF'
+                        await FileOpener.open({
+                            path: writeResult.uri,
+                            mime: 'application/pdf'
                         });
                         
-                        console.log('✅ DEBUG: PDF opened with native Intent system');
+                        console.log('✅ DEBUG: PDF opened with FileOpener plugin');
                         
                     } catch (mobileError) {
-                        console.error('❌ DEBUG: Share failed:', mobileError);
+                        console.error('❌ DEBUG: FileOpener failed:', mobileError);
                         console.error('🔍 DEBUG: Error name:', mobileError.name);
                         console.error('🔍 DEBUG: Error message:', mobileError.message);
                         
