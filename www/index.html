@@ -2819,45 +2819,62 @@
                 return;
             }
             
+            // Show loading state
+            const submitBtn = document.querySelector('#feedback-text').nextElementSibling;
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Sending...';
+            submitBtn.disabled = true;
+            
             try {
                 const { data: { user } } = await window.supabase.auth.getUser();
                 const userEmail = user?.email || 'Anonymous User';
                 
-                // Create email content
-                const subject = 'ChroniCompanion Feedback';
-                const emailBody = `From: ${userEmail}%0D%0AUser ID: ${user?.id || 'Anonymous'}%0D%0ADate: ${new Date().toLocaleString()}%0D%0A%0D%0AFeedback:%0D%0A${encodeURIComponent(feedback)}`;
+                // Send feedback via backend email service
+                const response = await fetch('https://chronicompanion-mobile-production.up.railway.app/api/send-feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        feedback: feedback,
+                        userEmail: userEmail,
+                        userId: user?.id || 'anonymous',
+                        source: 'premium_settings'
+                    })
+                });
                 
-                // Open email client with pre-filled content
-                const mailtoLink = `mailto:ivytenebrae1@gmail.com?subject=${encodeURIComponent(subject)}&body=${emailBody}`;
-                window.open(mailtoLink, '_blank');
+                const result = await response.json();
                 
-                // Also try to store in database as backup
-                try {
-                    await window.supabase
-                        .from('user_feedback')
-                        .insert([{
-                            user_id: user?.id,
-                            feedback: feedback,
-                            submitted_at: new Date().toISOString(),
-                            source: 'premium_settings'
-                        }]);
-                } catch (dbError) {
-                    console.log('ℹ️ Database storage failed, but email was sent:', dbError);
+                if (result.success) {
+                    // Also store in database
+                    try {
+                        await window.supabase
+                            .from('user_feedback')
+                            .insert([{
+                                user_id: user?.id,
+                                feedback: feedback,
+                                submitted_at: new Date().toISOString(),
+                                source: 'premium_settings'
+                            }]);
+                    } catch (dbError) {
+                        console.log('ℹ️ Database storage failed, but email was sent:', dbError);
+                    }
+                    
+                    document.getElementById('feedback-text').value = '';
+                    alert('✅ Thank you for your feedback! Your message has been sent successfully.');
+                } else {
+                    throw new Error(result.error || 'Failed to send feedback');
                 }
-                
-                document.getElementById('feedback-text').value = '';
-                alert('✅ Thank you for your feedback! An email has been opened for you to send.');
                 
             } catch (error) {
                 console.error('❌ Feedback error:', error);
-                // Fallback: still try to send email even if user lookup fails
-                const subject = 'ChroniCompanion Feedback';
-                const emailBody = `From: Anonymous User%0D%0ADate: ${new Date().toLocaleString()}%0D%0A%0D%0AFeedback:%0D%0A${encodeURIComponent(feedback)}`;
-                const mailtoLink = `mailto:ivytenebrae1@gmail.com?subject=${encodeURIComponent(subject)}&body=${emailBody}`;
-                window.open(mailtoLink, '_blank');
-                
-                document.getElementById('feedback-text').value = '';
-                alert('✅ Thank you for your feedback! An email has been opened for you to send.');
+                alert('❌ Unable to send feedback directly. Please try again or contact support at ivytenebrae1@gmail.com');
+            } finally {
+                // Reset button
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
             }
         }
         

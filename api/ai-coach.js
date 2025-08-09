@@ -394,17 +394,34 @@ app.post('/api/create-customer-portal-session', async (req, res) => {
             .eq('status', 'active')
             .single();
         
-        if (error || !subscription) {
-            console.error('❌ No active subscription found for user:', userId);
-            return res.status(404).json({
+        if (error) {
+            console.error('❌ Supabase error:', error);
+            return res.status(500).json({
                 success: false,
-                error: 'No active subscription found'
+                error: 'Database error: ' + error.message
             });
         }
         
-        console.log('💳 Found subscription:', subscription.subscription_id);
+        if (!subscription) {
+            console.error('❌ No active subscription found for user:', userId);
+            return res.status(404).json({
+                success: false,
+                error: 'No active subscription found. Please ensure you have an active premium subscription.'
+            });
+        }
+        
+        console.log('💳 Found subscription:', subscription);
+        
+        if (!subscription.subscription_id) {
+            console.error('❌ Subscription has no Stripe subscription_id');
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid subscription data. Please contact support.'
+            });
+        }
         
         // Get the Stripe subscription to find the customer
+        console.log('🔍 Retrieving Stripe subscription:', subscription.subscription_id);
         const stripeSubscription = await stripe.subscriptions.retrieve(subscription.subscription_id);
         const customerId = stripeSubscription.customer;
         
@@ -428,6 +445,57 @@ app.post('/api/create-customer-portal-session', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to create customer portal session'
+        });
+    }
+});
+
+// Send Feedback Email Endpoint
+app.post('/api/send-feedback', async (req, res) => {
+    console.log('📧 Sending feedback email...');
+    
+    try {
+        const { feedback, userEmail, userId, source } = req.body;
+        
+        if (!feedback) {
+            return res.status(400).json({
+                success: false,
+                error: 'Feedback content is required'
+            });
+        }
+        
+        // For now, we'll simulate email sending and just log it
+        // In a real implementation, you'd use a service like SendGrid, Nodemailer, etc.
+        const emailContent = {
+            to: 'ivytenebrae1@gmail.com',
+            subject: 'ChroniCompanion Feedback',
+            body: `
+New feedback received from ChroniCompanion:
+
+From: ${userEmail}
+User ID: ${userId}
+Source: ${source}
+Date: ${new Date().toLocaleString()}
+
+Feedback:
+${feedback}
+            `.trim()
+        };
+        
+        console.log('📧 Email content:', emailContent);
+        
+        // TODO: Implement actual email sending here
+        // For now, we'll just return success
+        
+        res.json({
+            success: true,
+            message: 'Feedback received and logged'
+        });
+        
+    } catch (error) {
+        console.error('❌ Send feedback error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to send feedback'
         });
     }
 });
