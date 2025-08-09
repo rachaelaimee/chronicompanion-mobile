@@ -9,6 +9,7 @@ const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const { OpenAI } = require('openai');
 const Stripe = require('stripe');
+const { Resend } = require('resend');
 require('dotenv').config();
 
 const app = express();
@@ -19,6 +20,7 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const openaiApiKey = process.env.OPENAI_API_KEY;
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const resendApiKey = process.env.RESEND_API_KEY;
 
 console.log('🚀 ChroniCompanion AI Coach API Starting...');
 console.log('- PORT:', port);
@@ -26,11 +28,13 @@ console.log('- OPENAI_API_KEY:', openaiApiKey ? '✅ Set' : '❌ Missing');
 console.log('- SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
 console.log('- SUPABASE_SERVICE_KEY:', supabaseServiceKey ? '✅ Set' : '❌ Missing');
 console.log('- STRIPE_SECRET_KEY:', stripeSecretKey ? '✅ Set' : '❌ Missing');
+console.log('- RESEND_API_KEY:', resendApiKey ? '✅ Set' : '❌ Missing');
 
 // Initialize services
 let openai = null;
 let supabase = null;
 let stripe = null;
+let resend = null;
 
 if (openaiApiKey) {
     try {
@@ -56,6 +60,15 @@ if (stripeSecretKey) {
         console.log('✅ Stripe client initialized');
     } catch (error) {
         console.error('❌ Stripe initialization failed:', error.message);
+    }
+}
+
+if (resendApiKey) {
+    try {
+        resend = new Resend(resendApiKey);
+        console.log('✅ Resend client initialized');
+    } catch (error) {
+        console.error('❌ Resend initialization failed:', error.message);
     }
 }
 
@@ -463,12 +476,44 @@ app.post('/api/send-feedback', async (req, res) => {
             });
         }
         
-        // For now, we'll simulate email sending and just log it
-        // In a real implementation, you'd use a service like SendGrid, Nodemailer, etc.
-        const emailContent = {
-            to: 'ivytenebrae1@gmail.com',
-            subject: 'ChroniCompanion Feedback',
-            body: `
+        // Send email using Resend
+        if (!resend) {
+            console.error('❌ Resend not configured');
+            return res.status(503).json({
+                success: false,
+                error: 'Email service not configured. Please set RESEND_API_KEY environment variable.'
+            });
+        }
+        
+        const emailHtml = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #7c3aed;">📧 ChroniCompanion Feedback</h2>
+                
+                <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p><strong>From:</strong> ${userEmail}</p>
+                    <p><strong>User ID:</strong> ${userId}</p>
+                    <p><strong>Source:</strong> ${source}</p>
+                    <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+                </div>
+                
+                <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 20px; border-radius: 8px;">
+                    <h3 style="color: #374151; margin-top: 0;">Feedback:</h3>
+                    <p style="white-space: pre-wrap; line-height: 1.6;">${feedback}</p>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 12px; margin-top: 20px;">
+                    This email was sent automatically from ChroniCompanion.
+                </p>
+            </div>
+        `;
+        
+        try {
+            const emailResult = await resend.emails.send({
+                from: 'ChroniCompanion <feedback@chronicompanion.app>',
+                to: ['ivytenebrae1@gmail.com'],
+                subject: '📧 ChroniCompanion Feedback',
+                html: emailHtml,
+                text: `
 New feedback received from ChroniCompanion:
 
 From: ${userEmail}
@@ -478,18 +523,35 @@ Date: ${new Date().toLocaleString()}
 
 Feedback:
 ${feedback}
-            `.trim()
-        };
-        
-        console.log('📧 Email content:', emailContent);
-        
-        // TODO: Implement actual email sending here
-        // For now, we'll just return success
-        
-        res.json({
-            success: true,
-            message: 'Feedback received and logged'
-        });
+                `.trim()
+            });
+            
+            console.log('✅ Email sent successfully:', emailResult.id);
+            
+            res.json({
+                success: true,
+                message: 'Feedback sent successfully',
+                emailId: emailResult.id
+            });
+            
+        } catch (emailError) {
+            console.error('❌ Email sending failed:', emailError);
+            
+            // Fallback: still log the feedback even if email fails
+            console.log('📧 Feedback (email failed):', {
+                from: userEmail,
+                userId: userId,
+                source: source,
+                feedback: feedback,
+                date: new Date().toLocaleString()
+            });
+            
+            res.status(500).json({
+                success: false,
+                error: 'Failed to send email. Please try again or contact support directly.',
+                details: emailError.message
+            });
+        }
         
     } catch (error) {
         console.error('❌ Send feedback error:', error);
@@ -640,6 +702,7 @@ app.listen(port, '0.0.0.0', () => {
     console.log(`🔐 OpenAI: ${openai ? 'Ready' : 'Not configured'}`);
     console.log(`🗄️  Supabase: ${supabase ? 'Ready' : 'Not configured'}`);
     console.log(`💳 Stripe: ${stripe ? 'Ready' : 'Not configured'}`);
+    console.log(`📧 Resend: ${resend ? 'Ready' : 'Not configured'}`);
 });
 
 module.exports = app;

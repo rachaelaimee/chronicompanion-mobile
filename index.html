@@ -2046,6 +2046,9 @@
                     
                     // CRITICAL FIX: Only set flag when AI Coach actually succeeds
                     isAIInitialized = true;
+                    
+                    // Update usage display now that AI is initialized
+                    updateAIUsageDisplay();
                 } else {
                     displayAISetupMessage();
                     console.log('⚠️ AI Coach initialization failed - setup required');
